@@ -6,7 +6,7 @@
 
 ### Software Installation
 
-### Pipeline Script Layout
+### Pipeline Layout
 
 ##### main_wrap.py
 
