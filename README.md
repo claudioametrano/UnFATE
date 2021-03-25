@@ -3,7 +3,6 @@
 ### Languages and Packages
 
 ### Software Required
-#### Trimmomatic - https://github.com/timflutre/trimmomatic
 
 ### Software Installation
 
