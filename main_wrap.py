@@ -149,7 +149,6 @@ def run_gblocks(DNAextension, AAextension, path, path_to_gblocks):
 def check_arg(args=None):
 	''' 
 	Argument input for Wrapper: target enrichment fastq files, assemblies fasta, WGS fasta AND target genes fasta 
-	Dependancies: mafft, RAxML, IQTREE, ASTRALIII in your $PATH
 	
 	'''
 	parser = argparse.ArgumentParser(description='Run the whole pipeline to raw data to phylogenetic tree')
@@ -162,9 +161,9 @@ def check_arg(args=None):
 	parser.add_argument('-t', '--target_enrichment_data', default= '',
 						help='Path to target enriched data, USE AN ABSOLUTE PATH! Files must end with "R1.fastq.gz" and "R2.fastq.gz"',
 						)
-	parser.add_argument('-w', '--whole_genome_data', default= '',
-						help='Input path of de novo whole genome sequence data.'
-						)
+#	parser.add_argument('-w', '--whole_genome_data', default= '',
+#						help='Input path of de novo whole genome sequence data.'
+#						)
 	parser.add_argument('-a', '--assemblies', default= '',
 						help='Path to assemblies, USE AN ABSOLUTE PATH! Files must end with ".fna.gz" or ".fna"',
 						)	
@@ -261,17 +260,17 @@ def main():
 		list_of_list = list(itertools.product(pezizo_list, empty_list))
 		print(list_of_list)
 		logging.info("Running exonerate using exonerate_hits.py script from Hybpiper..")	
-		# ~ args.cpu = int(args.cpu)
-		# ~ pool = multiprocessing.Pool(processes=args.cpu)
-		# ~ pool.starmap(run_exonerate_hits, list_of_list)
+		args.cpu = int(args.cpu)
+		pool = multiprocessing.Pool(processes=args.cpu)
+		pool.starmap(run_exonerate_hits, list_of_list)
 	
 	if args.target_enrichment_data:
 		logging.info("*********************************************************************************")
 		logging.info("TRIMMING TARGET ENRICHMENT FASTQ FILES  WITH TRIMMOMATC")
 		logging.info("*********************************************************************************")
 		logging.info('Path to TE data: '+path_to_sequences)
-		# ~ trimming_cmd = "python3 {}/trimmer.py -f {}".format(main_script_dir, args.target_enrichment_data)
-		# ~ os.system(trimming_cmd)
+		trimming_cmd = "python3 {}/trimmer.py -f {}".format(main_script_dir, args.target_enrichment_data)
+		os.system(trimming_cmd)
 		#Get namelist.txt from dataset directory
 		namelist_cmd = 'python3 {}/getNameList.py -f {}'.format(main_script_dir, args.target_enrichment_data)
 		os.system(namelist_cmd)
@@ -288,18 +287,18 @@ def main():
 			for line in f:
 				logging.info("Processing sample:" + line)
 				sample_path = path_to_sequences + '/' + line.rstrip('\n') + '_R*.trimmed_paired.fastq'
-				# ~ run_Hybpiper =  '{}HybPiper/reads_first.py -b {} -r {}  --prefix {} --cpu {} '.format(main_script_dir, args.target_markers, sample_path, line, args.cpu)
-				# ~ os.system(run_Hybpiper)
+				run_Hybpiper =  '{}HybPiper/reads_first.py -b {} -r {}  --prefix {} --cpu {} '.format(main_script_dir, args.target_markers, sample_path, line, args.cpu)
+				os.system(run_Hybpiper)
 		os.chdir(main_script_dir)		
 		
 		logging.info("****************************")
 		logging.info("BUILDING FASTA FILES")
 		logging.info("****************************")
 		logging.info("Building alignments from assemblies data")
-		# ~ get_alignment(args.assemblies)
+		get_alignment(args.assemblies)
 		logging.info("Building alignments from target enrichment data")
-		# ~ get_alignment(args.target_enrichment_data)
-		# ~ merge_alignments(args.assemblies, args.target_enrichment_data)
+		get_alignment(args.target_enrichment_data)
+		merge_alignments(args.assemblies, args.target_enrichment_data)
 		
 		logging.info("********************************************************")
 		logging.info("PERFORMING ALIGNMENT WITH OMM_MACSE")
@@ -310,9 +309,9 @@ def main():
 		path_to_merged_alignments = args.target_enrichment_data.replace('target_enrichment/', 'alignments_merged/')
 		MACSE_dir = main_script_dir + "MACSE_V2_PIPELINES/OMM_MACSE/"
 		MACSE_script = MACSE_dir + "S_OMM_MACSE_V10.02.sh"
-		# ~ run_OMM_MACSE = 'find %s -type f -name "*_nucleotide_merged.fasta" | parallel -j %s %s --out_dir {}_out --out_file_prefix macsed --in_seq_file {} --no_prefiltering --no_postfiltering --alignAA_soft MAFFT  --min_percent_NT_at_ends 0.01 ' %(path_to_merged_alignments, args.cpu, MACSE_script)
-		# ~ os.system(run_OMM_MACSE)
-		# ~ print(run_OMM_MACSE)
+		run_OMM_MACSE = 'find %s -type f -name "*_nucleotide_merged.fasta" | parallel -j %s %s --out_dir {}_out --out_file_prefix macsed --in_seq_file {} --no_prefiltering --no_postfiltering --alignAA_soft MAFFT  --min_percent_NT_at_ends 0.01 ' %(path_to_merged_alignments, args.cpu, MACSE_script)
+		os.system(run_OMM_MACSE)
+		print(run_OMM_MACSE)
 
 		path_to_macsed_align = path_to_merged_alignments.replace('alignments_merged/','macsed_alignments/')
 		make_align_fold = "mkdir {}".format(path_to_macsed_align)
@@ -340,24 +339,24 @@ def main():
 		logging.info("**************************************************************************")
 		raxml_script = main_script_dir + "raxml-ng"
 		print(path_to_macsed_align)
-		# ~ raxml_parallel = "find %s -type f  -name '*_final_align_NT.aln.fas' | parallel -j %s %s --all --msa {} --model GTR+G --prefix {} --seed 888 --threads 1 --bs-metric tbe " %(path_to_macsed_align, args.cpu, raxml_script)
-		# ~ os.system(raxml_parallel)
-		# ~ if args.gblocks_relaxed:
-			# ~ raxml_parallel1 = "find %s -type f  -name '*_final_align_NT.aln.fas-gb' | parallel -j %s %s --all --msa {} --model GTR+G --prefix {} --seed 888 --threads 1 --bs-metric tbe" %(path_to_macsed_align, args.cpu, raxml_script)
-			# ~ os.system(raxml_parallel1)
+		raxml_parallel = "find %s -type f  -name '*_final_align_NT.aln.fas' | parallel -j %s %s --all --msa {} --model GTR+G --prefix {} --seed 888 --threads 1 --bs-metric tbe " %(path_to_macsed_align, args.cpu, raxml_script)
+		os.system(raxml_parallel)
+		if args.gblocks_relaxed:
+			raxml_parallel1 = "find %s -type f  -name '*_final_align_NT.aln.fas-gb' | parallel -j %s %s --all --msa {} --model GTR+G --prefix {} --seed 888 --threads 1 --bs-metric tbe" %(path_to_macsed_align, args.cpu, raxml_script)
+			os.system(raxml_parallel1)
 		#amino acid alignments
-		# ~ raxml_parallel2 = "find %s -type f  -name '*_final_align_AA.aln.fas' | parallel -j %s %s --all --msa {} --model PROTGTR+G --prefix {} --seed 888 --threads 1 --bs-metric tbe" %(path_to_macsed_align, args.cpu, raxml_script)
-		# ~ os.system(raxml_parallel2)
-		# ~ if args.gblocks_relaxed:
-			# ~ raxml_parallel3 = "find %s -type f  -name '*_final_align_AA.aln.fas-gb' | parallel -j %s %s --all --msa {} --model PROTGTR+G --prefix {} --seed 888 --threads 1 --bs-metric tbe" %(path_to_macsed_align, args.cpu, raxml_script)
-			# ~ os.system(raxml_parallel3)
+		raxml_parallel2 = "find %s -type f  -name '*_final_align_AA.aln.fas' | parallel -j %s %s --all --msa {} --model PROTGTR+G --prefix {} --seed 888 --threads 1 --bs-metric tbe" %(path_to_macsed_align, args.cpu, raxml_script)
+		os.system(raxml_parallel2)
+		if args.gblocks_relaxed:
+			raxml_parallel3 = "find %s -type f  -name '*_final_align_AA.aln.fas-gb' | parallel -j %s %s --all --msa {} --model PROTGTR+G --prefix {} --seed 888 --threads 1 --bs-metric tbe" %(path_to_macsed_align, args.cpu, raxml_script)
+			os.system(raxml_parallel3)
 		path_to_single_trees = path_to_macsed_align.replace('macsed_alignments/', 'single_locus_trees/')
 		mkdir_raxml_out = "mkdir {}".format(path_to_single_trees) 
 		os.system(mkdir_raxml_out)
-		# ~ for root, dirs, files in os.walk(path_to_macsed_align, topdown=True):
-			# ~ for f in files:
-				# ~ if "raxml" in f:
-					# ~ os.rename(path_to_macsed_align + f, path_to_single_trees + f)
+		for root, dirs, files in os.walk(path_to_macsed_align, topdown=True):
+			for f in files:
+				if "raxml" in f:
+					os.rename(path_to_macsed_align + f, path_to_single_trees + f)
 		
 		logging.info("****************************************************************************")
 		logging.info("PERFORMING ALIGNMENTS CONCATENATION WITH Fasconcat")
@@ -446,15 +445,15 @@ def main():
 		logging.info("*********************************************************************")
 		logging.info("RECONSTRUCTING SUPERMATRIX TREE WITH IQTREE2")
 		logging.info("*********************************************************************")
-		# ~ iqtree_script=main_script_dir + "iqtree2"
-		# ~ iqtree_on_supermatrix =  "%s -s %s -Q %s -m MFP -B 1000 -T %s" %(iqtree_script, path_to_supermatrix_dna + 'FcC_supermatrix_NT.fasta' , path_to_supermatrix_dna + 'FcC_supermatrix_partition.txt', args.cpu)
-		# ~ os.system(iqtree_on_supermatrix)
-		# ~ iqtree_on_supermatrix =  "%s -s %s -Q %s -m MFP -B 1000 -T %s" %(iqtree_script, path_to_supermatrix_aa + 'FcC_supermatrix_AA.fasta' , path_to_supermatrix_aa + 'FcC_supermatrix_partition.txt', args.cpu)
-		# ~ os.system(iqtree_on_supermatrix)
-		# ~ iqtree_on_supermatrix =  "%s -s %s -Q %s -m MFP -B 1000 -T %s" %(iqtree_script, path_to_supermatrix_gblocked_dna + 'FcC_supermatrix_gblocked_NT.fasta' , path_to_supermatrix_gblocked_dna + 'FcC_supermatrix_partition.txt', args.cpu)
-		# ~ os.system(iqtree_on_supermatrix)
-		# ~ iqtree_on_supermatrix =  "%s -s %s -Q %s -m MFP -B 1000 -T %s" %(iqtree_script, path_to_supermatrix_gblocked_aa + 'FcC_supermatrix_gblocked_AA.fasta' , path_to_supermatrix_gblocked_aa + 'FcC_supermatrix_partition.txt', args.cpu)
-		# ~ os.system(iqtree_on_supermatrix)
+		iqtree_script=main_script_dir + "iqtree2"
+		iqtree_on_supermatrix =  "%s -s %s -Q %s -m MFP -B 1000 -T %s" %(iqtree_script, path_to_supermatrix_dna + 'FcC_supermatrix_NT.fasta' , path_to_supermatrix_dna + 'FcC_supermatrix_partition.txt', args.cpu)
+		os.system(iqtree_on_supermatrix)
+		iqtree_on_supermatrix =  "%s -s %s -Q %s -m MFP -B 1000 -T %s" %(iqtree_script, path_to_supermatrix_aa + 'FcC_supermatrix_AA.fasta' , path_to_supermatrix_aa + 'FcC_supermatrix_partition.txt', args.cpu)
+		os.system(iqtree_on_supermatrix)
+		iqtree_on_supermatrix =  "%s -s %s -Q %s -m MFP -B 1000 -T %s" %(iqtree_script, path_to_supermatrix_gblocked_dna + 'FcC_supermatrix_gblocked_NT.fasta' , path_to_supermatrix_gblocked_dna + 'FcC_supermatrix_partition.txt', args.cpu)
+		os.system(iqtree_on_supermatrix)
+		iqtree_on_supermatrix =  "%s -s %s -Q %s -m MFP -B 1000 -T %s" %(iqtree_script, path_to_supermatrix_gblocked_aa + 'FcC_supermatrix_gblocked_AA.fasta' , path_to_supermatrix_gblocked_aa + 'FcC_supermatrix_partition.txt', args.cpu)
+		os.system(iqtree_on_supermatrix)
 	
 		##### MAYBE RUN RAXML-NG USING THE IQTREE TOPOLOGY TO GET mbe BOOTSRAP VALUES???
 		
