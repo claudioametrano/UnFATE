@@ -9,8 +9,7 @@
 
 ### Pipeline Script Layout
 
-##### hyb_wrap.py
-This is the wrapper script designed to take user input and direct the pipeline to use amino acid targets or nucleotide targets. 
+##### main_wrap.py
 
 ###### Input for script:
 --target_enrichment_data if target enrichment sequencing method 
