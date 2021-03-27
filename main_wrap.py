@@ -344,8 +344,7 @@ def main():
 						if i in d:
 							copy_folder = "cp -r {} {}".format(path_to_premined + "/" + d, path_to_premined_selected )
 							os.system(copy_folder) 
-				
-			
+					
 			# add the genes from the database	to the alignments		
 			for fi in os.listdir(path_to_merged_alignments):
 				if fi.endswith("_protein_merged.fasta"):
@@ -360,7 +359,6 @@ def main():
 												gene_file_content = gene_file.read()
 												#print(gene_file_content)
 												merged_ali.write(gene_file_content)
-
 			for fi in os.listdir(path_to_merged_alignments):
 				if fi.endswith("_nucleotide_merged.fasta"):
 					regex_pattern = re.search("Alignment_([0-9]+at[0-9]+)_(\w+)_merged.fasta", fi)
