@@ -22,7 +22,7 @@ In order to avoid the installation of dependancies and external software, that o
 
 							  Target enrichment sequencing (mandatory)                               |
                            /                                                                                                             |
-1. Data from:     --- assemblies (optional, also from NCBI assembly database)  | <-- Representative 
+1. Data from:     \-\-\- assemblies (optional, also from NCBI assembly database)  | <\-\- Representative 
                            \                                                                                                             |
                               Whole genome sequencing (optional)                                        |
                               
