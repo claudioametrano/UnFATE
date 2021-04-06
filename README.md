@@ -19,21 +19,21 @@ The wrapper script relies on many great software developed by other people. If y
 Many softwares needed to run the wrapper script are included in the repository, except Hybpiper, OMM_MACSE and ASTRAL. As new versions of these software are released, this wrapper could stop working properly.
 Im this case, please open a Github issue or contact claudiog.ametrano@gmail.com  
 
-1. Clone the repository with:
-	$ git clone https://github.com/claudioametrano/UnFATE.git 
+1. Clone the repository with:  
+	$ git clone https://github.com/claudioametrano/UnFATE.git  
 
-2. Clone Hybpiper, MACSE and ASTRAL from Github into the wrapper script folder:
-$ cd path/to/UnFATE
-$ python3 main_script.py --first_use
+2. Clone Hybpiper, MACSE and ASTRAL from Github into the wrapper script folder:  
+$ cd path/to/UnFATE  
+$ python3 main_script.py --first_use  
 
-3. Set file permission recursively for the wrapper script folder (read, write and execute rights, only for the owner):
-$ chmod -R 700 path/to/UnFATE
+3. Set file permission recursively for the wrapper script folder (read, write and execute rights, only for the owner):  
+$ chmod -R 700 path/to/UnFATE  
 
-4. Read the help section of the script to set up the command line for your analysis:
-$ python3 main_script.py --help
+4. Read the help section of the script to set up the command line for your analysis:  
+$ python3 main_script.py --help  
 
 IMPORTANT NOTE: folder containing data from target enrichment sequencing must be placed in a folder called "target_enrichment", the assemblies must be in a folder called "assemblies", in order to be used by the script.	
 
-5. Run the pipeline using the comman line. For example:
-$ python3 main_wrap.py -b ~/path/to/protein/fasta/protein_markers_aa.fas -t ~/path/to/target_enrichment/ -a ~/path/to/assemblies/ -g -c 8 -n Tuber Morchella
+5. Run the pipeline using the comman line. For example:  
+$ python3 main_wrap.py -b ~/path/to/protein/fasta/protein_markers_aa.fas -t ~/path/to/target_enrichment/ -a ~/path/to/assemblies/ -g -c 8 -n Tuber Morchella  
 
