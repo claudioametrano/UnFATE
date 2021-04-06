@@ -20,11 +20,9 @@ The wrapper script relies on many great software developed by other people. If y
 The wrapper is designed to be easy to use and to provide a fast way from target enrichment data (assemblies and whole genome sequence) to phylogenetic tree.
 In order to avoid the installation of dependancies and external software, that often lead to problems for inexperienced users (...well, not only for them), every software needed by UnFATE is already included in this repository, therefore, aknowledge their work citing them!!.
 
-							  Target enrichment sequencing (mandatory)                               |
-                           /                                                                                                             |
-1. Data from:     \-\-\- assemblies (optional, also from NCBI assembly database)  | <\-\- Representative 
-                           \                                                                                                             |
-                              Whole genome sequencing (optional)                                        |
+					     Target enrichment sequencing (mandatory)                                                                                                                                        
+1. Data from:  Assemblies (optional, also from NCBI assembly database)  <--  Representative 
+                        Whole genome sequencing (optional)                                        
                               
 2. Exonerate and Exonerate_hits.py script from Hybpiper to mine 
                               
