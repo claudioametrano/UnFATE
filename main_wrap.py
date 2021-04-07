@@ -188,16 +188,20 @@ def main():
 	#print(main_script_dir)
 	#print(args.target_enrichment_data)
 	#print(args.assemblies)
-	#Clones hybpiper into current directory
 	os.system('ulimit -n 1024000')
 	if args.first_use == True:
-		clone_hybpiper = 'git clone https://github.com/mossmatters/HybPiper.git'
-		os.system(clone_hybpiper)
-		logging.info("Hybpiper cloned")
-		clone_MACSE = 'git clone https://github.com/ranwez/MACSE_V2_PIPELINES.git'
-		os.system(clone_MACSE)
-		logging.info("MACSE alignment pipeline cloned")
-		# commands to modity OMM_MACSE main script and utilities with the right path to them instead of having to install Singularity to use it
+		
+		# this git clones are not needed anymore as this software are now included directly in the UnFATE repository to avoid the wrapper to crash when a new version is released (could use github 
+		# releases, but MACSE does not have releases). Kept here to easily clone them if needed
+		
+		#clone_hybpiper = 'git clone https://github.com/mossmatters/HybPiper.git'
+		#os.system(clone_hybpiper)
+		#logging.info("Hybpiper cloned")
+		#clone_MACSE = 'git clone https://github.com/ranwez/MACSE_V2_PIPELINES.git'
+		#os.system(clone_MACSE)
+		#logging.info("MACSE alignment pipeline cloned")
+		
+		# commands to modity OMM_MACSE main script and utilities with the right path to them instead of installing Singularity to use it
 		MACSE_dir = main_script_dir + "MACSE_V2_PIPELINES/OMM_MACSE/"
 		MACSE_script = MACSE_dir + "S_OMM_MACSE_V10.02.sh"
 		MACSE_utils_dir = main_script_dir + "MACSE_V2_PIPELINES/UTILS"
@@ -223,13 +227,16 @@ def main():
 				fin1.close()
 				fin1 = open(MACSE_utils_dir + "/LGS_Fasta" + "/" + filename, "wt")
 				fin1.write(data1)
-				fin1.close()		
-		clone_astral = "git clone https://github.com/smirarab/ASTRAL.git"
-		os.system(clone_astral)
-		os.chdir(main_script_dir + "ASTRAL/")
-		os.system("./make.sh")
-		os.chdir(main_script_dir)
-		logging.info("ASTRAL cloned")
+				fin1.close()
+		
+		# ASTRAL is now included in the repository, no need to clone (moreover the make script gives an error related to java version)				
+		
+		#clone_astral = "git clone https://github.com/smirarab/ASTRAL.git"
+		#os.system(clone_astral)
+		#os.chdir(main_script_dir + "ASTRAL/")
+		#os.system("./make.sh")
+		#os.chdir(main_script_dir)
+		#logging.info("ASTRAL cloned")
 	path_to_sequences = args.target_enrichment_data
 	
 	if args.ncbi_assemblies:
@@ -345,7 +352,7 @@ def main():
 							copy_folder = "cp -r {} {}".format(path_to_premined + "/" + d, path_to_premined_selected )
 							os.system(copy_folder) 
 					
-			# add the genes from the database	to the alignments		
+			# add the genes from the database to the alignments		
 			for fi in os.listdir(path_to_merged_alignments):
 				if fi.endswith("_protein_merged.fasta"):
 					regex_pattern = re.search("Alignment_([0-9]+at[0-9]+)_(\w+)_merged.fasta", fi)
