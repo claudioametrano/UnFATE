@@ -11,7 +11,7 @@ function quit_pb_option() {
 }
 
 # author : V. Ranwez
-LG_UTILS=/home/clof/Desktop/WRAPPERPROVA/UnFATE_last_version/UnFATE/MACSE_V2_PIPELINES/UTILS
+LG_UTILS=${LG_UTILS_PATH}
 source "$LG_UTILS"/S_utilIO.sh
 
 while (( $# > 0 )); do

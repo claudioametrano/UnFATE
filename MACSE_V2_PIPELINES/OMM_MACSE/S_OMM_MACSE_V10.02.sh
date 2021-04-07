@@ -24,7 +24,7 @@ function quit_pb_option() {
 script_name=$(basename "$0")
 wd_dir="$PWD"
 script_dir=$(dirname $(readlink -f "$0"))
-LG_UTILS=/home/clof/Desktop/WRAPPERPROVA/UnFATE_last_version/UnFATE/MACSE_V2_PIPELINES/UTILS
+LG_UTILS=${LG_UTILS_PATH}
 source "$LG_UTILS"/S_utilIO.sh
 
 #handle parameters
@@ -84,11 +84,11 @@ printf "============================ PROCESSING $PREFIX\n"
 
 ######################################
 # PROGRAMS ENVIRONMENT
-mafft="mafft --quiet $ALIGNER_EXTRA_OPTION"
-muscle="muscle $ALIGNER_EXTRA_OPTION"
-prank="prank $ALIGNER_EXTRA_OPTION"
-hmmcleaner="perl /home/clof/Desktop/WRAPPERPROVA/UnFATE_last_version/UnFATE/MACSE_V2_PIPELINES/UTILS/HMMcleanerV1_8_VR2/HMMcleanAA_VR.pl"
-macse="java -jar -Xms4g -Xmx8g /home/clof/Desktop/WRAPPERPROVA/UnFATE_last_version/UnFATE/MACSE_V2_PIPELINES/UTILS/macse_v2.03.jar"
+mafft="${LG_MAFFT} --quiet $ALIGNER_EXTRA_OPTION"
+muscle="${LG_MUSCLE} $ALIGNER_EXTRA_OPTION"
+prank="${LG_PRANK} $ALIGNER_EXTRA_OPTION"
+hmmcleaner="perl ${LG_HMMCLEANER}"
+macse="java -jar -Xmx${JAVA_MEM} ${LG_MACSE}"
 
 ######################################
 # handle temporary folder and files
