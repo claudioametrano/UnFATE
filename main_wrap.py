@@ -168,7 +168,7 @@ def check_arg(args=None):
 						help='Path to assemblies, USE AN ABSOLUTE PATH (include "/" after the folder name)!  Folder must be named "assemblies", Files must end with ".fna.gz" or ".fna"',
 						)	
 	parser.add_argument('-f', '--first_use', action= 'store_true', 
-						help='Clones Hybpiper and MACSE pipelines to your script directory from Github, use this argument only if is the first time you run the pipeline',
+						help='Modifies some path in MACSE pipeline folder, use this argument only if is the first time you run the pipeline, then do not move the UnFATE folder',
 						)		
 	parser.add_argument('-g', '--gblocks_relaxed', action= 'store_true', 
 						help='Applies Gblocks with relaxed parameters (Talavera et al. 2007), both Gblock filtered and unfiltered data will be used to build phylogenies',
@@ -243,7 +243,7 @@ def main():
 		logging.info("Extracting pre-mined NCBI assemblies genes")
 		path_to_premined = main_script_dir + "pre_mined_assemblies.tar.gz"
 		unzip_premined_assemblies = "tar -zxf {}".format(path_to_premined)
-		# ~ os.system(unzip_premined_assemblies)
+		os.system(unzip_premined_assemblies)
 		path_to_premined = main_script_dir + "pre_mined_assemblies/"
 		path_to_taxonomy = path_to_premined + "Accession_plus_taxonomy_Pezizomycotina.txt"
 		for item in args.ncbi_assemblies:
@@ -264,7 +264,7 @@ def main():
 	if args.assemblies:
 		path_to_assemblies = args.assemblies
 		logging.info("*******************************************************************************************")
-		logging.info("          PERFORMING ASSEMBLIES DATA ANALYSIS WITH Exonerate          *")
+		logging.info("          PERFORMING ASSEMBLIES DATA ANALYSIS WITH Exonerate          ")
 		logging.info("*******************************************************************************************")
 		logging.info('Path to assemblies '+path_to_assemblies)
 		
@@ -291,7 +291,7 @@ def main():
 	
 	if args.target_enrichment_data:
 		logging.info("*******************************************************************************************************")
-		logging.info("*          TRIMMING TARGET ENRICHMENT FASTQ FILES  WITH TRIMMOMATC          *")
+		logging.info("          TRIMMING TARGET ENRICHMENT FASTQ FILES  WITH TRIMMOMATC          ")
 		logging.info("*******************************************************************************************************")
 		logging.info('Path to TE data: '+path_to_sequences)
 		trimming_cmd = "python3 {}/trimmer.py -f {}".format(main_script_dir, args.target_enrichment_data)
@@ -304,9 +304,9 @@ def main():
 		logging.info("Gunzipping paired reads trimmed fastq archives")
 		gunzip_fastq =' parallel gunzip ::: {}*_paired.fastq.gz'.format(path_to_sequences) 
 		os.system(gunzip_fastq)
-		logging.info("**************************************************************************************")
-		logging.info("EXTRACTING GENES FROM TARGET ENRICHMENT DATA  WITH Hybpiper")
-		logging.info("**************************************************************************************")
+		logging.info("**********************************************************************************************************")
+		logging.info("           EXTRACTING GENES FROM TARGET ENRICHMENT DATA  WITH Hybpiper")
+		logging.info("**********************************************************************************************************")
 		os.chdir(path_to_sequences)
 		with open(path_to_namelist, 'r') as f:
 			for line in f:
@@ -315,9 +315,9 @@ def main():
 				run_Hybpiper =  '{}HybPiper/reads_first.py -b {} -r {}  --prefix {} --cpu {} '.format(main_script_dir, args.target_markers, sample_path, line, args.cpu)
 				os.system(run_Hybpiper)
 		os.chdir(main_script_dir)		
-		
+	if args.target_enrichment_data or args.assemblies:	
 		logging.info("*********************************************")
-		logging.info("*          BUILDING FASTA FILES          *")
+		logging.info("          BUILDING FASTA FILES          ")
 		logging.info("*********************************************")
 		logging.info("Building alignments from assemblies data")
 		get_alignment(args.assemblies)
@@ -326,7 +326,7 @@ def main():
 		merge_alignments(args.assemblies, args.target_enrichment_data)
 		if args.ncbi_assemblies:
 			logging.info("************************************************************************************************************************************")
-			logging.info("*          ADDING SELECTED TAXONOMIC RANKS GENES FROM PRE-MINED ASSEMBLY DATABASE           *")
+			logging.info("               ADDING SELECTED TAXONOMIC RANKS GENES FROM PRE-MINED ASSEMBLY DATABASE           ")
 			logging.info("************************************************************************************************************************************")
 			path_to_merged_alignments = args.target_enrichment_data.replace('target_enrichment/', 'alignments_merged/')
 			#print(path_to_merged_alignments)
@@ -380,9 +380,8 @@ def main():
 												#print(gene_file_content)
 												merged_ali.write(gene_file_content)
 
-
 		logging.info("**********************************************************************************************************")
-		logging.info("*          PERFORMING ALIGNMENT WITH OMM_MACSE with HMMcleaner filtering          *")
+		logging.info("          PERFORMING ALIGNMENT WITH OMM_MACSE with HMMcleaner filtering          ")
 		logging.info("**********************************************************************************************************")
 		path_to_merged_alignments = args.target_enrichment_data.replace('target_enrichment/', 'alignments_merged/')
 		MACSE_dir = main_script_dir + "MACSE_V2_PIPELINES/OMM_MACSE/"
@@ -407,13 +406,13 @@ def main():
 		gblocks_path= main_script_dir + "Gblocks"
 		if args.gblocks_relaxed:
 			logging.info("*******************************************************************************************************")
-			logging.info("*          PERFORMING ALIGNMENT FILTERING WITH Gblocks (relaxed param.)            *")
+			logging.info("          PERFORMING ALIGNMENT FILTERING WITH Gblocks (relaxed param.)            ")
 			logging.info("*******************************************************************************************************")
 			#print(path_to_macsed_align)
 			run_gblocks("_final_align_NT.aln.fas","_final_align_AA.aln.fas", path_to_macsed_align, gblocks_path)	
 			
 		logging.info("************************************************************************************************")
-		logging.info("*          RECONSTRUCTING SINGLE MARKER TREES WITH RAxML-NG           *")
+		logging.info("          RECONSTRUCTING SINGLE MARKER TREES WITH RAxML-NG           ")
 		logging.info("************************************************************************************************")
 		raxml_script = main_script_dir + "raxml-ng"
 		print(path_to_macsed_align)
@@ -435,9 +434,9 @@ def main():
 			for f in files:
 				if "raxml" in f:
 					os.rename(path_to_macsed_align + f, path_to_single_trees + f)
-		
+	
 		logging.info("************************************************************************************************")
-		logging.info("*          PERFORMING ALIGNMENTS CONCATENATION WITH Fasconcat           *")
+		logging.info("          PERFORMING ALIGNMENTS CONCATENATION WITH Fasconcat           ")
 		logging.info("************************************************************************************************")
 		path_to_supermatrix= path_to_macsed_align.replace('macsed_alignments/', 'supermatrix/')
 		make_supermatrix_folder="mkdir {} ".format(path_to_supermatrix)
@@ -472,7 +471,7 @@ def main():
 			os.system(copy_alignments_dna)
 			copy_alignments_aa= "cp -r {}*macsed_final_align_AA.aln.fas-gb {}".format(path_to_macsed_align, path_to_supermatrix_gblocked_aa)
 			os.system(copy_alignments_aa)
-			
+		
 		run_fasconcat = 'perl {}FASconCAT-G_v1.04.pl -l -s'.format(path_to_supermatrix_dna) 
 		os.chdir(path_to_supermatrix_dna)
 		os.system(run_fasconcat)
@@ -521,7 +520,7 @@ def main():
 			os.system("rm *.fas")
 		os.chdir(main_script_dir)	
 		logging.info("*****************************************************************************************")
-		logging.info("*          RECONSTRUCTING SUPERMATRIX TREE WITH IQTREE2           *")
+		logging.info("          RECONSTRUCTING SUPERMATRIX TREE WITH IQTREE2           ")
 		logging.info("*****************************************************************************************")
 		iqtree_script=main_script_dir + "iqtree2"
 		iqtree_on_supermatrix =  "%s -s %s -Q %s -m MFP -B 1000 -T %s" %(iqtree_script, path_to_supermatrix_dna + 'FcC_supermatrix_NT.fasta' , path_to_supermatrix_dna + 'FcC_supermatrix_partition.txt', args.cpu)
@@ -532,12 +531,12 @@ def main():
 		os.system(iqtree_on_supermatrix)
 		iqtree_on_supermatrix =  "%s -s %s -Q %s -m MFP -B 1000 -T %s" %(iqtree_script, path_to_supermatrix_gblocked_aa + 'FcC_supermatrix_gblocked_AA.fasta' , path_to_supermatrix_gblocked_aa + 'FcC_supermatrix_partition.txt', args.cpu)
 		os.system(iqtree_on_supermatrix)
-	
+
 		##### MAYBE RUN RAXML-NG USING THE IQTREE TOPOLOGY TO GET mbe BOOTSRAP VALUES???
 		
-		logging.info("***********************************************************")
-		logging.info("RECONSTRUCTING SUPERTREE WITH ASTRAL")
-		logging.info("***********************************************************")
+		logging.info("*******************************************************************************")
+		logging.info("            RECONSTRUCTING SUPERTREE WITH ASTRAL")
+		logging.info("*******************************************************************************")
 		path_to_supertree = path_to_supermatrix.replace( 'supermatrix/','supertree/')
 		make_supertree_folder ="mkdir {}".format(path_to_supertree)
 		os.system(make_supertree_folder)

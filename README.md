@@ -53,13 +53,15 @@ Prerequisites/Dependancies:
 * Anaconda 
   *  Download and install the Anaconda installer for Linux: https://docs.anaconda.com/anaconda/install/linux/
   * $ bash ~/path/to/Anaconda3-2020.02-Linux-x86_64.sh
+  * Answer "yes" to conda init
+  * Restart Ubuntu, it should show the (base) conda environment at the beginning of your command line
 * Install HybPiper dependancies:  
    * BIOPYTHON 1.59 or later : $ conda install biopython  
    * BLAST command line tools: $ conda install -c bioconda blast 
    * SPAdes: $ conda install -c bioconda spades 
    * EXONERATE: $ conda install -c bioconda exonerate
 
-1. Clone the UnFATE repository with (or download the .zip file from Github browser interface):  
+1. Clone the UnFATE repository with (or download the .zip file from Github browser interface). Chose a position for the UnFATE folder you like, do not move the repository after the first run (use the argument --first_use) 
 $ git clone https://github.com/claudioametrano/UnFATE.git  
 
 2. Read the help section of the script to set up the command line for your analysis:  
@@ -68,7 +70,7 @@ $ python3 main_script.py --help
 3. Set up the folder structure: sequencing data from target enrichment must be placed in a folder called "target_enrichment", the assemblies must be placed in a folder called "assemblies", in order to be used by the script.	
 
 4. Run UnFATE using the comman line. For example:  
-$ python3 main_wrap.py -b ~/path/to/protein/fasta/protein_markers_aa.fas -t ~/path/to/target_enrichment/ -a ~/path/to/assemblies/ -g -c 8 -n Tuber Morchella
+$ python3 main_wrap.py -b ~/path/to/protein/fasta/protein_markers_aa.fas -t ~/path/to/target_enrichment/ -a ~/path/to/assemblies/ --gblocks --cpu 8 -n Tuber Morchella --first_use
   * Remember to use absolute paths for your data folders and the reference protein fasta (e.g. ~/this/is/an/absolute/path/to/the/folder/path/)
   * Consider to run the script from a "tmux" detachable session, as the run can be very long, according to how many samples you have (this tools is usually preinstalled in Linux) 
   * Analyses with hundreds of sample should definitely run on a server-grade hardware!
