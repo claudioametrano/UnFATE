@@ -70,12 +70,14 @@ $ python3 main_script.py --help
 3. Set up the folder structure: sequencing data from target enrichment must be placed in a folder called "target_enrichment", the assemblies must be placed in a folder called "assemblies", in order to be used by the script.	
 
 4. Run UnFATE using the comman line. For example:  
-$ python3 main_wrap.py -b ~/path/to/protein/fasta/protein_markers_aa.fas -t ~/path/to/target_enrichment/ -a ~/path/to/assemblies/ --gblocks --cpu 8 -n Tuber Morchella --first_use
-  * Remember to use absolute paths for your data folders and the reference protein fasta (e.g. ~/this/is/an/absolute/path/to/the/folder/path/)
-  * Consider to run the script from a "tmux" detachable session, as the run can be very long, according to how many samples you have (this tools is usually preinstalled in Linux) 
-  * Analyses with hundreds of sample should definitely run on a server-grade hardware!
+$ python3 main_wrap.py -b ~/path/to/protein/fasta/protein_markers_aa.fas -t ~/path/to/target_enrichment/ -a ~/path/to/assemblies/ --gblocks --cpu 8 -n Tuber Morchella --first_use  
+  
+  * Remember to use absolute paths for your data folders and the reference protein fasta (e.g. ~/this/is/an/absolute/path/to/the/folder/path/)  
+  * Consider to run the script from a "tmux" detachable session, as the run can be very long, according to how many samples you have (this tools is usually preinstalled in Linux)  
+  * Analyses with hundreds of sample should definitely run on a server-grade hardware!  
 
-5.  Cross your fingers and wait, good luck!
+5.  Cross your fingers and wait, good luck!  ...Take into account that the script parallelizes using the --cpu n you specify as an argument, HybPiper and Exonerate will process n sample at a time. The same number of cpu is then used to parallelize RAxML runs and for concatenated supermatices.  
+ 
 
 ## Output description
 The UnFATE output will be placed in many folders in the same location of your "target_enrichment" folder, will be created several ouput folders corresponding to the pipeline steps:  
