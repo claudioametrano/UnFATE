@@ -46,7 +46,7 @@ def get_alignment(path_to_data):
 				for f in files:
 					if f == g + ".FNA":
 						os.chdir(root)
-						#print("root: " + root + f)
+						#print("root: " + root +"/"+ f)
 						with open(f, 'r') as gene:
 							f_content = gene.read()
 							os.chdir(path_to_data)
@@ -59,7 +59,7 @@ def get_alignment(path_to_data):
 				for f in files:
 					if f == g + ".FAA":
 						os.chdir(root)
-						print("root" + root + f)
+						#print("root" + root +"/"+ f)
 						with open(f, 'r') as gene:
 							f_content = gene.read()
 							os.chdir(path_to_data)
@@ -68,30 +68,38 @@ def get_alignment(path_to_data):
 	return()
 
 def merge_alignments(path_to_assemblies, path_to_target_enrichment):
-	output_path = path_to_target_enrichment + '../'
-	if not os.path.exists('merged_alignments'):
-		os.makedirs(output_path + 'alignments')
-		os.makedirs(output_path + 'alignments_merged')
+	if os.path.exists(path_to_target_enrichment):
+		output_path = path_to_target_enrichment + '../'
+	else:	
+		output_path = path_to_assemblies + '../'
+	os.makedirs(output_path + 'alignments')
+	os.makedirs(output_path + 'alignments_merged')
 	output_path = output_path + 'alignments/'
 	output_path_merged = output_path.rstrip("/") + "_merged/"
 	#print(output_path)
-	for filename in (os.listdir(path_to_assemblies)):
-		if filename.endswith(".FAS"):
-			os.rename(path_to_assemblies + filename , path_to_assemblies + filename.rstrip("FAS") + "assembly.FA")
-	for filename in (os.listdir(path_to_target_enrichment)):
-		if filename.endswith(".FAS"):
-			os.rename(path_to_target_enrichment + filename , path_to_target_enrichment + filename.rstrip("FAS") + "targenrich.FA")
-	for filename in (os.listdir(path_to_assemblies)):
-		if filename.endswith("assembly.FA"):
-			shutil.move(path_to_assemblies + filename , output_path + filename) 
-	for filename in (os.listdir(path_to_target_enrichment)):
-		if filename.endswith("targenrich.FA"):
-			shutil.move(path_to_target_enrichment + filename , output_path + filename)
+	if os.path.exists(path_to_assemblies):
+		for filename in (os.listdir(path_to_assemblies)):
+			if filename.endswith(".FAS"):
+				os.rename(path_to_assemblies + filename , path_to_assemblies + filename.rstrip("FAS") + "assembly.FA")
+	if os.path.exists(path_to_target_enrichment):
+		for filename in (os.listdir(path_to_target_enrichment)):
+			if filename.endswith(".FAS"):
+				os.rename(path_to_target_enrichment + filename , path_to_target_enrichment + filename.rstrip("FAS") + "targenrich.FA")
+	if os.path.exists(path_to_assemblies):
+		for filename in (os.listdir(path_to_assemblies)):
+			if filename.endswith("assembly.FA"):
+				shutil.move(path_to_assemblies + filename , output_path + filename)
+	if os.path.exists(path_to_target_enrichment):			 
+		for filename in (os.listdir(path_to_target_enrichment)):
+			if filename.endswith("targenrich.FA"):
+				shutil.move(path_to_target_enrichment + filename , output_path + filename)
 	file_list_total = os.listdir(output_path)
+	# after the list of files is generated only retain in the name the gene name and if protein or nucleotide
 	for index, item in  enumerate(file_list_total):
 		file_list_total[index] = (file_list_total[index]).replace(".targenrich.FA", "")
 		file_list_total[index] = (file_list_total[index]).replace(".assembly.FA", "")	
 	#print(file_list_total)
+	# then delete the double name doing a set
 	file_list_total = list(set(file_list_total))
 	print(file_list_total)
 	for item in file_list_total:
@@ -145,6 +153,37 @@ def run_gblocks(DNAextension, AAextension, path, path_to_gblocks):
 			start_Gblocks = "{} {} -t=p -b1={} -b2={} -b3=10 -b4=5 -b5=h -e=-gb".format(path_to_gblocks, path + gene_file, b1, b2) 		
 			print(start_Gblocks)
 			os.system(start_Gblocks) 
+
+# ~ def from_accession_to_species(csv_file, treefile )
+	# ~ """USE: takes as input a csv file with species name and accession: "Chalara longipes,GCA_009732865.1" and substitutes accession numbers with species names in the tree"""
+	# ~ def substitute_tips(table, tree_content):
+		# ~ #print(tree_content)
+		# ~ count = 0
+		# ~ for l in table:
+			# ~ print("element of the table", l[1])
+			# ~ reg_tree = re.search(l[1],tree_content)
+			# ~ if reg_tree is not None:
+				# ~ #print("match in the tree: ",reg_tree.group())
+				# ~ tree_content = tree_content.replace(reg_tree.group(), l[0])
+				# ~ count = count + 1
+			# ~ else:
+				# ~ print("Not found: ",l[1])
+				# ~ tree_content = tree_content
+		# ~ print("Substitutions done: ",count)		
+		# ~ return(tree_content)
+
+	# ~ """main script"""			
+	# ~ path=os.getcwd()
+	# ~ # read the csv file, you get as many list as the rows in the .csv file
+	# ~ table = open(csv_file) 
+	# ~ csv_table = csv.reader(table, delimiter=',')
+	# ~ my_tree = open(treefile, "r")
+	# ~ my_tree_content = my_tree.read()
+	# ~ output_tree = substitute_tips(csv_table, my_tree_content)
+	# ~ output_file = open(name.rstrip("tree") + "SPECIES_NAME.tre", "w")
+	# ~ output_file.write(output_tree)	
+	# ~ output_file.close()
+	# ~ return()
 
 def check_arg(args=None):
 	''' 
@@ -286,8 +325,8 @@ def main():
 		#print(list_of_list)
 		logging.info("Running exonerate using exonerate_hits.py script from Hybpiper..")	
 		args.cpu = int(args.cpu)
-		pool = multiprocessing.Pool(processes=args.cpu)
-		pool.starmap(run_exonerate_hits, list_of_list)
+		# ~ pool = multiprocessing.Pool(processes=args.cpu)
+		# ~ pool.starmap(run_exonerate_hits, list_of_list)
 	
 	if args.target_enrichment_data:
 		logging.info("*******************************************************************************************************")
@@ -319,10 +358,12 @@ def main():
 		logging.info("*********************************************")
 		logging.info("          BUILDING FASTA FILES          ")
 		logging.info("*********************************************")
-		logging.info("Building alignments from assemblies data")
-		get_alignment(args.assemblies)
-		logging.info("Building alignments from target enrichment data")
-		get_alignment(args.target_enrichment_data)
+		if args.assemblies:
+			logging.info("Building alignments from assemblies data")
+			get_alignment(args.assemblies)
+		if args.target_enrichment_data:
+			logging.info("Building alignments from target enrichment data")
+			get_alignment(args.target_enrichment_data)
 		merge_alignments(args.assemblies, args.target_enrichment_data)
 		if args.ncbi_assemblies:
 			logging.info("************************************************************************************************************************************")
@@ -383,7 +424,10 @@ def main():
 		logging.info("**********************************************************************************************************")
 		logging.info("          PERFORMING ALIGNMENT WITH OMM_MACSE with HMMcleaner filtering          ")
 		logging.info("**********************************************************************************************************")
-		path_to_merged_alignments = args.target_enrichment_data.replace('target_enrichment/', 'alignments_merged/')
+		if args.target_enrichment_data:
+			path_to_merged_alignments = args.target_enrichment_data.replace('target_enrichment/', 'alignments_merged/')
+		else:
+			path_to_merged_alignments = args.assemblies.replace('assemblies/', 'alignments_merged/')
 		MACSE_dir = main_script_dir + "MACSE_V2_PIPELINES/OMM_MACSE/"
 		MACSE_script = MACSE_dir + "S_OMM_MACSE_V10.02.sh"
 		run_OMM_MACSE = 'find %s -type f -name "*_nucleotide_merged.fasta" | parallel -j %s %s --out_dir {}_out --out_file_prefix macsed --in_seq_file {} --no_prefiltering --no_postfiltering --alignAA_soft MAFFT  --min_percent_NT_at_ends 0.01 ' %(path_to_merged_alignments, args.cpu, MACSE_script)
@@ -585,7 +629,19 @@ def main():
 		os.system(run_astral)
 		run_astral = "java -jar %s -i %s -o %s" %(path_to_astral, path_to_supertree + "supertree_gblocked_aa/cat_trees_gblocked_aa.tre", path_to_supertree + "supertree_gblocked_aa/astral_species_tree_gblocked_aa.tree")
 		os.system(run_astral)
-
+		
+		# ~ logging.info("Converting accession numbers in the trees, if any, to species names")
+		# ~ # Open one of the suprematrices, making a list of accession-like sample name
+		# ~ supermatrix_file = path_to_supermatix_dna + 'FcC_supermatrix_NT.fasta'
+		# ~ supermatrix_accession_file = path_to_supermatix_dna + 'Accessions.csv'
+		# ~ with open(supermatix_file, 'r') as supermatrix:
+			# ~ supermatrix_content = supermatrix.readlines()
+			# ~ for line in supermatrix_content:
+				# ~ regex = re.search("^>(GCA_[0-9]+.[0-9])_")
+				# ~ if regex:
+					# ~ with open(supermatrix_accession_file, 'w') as accessions:
+						# ~ accessions.write(regex.group(1))	
+				# ~ else pass	
 
 
 if __name__=='__main__':
