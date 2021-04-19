@@ -428,7 +428,6 @@ def main():
 		logging.info("Cleaning sequences names to only retain accession numbers...")
 		for f in os.listdir(path_to_merged_alignments):
 			if f.endswith("_merged.fasta"):
-				logging.info("Processing: ", f)
 				output_file = open(path_to_merged_alignments + f.rstrip("\.fasta") + "_headmod.fas","a")
 				for seq in SeqIO.parse(path_to_merged_alignments + f,"fasta"):
 					regex_id = re.search("(^GCA_[0-9]+.[0-9])_", seq.id)
@@ -692,7 +691,10 @@ def main():
 					else:
 						pass	
 		# Add taxonomy to the accessions retrieved (get_taxonomy_with edirect script?), select species name  and format the .csv file 
-		
+		accessions_plus_taxonomy_file = path_to_finaltrees + 'Accessions_plus_taxonomy.csv'
+		get_taxonomy_script = main_script_dir + "get_taxonomy_with_edirect.py" 
+		get taxonomy = "python3 {} --accession_file {} --out_file {}".format(get_taxonomy_script, supermatrix_accession_file,  accessions_plus_taxonomy_file)
+		os.system(get_taxonomy)
 		# Use the "Speciesname, Accession" csv file to substitute the Accession numbers with species names using the funcion "from_accession_to_species"
 		
 		

@@ -6,14 +6,15 @@ import subprocess
 
 @click.command()
 @click.option('--accession_file','-f', default='accession.txt', help='accession numbers file, one accession per line')
-def get_taxonomy(accession_file):
+@click.option('--out_file','-f', default='accession_plus_taxonomy.txt', help='output file')
+def get_taxonomy(accession_file, out_file):
 	""" Uses NCBI e-direct (esearch and other) and bash commands (awk grep etc) to get taxonomy from NCBI using the accession number and then to parse the output"""
 	taxonomy_file = open(accession_file, "r")
 	taxonomy_file_content = taxonomy_file.readlines()
-	if path.exists("Accession_plus_taxonomy"):
-		print (Fore.RED + "OUTPUT FILE already exists!")
+	if path.exists(out_file):
+		print ("OUTPUT FILE already exists!")
 	else:	
-		output_file = open("Accession_plus_taxonomy" ,"a+")
+		output_file = open(out_file ,"a+")
 		for accession in taxonomy_file_content:
 			print(" ")
 			print("******************************")
