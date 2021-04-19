@@ -9,14 +9,15 @@ import matplotlib.pyplot as plt
 import logging
 
 @click.command()
-@click.option('--bait_file_aa_path','-b', default='Hybpiper_targets_first10markers_aa.fas', help='path to bait file')
-@click.option('--alignments_folder_path','-f', default='./', help='path of the folder containing the fastq.gz file to trim with trimmomatic')
-
-def seq_percentage(bait_file_aa_path, alignments_folder_path,  ):
+@click.option('--bait_file_aa_path','-b', default='./all_genes_names_FG_2_Hybpiper_format_aa.fas', help='path to baits file')
+@click.option('--alignments_folder_path','-f', default='.', help='path of the folder containing the fasta files')
+@click.option('--plot_heatmap','-p', is_flag=True, help=' if used, plots the heatmap using the dataframe (WARNING: do not use on a server, it need a GUI)')
+def seq_percentage(bait_file_aa_path, alignments_folder_path, plot_heatmap ):
 	""" Takes the protein fasta (the reference sequences) and the alignment files.
 		 For each marker an average length values for the reference sequences is produced.
 		 The reference length is compared to the sequences retrieved for each sample.   
 	"""
+	logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.INFO)
 	gene_names = []
 	reference_lengths = {}
 	## Generate a dictionary whit gene names associated with average length of the reference sequences
@@ -45,8 +46,9 @@ def seq_percentage(bait_file_aa_path, alignments_folder_path,  ):
 	# Makes a list of the samples: append all the header to a list that eliminate redundancy doing a set (not efficient but works)
 	sample_list = []
 	for f in os.listdir(alignments_folder_path):
-		for protein in SeqIO.parse(alignments_folder_path + f ,"fasta"):
-			sample_list.append(protein.id)
+		if f.endswith("_protein_merged.fasta"):
+			for protein in SeqIO.parse(alignments_folder_path + f ,"fasta"):
+				sample_list.append(protein.id)
 	sample_list = set(sample_list)				
 	#print(sample_list)
 	
@@ -66,23 +68,30 @@ def seq_percentage(bait_file_aa_path, alignments_folder_path,  ):
 				# dataframe is filled column by column (regex.group(1) is the gene name)
 				data_frame[regex.group(1)] = pandas.Series(sample_gene_length_dict)
 				# add a row (.loc is for that purpose, otherwise is a column) with reference sequences average length
-				data_frame.loc['REFERENCE_AVG'] = pandas.Series(avg_ref_len_dict)
+				data_frame.loc['REFERENCE_AVG_LENGTH'] = pandas.Series(avg_ref_len_dict)
 			#print(sample_gene_lenght_dict)
 		else:
 			pass
 		
 			#print(protein.id)
 			#print(protein.seq)
-	logging.info("Exporting the length table table to gene_length.csv. LAST ROW REPRESENTS THE AVERAGE VALUE OF THE REFERECE SEQUENCES USED TO EXTRACT THESE GENES ")
+	logging.info("Exporting the length table to gene_length.csv in 'alignments_merged' folder")
+	logging.info("LAST ROW OF THE TABLE REPRESENTS THE AVERAGE VALUE OF THE REFERECE SEQUENCES USED TO EXTRACT THESE GENES")
 	logging.info(data_frame)
 	# Exports dataframe to .csv file
 	data_frame.to_csv(alignments_folder_path + 'gene_length.csv', encoding='utf-8')
 			
 	# Plot an heatmap from dataframe table
 	fig, ax = plt.subplots(figsize=(60, 60))
-	seaborn.heatmap(data_frame, cmap="RdBu")
-	plt.show()
+	seaborn.heatmap(data_frame, cmap="Greens")
+	if plot_heatmap:
+		logging.info("Plotting the heatmap...")
+		plt.show()
+	else:	
+		logging.info("Exporting the length table as heatmap to 'gene_lengths_heatmap.pdf' in 'alignments_merged' folder")
+		plt.savefig(alignments_folder_path + 'gene_lengths_heatmap.pdf')
 	
+		
 # starts the function					
 if __name__ == '__main__':
 	seq_percentage()	
