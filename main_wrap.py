@@ -1,9 +1,3 @@
-#!/usr/bin/python3
-'''
-Main wrapper for running Hybpiper and subsequent analysis.
-
-
-'''
 import shutil
 import re
 import os
@@ -16,6 +10,7 @@ import subprocess
 import logging
 from os import path
 from Bio import SeqIO
+import csv
 
 def run_exonerate_hits(file_, ref_seq_file):
 	logging.info("Extracting genes from: " +file_)
@@ -156,19 +151,19 @@ def run_gblocks(DNAextension, AAextension, path, path_to_gblocks):
 			os.system(start_Gblocks) 
 
 def from_accession_to_species(csv_file, treefile):
-	"""USE: takes as input a csv file with species name and accession: "Chalara longipes,GCA_009732865.1" and substitutes accession numbers with species names in the tree"""
+	"""USE: takes as input a csv file with species name and accession: "GCA_009732865.1,Chalara longipes" and substitutes accession numbers with species names in the tree"""
 	def substitute_tips(table, tree_content):
 		#print(tree_content)
 		count = 0
 		for l in table:
-			print("element of the table", l[1])
-			reg_tree = re.search(l[1],tree_content)
+			#print("element of the table", l[0])
+			reg_tree = re.search(l[0],tree_content)
 			if reg_tree is not None:
 				#print("match in the tree: ",reg_tree.group())
-				tree_content = tree_content.replace(reg_tree.group(), l[0])
+				tree_content = tree_content.replace(reg_tree.group(), l[1] + "_" + l[0])
 				count = count + 1
 			else:
-				print("Not found: ",l[1])
+				print("Not found: ",l[0])
 				tree_content = tree_content
 		print("Substitutions done: ",count)		
 		return(tree_content)
@@ -181,17 +176,17 @@ def from_accession_to_species(csv_file, treefile):
 	my_tree = open(treefile, "r")
 	my_tree_content = my_tree.read()
 	output_tree = substitute_tips(csv_table, my_tree_content)
-	output_file = open(name.rstrip("tree") + "SPECIES_NAME.tre", "w")
+	output_file = open(treefile.rstrip("tree") + "SPECIES_NAME.tre", "w")
 	output_file.write(output_tree)	
 	output_file.close()
 	return()
 
 def check_arg(args=None):
 	''' 
-	Argument input for Wrapper: target enrichment fastq files, assemblies fasta, WGS fasta AND target genes fasta 
+	 
 	
 	'''
-	parser = argparse.ArgumentParser(description='Run the whole pipeline to raw data to phylogenetic tree')
+	parser = argparse.ArgumentParser(description='UnFATE: the wrapper script that brings YOU from target enrichment sequencing data straight to phylogenetic tree inference! BE CAREFUL: At least one argument between assemblies and target enrichment is mandatory! See the readme file for data structure and more info.')
 	parser.add_argument('-b', '--target_markers', default= '',
 						help=' Path to fasta files containg all the sequences used to design the bait set, IT MUST BE A PROTEIN FASTA, USE  AN ABSOLUTE PATH!'
 						)
@@ -326,8 +321,8 @@ def main():
 		#print(list_of_list)
 		logging.info("Running exonerate using exonerate_hits.py script from Hybpiper..")	
 		args.cpu = int(args.cpu)
-		# ~ pool = multiprocessing.Pool(processes=args.cpu)
-		# ~ pool.starmap(run_exonerate_hits, list_of_list)
+		pool = multiprocessing.Pool(processes=args.cpu)
+		pool.starmap(run_exonerate_hits, list_of_list)
 	
 	if args.target_enrichment_data:
 		logging.info("*******************************************************************************************************")
@@ -335,41 +330,41 @@ def main():
 		logging.info("*******************************************************************************************************")
 		logging.info('Path to TE data: '+args.target_enrichment_data)
 		trimming_cmd = "python3 {}/trimmer.py -f {}".format(main_script_dir, args.target_enrichment_data)
-		# ~ os.system(trimming_cmd)
+		os.system(trimming_cmd)
 		#Get namelist.txt from dataset directory
 		namelist_cmd = 'python3 {}/getNameList.py -f {}'.format(main_script_dir, args.target_enrichment_data)
-		# ~ os.system(namelist_cmd)
+		os.system(namelist_cmd)
 		namelist = 'namelist.txt'
 		path_to_namelist = os.path.join(args.target_enrichment_data,namelist)
 		logging.info("Gunzipping paired reads trimmed fastq archives")
 		gunzip_fastq =' parallel gunzip ::: {}*_paired.fastq.gz'.format(args.target_enrichment_data) 
-		# ~ os.system(gunzip_fastq)
+		os.system(gunzip_fastq)
 		logging.info("**********************************************************************************************************")
 		logging.info("           EXTRACTING GENES FROM TARGET ENRICHMENT DATA  WITH Hybpiper")
 		logging.info("**********************************************************************************************************")
-		# ~ os.chdir(args.target_enrichment_data)
-		# ~ with open(path_to_namelist, 'r') as f:
-			# ~ for line in f:
-				# ~ logging.info("Processing sample:" + line)
-				# ~ sample_path = args.target_enrichment_data + '/' + line.rstrip('\n') + '_R*.trimmed_paired.fastq'
-				# ~ run_Hybpiper =  '{}HybPiper/reads_first.py -b {} -r {}  --prefix {} --cpu {} '.format(main_script_dir, args.target_markers, sample_path, line, args.cpu)
-				# ~ os.system(run_Hybpiper)
-		# ~ os.chdir(main_script_dir)		
+		os.chdir(args.target_enrichment_data)
+		with open(path_to_namelist, 'r') as f:
+			for line in f:
+				logging.info("Processing sample:" + line)
+				sample_path = args.target_enrichment_data + '/' + line.rstrip('\n') + '_R*.trimmed_paired.fastq'
+				run_Hybpiper =  '{}HybPiper/reads_first.py -b {} -r {}  --prefix {} --cpu {} '.format(main_script_dir, args.target_markers, sample_path, line, args.cpu)
+				os.system(run_Hybpiper)
+		os.chdir(main_script_dir)		
 	if args.target_enrichment_data or args.assemblies:	
 		logging.info("*********************************************")
 		logging.info("          BUILDING FASTA FILES          ")
 		logging.info("*********************************************")
 		if args.assemblies:
 			logging.info("Building alignments from assemblies data")
-			# ~ get_alignment(args.assemblies)
+			get_alignment(args.assemblies)
 		if args.target_enrichment_data:
 			logging.info("Building alignments from target enrichment data")
-			# ~ get_alignment(args.target_enrichment_data)
-		# ~ merge_alignments(args.assemblies, args.target_enrichment_data)
+			get_alignment(args.target_enrichment_data)
+		merge_alignments(args.assemblies, args.target_enrichment_data)
 		if args.ncbi_assemblies:
-			logging.info("************************************************************************************************************************************")
-			logging.info("               ADDING SELECTED TAXONOMIC RANKS GENES FROM PRE-MINED ASSEMBLY DATABASE           ")
-			logging.info("************************************************************************************************************************************")
+			logging.info("****************************************************************************************************************************")
+			logging.info("           ADDING SELECTED TAXONOMIC RANKS GENES FROM PRE-MINED ASSEMBLY DATABASE           ")
+			logging.info("****************************************************************************************************************************")
 			if 	args.target_enrichment_data:
 				path_to_merged_alignments = args.target_enrichment_data.replace('target_enrichment/', 'alignments_merged/')
 			if args.assemblies:
@@ -380,7 +375,7 @@ def main():
 			path_to_premined = main_script_dir + "pre_mined_assemblies/"
 			path_to_premined_selected = path_to_merged_alignments.replace('alignments_merged/', 'ncbi_selected_genes/')
 			mkdir_ncbi_data ="mkdir {}".format(path_to_premined_selected)
-			# ~ os.system(mkdir_ncbi_data)
+			os.system(mkdir_ncbi_data)
 			# make a list of the accessions selected according to the taxonomic rank chosen
 			accession_from_ncbi_list = []
 			with open(path_to_ranks, 'r') as ranks:
@@ -394,7 +389,7 @@ def main():
 					for d in dirs:
 						if i in d:
 							copy_folder = "cp -r {} {}".format(path_to_premined + "/" + d, path_to_premined_selected )
-							# ~ os.system(copy_folder) 
+							os.system(copy_folder) 
 					
 			# add the genes from the database to the alignments		
 			for fi in os.listdir(path_to_merged_alignments):
@@ -457,12 +452,12 @@ def main():
 		MACSE_dir = main_script_dir + "MACSE_V2_PIPELINES/OMM_MACSE/"
 		MACSE_script = MACSE_dir + "S_OMM_MACSE_V10.02.sh"
 		run_OMM_MACSE = 'find %s -type f -name "*_nucleotide_merged_headmod.fas" | parallel -j %s %s --out_dir {}_out --out_file_prefix macsed --in_seq_file {} --no_prefiltering --no_postfiltering --alignAA_soft MAFFT  --min_percent_NT_at_ends 0.01 ' %(path_to_merged_alignments, args.cpu, MACSE_script)
-		# ~ os.system(run_OMM_MACSE)
-		# ~ print(run_OMM_MACSE)
+		os.system(run_OMM_MACSE)
+		print(run_OMM_MACSE)
 
 		path_to_macsed_align = path_to_merged_alignments.replace('alignments_merged/','macsed_alignments/')
 		make_align_fold = "mkdir {}".format(path_to_macsed_align)
-		# ~ os.system(make_align_fold)
+		os.system(make_align_fold)
 		for root, dirs, files in os.walk(path_to_merged_alignments, topdown=True):
 			for f in files:
 				if f.endswith("_final_align_NT.aln") or f.endswith("_final_align_AA.aln"):
@@ -479,27 +474,27 @@ def main():
 			logging.info("          PERFORMING ALIGNMENT FILTERING WITH Gblocks (relaxed param.)            ")
 			logging.info("*******************************************************************************************************")
 			#print(path_to_macsed_align)
-			# ~ run_gblocks("_final_align_NT.aln.fas","_final_align_AA.aln.fas", path_to_macsed_align, gblocks_path)	
+			run_gblocks("_final_align_NT.aln.fas","_final_align_AA.aln.fas", path_to_macsed_align, gblocks_path)	
 			
 		logging.info("************************************************************************************************")
 		logging.info("          RECONSTRUCTING SINGLE MARKER TREES WITH RAxML-NG           ")
 		logging.info("************************************************************************************************")
 		raxml_script = main_script_dir + "raxml-ng"
-		# ~ print(path_to_macsed_align)
-		raxml_parallel = "find %s -type f  -name '*_final_align_NT.aln.fas' | parallel -j %s %s --all --msa {} --model GTR+G --prefix {} --seed 888 --threads 1 --bs-metric tbe " %(path_to_macsed_align, args.cpu, raxml_script)
-		# ~ os.system(raxml_parallel)
+		print(path_to_macsed_align)
+		raxml_parallel = "find %s -type f  -name '*_final_align_NT.aln.fas' | parallel -j %s %s --all --msa {} --model GTR+G5 --prefix {} --seed 888 --threads 1 --bs-metric tbe " %(path_to_macsed_align, args.cpu, raxml_script)
+		os.system(raxml_parallel)
 		if args.gblocks_relaxed:
-			raxml_parallel1 = "find %s -type f  -name '*_final_align_NT.aln.fas-gb' | parallel -j %s %s --all --msa {} --model GTR+G --prefix {} --seed 888 --threads 1 --bs-metric tbe" %(path_to_macsed_align, args.cpu, raxml_script)
-			# ~ os.system(raxml_parallel1)
+			raxml_parallel1 = "find %s -type f  -name '*_final_align_NT.aln.fas-gb' | parallel -j %s %s --all --msa {} --model GTR+G5 --prefix {} --seed 888 --threads 1 --bs-metric tbe" %(path_to_macsed_align, args.cpu, raxml_script)
+			os.system(raxml_parallel1)
 		#amino acid alignments
-		raxml_parallel2 = "find %s -type f  -name '*_final_align_AA.aln.fas' | parallel -j %s %s --all --msa {} --model PROTGAMMALG --prefix {} --seed 888 --threads 1 --bs-metric tbe" %(path_to_macsed_align, args.cpu, raxml_script)
-		# ~ os.system(raxml_parallel2)
+		raxml_parallel2 = "find %s -type f  -name '*_final_align_AA.aln.fas' | parallel -j %s %s --all --msa {} --model LG+G5 --prefix {} --seed 888 --threads 1 --bs-metric tbe" %(path_to_macsed_align, args.cpu, raxml_script)
+		os.system(raxml_parallel2)
 		if args.gblocks_relaxed:
-			raxml_parallel3 = "find %s -type f  -name '*_final_align_AA.aln.fas-gb' | parallel -j %s %s --all --msa {} --model PROTGAMMALG --prefix {} --seed 888 --threads 1 --bs-metric tbe" %(path_to_macsed_align, args.cpu, raxml_script)
-			# ~ os.system(raxml_parallel3)
+			raxml_parallel3 = "find %s -type f  -name '*_final_align_AA.aln.fas-gb' | parallel -j %s %s --all --msa {} --model LG+G5 --prefix {} --seed 888 --threads 1 --bs-metric tbe" %(path_to_macsed_align, args.cpu, raxml_script)
+			os.system(raxml_parallel3)
 		path_to_single_trees = path_to_macsed_align.replace('macsed_alignments/', 'single_locus_trees/')
 		mkdir_raxml_out = "mkdir {}".format(path_to_single_trees) 
-		# ~ os.system(mkdir_raxml_out)
+		os.system(mkdir_raxml_out)
 		for root, dirs, files in os.walk(path_to_macsed_align, topdown=True):
 			for f in files:
 				if "raxml" in f:
@@ -512,46 +507,46 @@ def main():
 		make_supermatrix_folder="mkdir {} ".format(path_to_supermatrix)
 		make_supermatrix_dna= "mkdir {} ".format(path_to_supermatrix+ "supermatrix_dna/")
 		make_supermatrix_aa="mkdir {} ".format(path_to_supermatrix + "supermatrix_aa/")
-		# ~ os.system(make_supermatrix_folder)
-		# ~ os.system(make_supermatrix_dna)
-		# ~ os.system(make_supermatrix_aa)
+		os.system(make_supermatrix_folder)
+		os.system(make_supermatrix_dna)
+		os.system(make_supermatrix_aa)
 		if args.gblocks_relaxed:
 			make_supermatrix_dna= "mkdir {} ".format(path_to_supermatrix+ "supermatrix_gblocked_dna/")
 			make_supermatrix_aa="mkdir {} ".format(path_to_supermatrix + "supermatrix_gblocked_aa/")
-			# ~ os.system(make_supermatrix_dna)
-			# ~ os.system(make_supermatrix_aa)
+			os.system(make_supermatrix_dna)
+			os.system(make_supermatrix_aa)
 		path_to_supermatrix_dna = path_to_supermatrix +"supermatrix_dna/"
 		path_to_supermatrix_aa = path_to_supermatrix + "supermatrix_aa/"
 		copy_fasconcat = "cp {} {}".format(main_script_dir + "FASconCAT-G_v1.04.pl", path_to_supermatrix_dna)
-		# ~ os.system(copy_fasconcat)
+		os.system(copy_fasconcat)
 		copy_fasconcat = "cp {} {}".format(main_script_dir + "FASconCAT-G_v1.04.pl", path_to_supermatrix_aa)
-		# ~ os.system(copy_fasconcat)
+		os.system(copy_fasconcat)
 		copy_alignments_dna= "cp -r {}*macsed_final_align_NT.aln.fas {}".format(path_to_macsed_align, path_to_supermatrix_dna)
-		# ~ os.system(copy_alignments_dna)
+		os.system(copy_alignments_dna)
 		copy_alignments_aa= "cp -r {}*macsed_final_align_AA.aln.fas {}".format(path_to_macsed_align, path_to_supermatrix_aa)
-		# ~ os.system(copy_alignments_aa)
+		os.system(copy_alignments_aa)
 		if args.gblocks_relaxed:
-			path_to_supermatrix_gblocked_dna = path_to_supermatrix +"/supermatrix_gblocked_dna/"
-			path_to_supermatrix_gblocked_aa = path_to_supermatrix + "/supermatrix_gblocked_aa/"
+			path_to_supermatrix_gblocked_dna = path_to_supermatrix +"supermatrix_gblocked_dna/"
+			path_to_supermatrix_gblocked_aa = path_to_supermatrix + "supermatrix_gblocked_aa/"
 			copy_fasconcat = "cp {} {}".format(main_script_dir + "FASconCAT-G_v1.04.pl", path_to_supermatrix_gblocked_dna)
-			# ~ os.system(copy_fasconcat)
+			os.system(copy_fasconcat)
 			copy_fasconcat = "cp {} {}".format(main_script_dir + "FASconCAT-G_v1.04.pl", path_to_supermatrix_gblocked_aa)
-			# ~ os.system(copy_fasconcat)
+			os.system(copy_fasconcat)
 			copy_alignments_dna= "cp -r {}*macsed_final_align_NT.aln.fas-gb {}".format(path_to_macsed_align, path_to_supermatrix_gblocked_dna)
-			# ~ os.system(copy_alignments_dna)
+			os.system(copy_alignments_dna)
 			copy_alignments_aa= "cp -r {}*macsed_final_align_AA.aln.fas-gb {}".format(path_to_macsed_align, path_to_supermatrix_gblocked_aa)
-			# ~ os.system(copy_alignments_aa)
+			os.system(copy_alignments_aa)
 		
 		run_fasconcat = 'perl {}FASconCAT-G_v1.04.pl -l -s'.format(path_to_supermatrix_dna) 
 		os.chdir(path_to_supermatrix_dna)
-		# ~ os.system(run_fasconcat)
-		# ~ os.rename('FcC_supermatrix.fas','FcC_supermatrix_NT.fasta')
-		# ~ os.system("rm *.fas")
+		os.system(run_fasconcat)
+		os.rename('FcC_supermatrix.fas','FcC_supermatrix_NT.fasta')
+		os.system("rm *.fas")
 		run_fasconcat = 'perl {}FASconCAT-G_v1.04.pl -l -s'.format(path_to_supermatrix_aa) 
 		os.chdir(path_to_supermatrix_aa)
-		# ~ os.system(run_fasconcat)
-		# ~ os.rename('FcC_supermatrix.fas','FcC_supermatrix_AA.fasta')
-		# ~ os.system("rm *.fas")
+		os.system(run_fasconcat)
+		os.rename('FcC_supermatrix.fas','FcC_supermatrix_AA.fasta')
+		os.system("rm *.fas")
 		if args.gblocks_relaxed:
 			for f in os.listdir(path_to_supermatrix_gblocked_dna):
 				if f.endswith("-gb"):
@@ -568,9 +563,9 @@ def main():
 					os.rename(path_to_supermatrix_gblocked_dna + f, path_to_supermatrix_gblocked_dna + f +".fas" )
 			run_fasconcat = 'perl {}FASconCAT-G_v1.04.pl -l -s'.format(path_to_supermatrix_gblocked_dna) 
 			os.chdir(path_to_supermatrix_gblocked_dna)
-			# ~ os.system(run_fasconcat)
-			# ~ os.rename('FcC_supermatrix.fas','FcC_supermatrix_gblocked_NT.fasta')
-			# ~ os.system("rm *.fas")
+			os.system(run_fasconcat)
+			os.rename('FcC_supermatrix.fas','FcC_supermatrix_gblocked_NT.fasta')
+			os.system("rm *.fas")
 			for f in os.listdir(path_to_supermatrix_gblocked_aa):
 				if f.endswith("-gb"):
 					alignment_file = open(path_to_supermatrix_gblocked_aa + f,'rt')
@@ -580,27 +575,27 @@ def main():
 					alignment_file = open(path_to_supermatrix_gblocked_aa + f,'wt')
 					alignment_file.write(alignment_file_content)
 					alignment_file.close()
-			# ~ for f in os.listdir(path_to_supermatrix_gblocked_aa):
-				# ~ if f.endswith("-gb"):			
-					# ~ os.rename(path_to_supermatrix_gblocked_aa + f, path_to_supermatrix_gblocked_aa + f +".fas" )
-			# ~ run_fasconcat = 'perl {}FASconCAT-G_v1.04.pl -l -s'.format(path_to_supermatrix_gblocked_aa) 
-			# ~ os.chdir(path_to_supermatrix_gblocked_aa)
-			# ~ os.system(run_fasconcat)
-			# ~ os.rename('FcC_supermatrix.fas','FcC_supermatrix_gblocked_AA.fasta')
-			# ~ os.system("rm *.fas")
+			for f in os.listdir(path_to_supermatrix_gblocked_aa):
+				if f.endswith("-gb"):			
+					os.rename(path_to_supermatrix_gblocked_aa + f, path_to_supermatrix_gblocked_aa + f +".fas" )
+			run_fasconcat = 'perl {}FASconCAT-G_v1.04.pl -l -s'.format(path_to_supermatrix_gblocked_aa) 
+			os.chdir(path_to_supermatrix_gblocked_aa)
+			os.system(run_fasconcat)
+			os.rename('FcC_supermatrix.fas','FcC_supermatrix_gblocked_AA.fasta')
+			os.system("rm *.fas")
 		os.chdir(main_script_dir)	
 		logging.info("*****************************************************************************************")
 		logging.info("          RECONSTRUCTING SUPERMATRIX TREE WITH IQTREE2           ")
 		logging.info("*****************************************************************************************")
 		iqtree_script=main_script_dir + "iqtree2"
 		iqtree_on_supermatrix =  "%s -s %s -Q %s -m MFP -B 1000 -T %s --prefix supermatrix_NT" %(iqtree_script, path_to_supermatrix_dna + 'FcC_supermatrix_NT.fasta' , path_to_supermatrix_dna + 'FcC_supermatrix_partition.txt', args.cpu)
-		# ~ os.system(iqtree_on_supermatrix)
+		os.system(iqtree_on_supermatrix)
 		iqtree_on_supermatrix =  "%s -s %s -Q %s -m MFP -B 1000 -T %s --prefix supermatrix_AA" %(iqtree_script, path_to_supermatrix_aa + 'FcC_supermatrix_AA.fasta' , path_to_supermatrix_aa + 'FcC_supermatrix_partition.txt', args.cpu)
-		# ~ os.system(iqtree_on_supermatrix)
+		os.system(iqtree_on_supermatrix)
 		iqtree_on_supermatrix =  "%s -s %s -Q %s -m MFP -B 1000 -T %s --prefix supermatrix_gblocked_NT" %(iqtree_script, path_to_supermatrix_gblocked_dna + 'FcC_supermatrix_gblocked_NT.fasta' , path_to_supermatrix_gblocked_dna + 'FcC_supermatrix_partition.txt', args.cpu)
-		# ~ os.system(iqtree_on_supermatrix)
+		os.system(iqtree_on_supermatrix)
 		iqtree_on_supermatrix =  "%s -s %s -Q %s -m MFP -B 1000 -T %s --prefix supermatrix_gblocked_AA" %(iqtree_script, path_to_supermatrix_gblocked_aa + 'FcC_supermatrix_gblocked_AA.fasta' , path_to_supermatrix_gblocked_aa + 'FcC_supermatrix_partition.txt', args.cpu)
-		# ~ os.system(iqtree_on_supermatrix)
+		os.system(iqtree_on_supermatrix)
 
 		##### MAYBE RUN RAXML-NG USING THE IQTREE TOPOLOGY TO GET mbe BOOTSRAP VALUES???
 		
@@ -609,52 +604,52 @@ def main():
 		logging.info("*******************************************************************************")
 		path_to_supertree = path_to_supermatrix.replace( 'supermatrix/','supertree/')
 		make_supertree_folder ="mkdir {}".format(path_to_supertree)
-		# ~ os.system(make_supertree_folder)
+		os.system(make_supertree_folder)
 		make_supertree_dna = "mkdir {}".format(path_to_supertree + "supertree_dna")
 		make_supertree_aa = "mkdir {}".format(path_to_supertree + "supertree_aa")
 		make_supertree_gblocked_dna = "mkdir {}".format(path_to_supertree + "supertree_gblocked_dna")
 		make_supertree_gblocked_aa = "mkdir {}".format(path_to_supertree + "supertree_gblocked_aa")
-		# ~ os.system(make_supertree_dna)
-		# ~ os.system(make_supertree_aa)
-		# ~ os.system(make_supertree_gblocked_dna)
-		# ~ os.system(make_supertree_gblocked_aa)
+		os.system(make_supertree_dna)
+		os.system(make_supertree_aa)
+		os.system(make_supertree_gblocked_dna)
+		os.system(make_supertree_gblocked_aa)
 
 		copy_trees_dna= "cp -r {}*macsed_final_align_NT.aln.fas.raxml.bestTree {}".format(path_to_single_trees, path_to_supertree + "supertree_dna")
 		copy_trees_aa= "cp -r {}*macsed_final_align_AA.aln.fas.raxml.bestTree {}".format(path_to_single_trees, path_to_supertree + "supertree_aa")
 		copy_trees_gblocked_dna= "cp -r {}*macsed_final_align_NT.aln.fas-gb.raxml.bestTree {}".format(path_to_single_trees, path_to_supertree + "supertree_gblocked_dna")
 		copy_trees_gblocked_aa= "cp -r {}*macsed_final_align_AA.aln.fas-gb.raxml.bestTree {}".format(path_to_single_trees, path_to_supertree + "supertree_gblocked_aa")
-		# ~ os.system(copy_trees_dna)
-		# ~ os.system(copy_trees_aa)
-		# ~ os.system(copy_trees_gblocked_dna)
-		# ~ os.system(copy_trees_gblocked_aa)
+		os.system(copy_trees_dna)
+		os.system(copy_trees_aa)
+		os.system(copy_trees_gblocked_dna)
+		os.system(copy_trees_gblocked_aa)
 		
 		os.chdir(path_to_supertree + "supertree_dna")
 		cat_trees = "cat *.bestTree > cat_trees_dna.tre"
-		# ~ os.system(cat_trees)
-		# ~ os.system("rm -r *.bestTree")
+		os.system(cat_trees)
+		os.system("rm -r *.bestTree")
 		os.chdir(path_to_supertree + "supertree_aa")
 		cat_trees = "cat *.bestTree > cat_trees_aa.tre"
-		# ~ os.system(cat_trees)
-		# ~ os.system("rm -r *.bestTree")
+		os.system(cat_trees)
+		os.system("rm -r *.bestTree")
 		os.chdir(path_to_supertree + "supertree_gblocked_dna")
 		cat_trees = "cat *.bestTree > cat_trees_gblocked_dna.tre"
-		# ~ os.system(cat_trees)
-		# ~ os.system("rm -r *.bestTree")
+		os.system(cat_trees)
+		os.system("rm -r *.bestTree")
 		os.chdir(path_to_supertree + "supertree_gblocked_aa")
 		cat_trees = "cat *.bestTree > cat_trees_gblocked_aa.tre"
-		# ~ os.system(cat_trees)
-		# ~ os.system("rm -r *.bestTree")
+		os.system(cat_trees)
+		os.system("rm -r *.bestTree")
 		os.chdir(main_script_dir)
 		
 		path_to_astral = main_script_dir + "ASTRAL/astral.5.7.7.jar"
 		run_astral = "java -jar %s -i %s -o %s" %(path_to_astral, path_to_supertree + "supertree_dna/cat_trees_dna.tre", path_to_supertree + "supertree_dna/astral_species_tree_dna.tree")
-		# ~ os.system(run_astral)
+		os.system(run_astral)
 		run_astral = "java -jar %s -i %s -o %s" %(path_to_astral, path_to_supertree + "supertree_aa/cat_trees_aa.tre", path_to_supertree + "supertree_aa/astral_species_tree_aa.tree")
-		# ~ os.system(run_astral)
+		os.system(run_astral)
 		run_astral = "java -jar %s -i %s -o %s" %(path_to_astral, path_to_supertree + "supertree_gblocked_dna/cat_trees_gblocked_dna.tre", path_to_supertree + "supertree_gblocked_dna/astral_species_tree_gblocked_dna.tree")
-		# ~ os.system(run_astral)
+		os.system(run_astral)
 		run_astral = "java -jar %s -i %s -o %s" %(path_to_astral, path_to_supertree + "supertree_gblocked_aa/cat_trees_gblocked_aa.tre", path_to_supertree + "supertree_gblocked_aa/astral_species_tree_gblocked_aa.tree")
-		# ~ os.system(run_astral)
+		os.system(run_astral)
 		
 		logging.info("****************************************************************")
 		logging.info("          COPYING TREES TO final_trees FOLDER           ")
@@ -665,7 +660,7 @@ def main():
 		os.system(make_finaltrees_folder)
 		for root, dirs, files in os.walk(path_to_supermatrix, topdown=True):
 			for f in files:
-				if f.endswith(".treefile"):
+				if f.endswith("treefile"):
 					#print(root +f)
 					copy_tree = 'cp {} {}'.format(root +"/"+f, path_to_finaltrees)
 					os.system(copy_tree)
@@ -681,24 +676,38 @@ def main():
 		# Open one of the suprematrices, making a list of accession sample name
 		supermatrix_file = path_to_supermatrix_dna + 'FcC_supermatrix_NT.fasta'
 		supermatrix_accession_file = path_to_finaltrees + 'Accessions.csv'
-		with open(supermatrix_file, 'r') as supermatrix:
-			with open(supermatrix_accession_file, 'w') as accessions:
+		with open(supermatrix_accession_file, 'w') as accessions:
+			with open(supermatrix_file, 'r') as supermatrix:
 				supermatrix_content = supermatrix.readlines()
 				for line in supermatrix_content:
-					regex = re.search("^>(GCA_[0-9]+.[0-9])_", line)
+					regex = re.search("^>(GCA_[0-9]+\.[0-9])", line)
 					if regex:
-						accessions.write(regex.group(1))	
+						accessions.write(regex.group(1)+"\n")	
 					else:
 						pass	
-		# Add taxonomy to the accessions retrieved (get_taxonomy_with edirect script?), select species name  and format the .csv file 
+		# Add taxonomy to the accessions retrieved (get_taxonomy_with edirect script), select species name  and format the .csv file 
 		accessions_plus_taxonomy_file = path_to_finaltrees + 'Accessions_plus_taxonomy.csv'
 		get_taxonomy_script = main_script_dir + "get_taxonomy_with_edirect.py" 
-		get taxonomy = "python3 {} --accession_file {} --out_file {}".format(get_taxonomy_script, supermatrix_accession_file,  accessions_plus_taxonomy_file)
+		get_taxonomy = "python3 {} --accession_file {} --out_file {}".format(get_taxonomy_script, supermatrix_accession_file,  accessions_plus_taxonomy_file)
 		os.system(get_taxonomy)
+		# Clean the taxonomy file to get only "Accession,speciesname"
+		accession_species_file = path_to_finaltrees + 'Accessions_plus_species.csv'
+		with open(accession_species_file, 'w') as species:
+			with open(accessions_plus_taxonomy_file, 'r') as acc_taxo:
+				acc_taxo_cont = acc_taxo.readlines()
+				for line in acc_taxo_cont:
+					regex = re.search("^(GCA_[0-9]+\.[0-9],\w+ \w+)", line)
+					if regex != None:
+						print(regex.group(1))
+						species.write(regex.group(1) +"\n")	
+					else:
+						logging.warning("The following line does not have the expected format for species name, weird strain name format!")
+						logging.warning(line)
 		# Use the "Speciesname, Accession" csv file to substitute the Accession numbers with species names using the funcion "from_accession_to_species"
-		
-		
-		
+		# Final names after the substitution will be: "speciesname_accessionnumber"
+		for treefile in os.listdir(path_to_finaltrees):
+			if treefile.endswith("treefile") or treefile.endswith("tree"):		
+				from_accession_to_species(accession_species_file, path_to_finaltrees + treefile)
 
 if __name__=='__main__':
 	logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.DEBUG)

@@ -59,8 +59,7 @@ Prerequisites/Dependancies:
    * BIOPYTHON 1.59 or later : $ conda install biopython  
    * BLAST command line tools: $ conda install -c bioconda blast 
    * SPAdes: $ conda install -c bioconda spades 
-   * EXONERATE: $ conda install -c bioconda exonerate
-*  Pandas: conda install -c anaconda pandas   
+   * EXONERATE: $ conda install -c bioconda exonerate 
 
 1. Clone the UnFATE repository with (or download the .zip file from Github browser interface). Chose a position for the UnFATE folder you like, do not move the repository after the first run (use the argument --first_use) 
 $ git clone https://github.com/claudioametrano/UnFATE.git  
