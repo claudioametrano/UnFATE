@@ -177,7 +177,7 @@ def from_accession_to_species(csv_file, treefile):
 	my_tree = open(treefile, "r")
 	my_tree_content = my_tree.read()
 	output_tree = substitute_tips(csv_table, my_tree_content)
-	output_file = open(treefile.rstrip("tree") + "SPECIES_NAME.tre", "w")
+	output_file = open(treefile + "_SPECIES_NAME.tre", "w")
 	output_file.write(output_tree)	
 	output_file.close()
 	return()
@@ -207,7 +207,7 @@ def check_arg(args=None):
 						help='Modifies some path in MACSE pipeline folder, use this argument only if is the first time you run the pipeline, then do not move the UnFATE folder, if you have to: git clone the repository again and use this arguement for the first run',
 						)		
 	parser.add_argument('-g', '--gblocks_relaxed', action= 'store_true', 
-						help='Applies Gblocks with relaxed parameters (Talavera et al. 2007), both Gblock filtered and unfiltered data will be used to build phylogenies',
+						help='Applies Gblocks with relaxed parameters (Talavera et al. 2007)',
 						)	
 	parser.add_argument('-n', '--ncbi_assemblies', nargs = '+', 
 						help='Extracts the pre-mined NCBI assemblies genes, then it uses the selected taxonomic rank to only include the needed samples. Can take a list of ranks (e.g. Morchella Tuber Fuffaria)'
@@ -264,10 +264,8 @@ def main():
 				fin1.close()
 				fin1 = open(MACSE_utils_dir + "/LGS_Fasta" + "/" + filename, "wt")
 				fin1.write(data1)
-				fin1.close()
-		
+				fin1.close()	
 		# ASTRAL is now included in the repository, no need to clone (moreover the make script gives an error related to java version)				
-		
 		#clone_astral = "git clone https://github.com/smirarab/ASTRAL.git"
 		#os.system(clone_astral)
 		#os.chdir(main_script_dir + "ASTRAL/")
@@ -285,25 +283,24 @@ def main():
 		for item in args.ncbi_assemblies:
 			# using the commas that are present in the csv file containing the taxonomy prevents to include ranks with similar name to the one requested in the command line (e.g. Fuffaria and Fuffarialongis)
 			item1 = "," + item + ","
-			with open(path_to_taxonomy.replace('Accession_plus_taxonomy_Pezizomycotina.txt','Accession_plus_taxonomy_reduced.txt'), 'w') as requested_rank:
+			with open(path_to_taxonomy.replace('Accession_plus_taxonomy_Pezizomycotina.txt','Accession_plus_taxonomy_reduced.txt'), 'a') as requested_rank:
 				with open(path_to_taxonomy, 'r') as taxonomy:
 					for line in taxonomy:
 						if item1 in line:
 							requested_rank.write(line)
-						
-				
+							
 	"""if argument is whole genome input data:
 			# SAME AS TARGET ENRICHMENT DATA OR MAYBE ASSEMBLY WITH SPADES THEN EXONERATE?? 
-			TEST THIS!!"""
+			TEST THIS!!"""	
 			
 	#user input: assemblies
 	if args.assemblies:
 		path_to_assemblies = args.assemblies
-		logging.info("*******************************************************************************************")
-		logging.info("          PERFORMING ASSEMBLIES DATA ANALYSIS WITH Exonerate          ")
-		logging.info("*******************************************************************************************")
+		logging.info("********************************************************************************************************************")
+		logging.info("          PERFORMING ASSEMBLIES DATA ANALYSIS WITH Exonerate (Slater & Birney 2005)       ")
+		logging.info("********************************************************************************************************************")
+		logging.info("... it can take long time according to assembly dimension and reference sequences number  ")
 		logging.info('Path to assemblies '+path_to_assemblies)
-		
 		for root, dirs, files in os.walk(path_to_assemblies, topdown=True):
 			for name in files:
 				if name.endswith(".fna.gz"):
@@ -322,13 +319,13 @@ def main():
 		#print(list_of_list)
 		logging.info("Running exonerate using exonerate_hits.py script from Hybpiper..")	
 		args.cpu = int(args.cpu)
-		pool = multiprocessing.Pool(processes=args.cpu)
-		pool.starmap(run_exonerate_hits, list_of_list)
+		# ~ pool = multiprocessing.Pool(processes=args.cpu)
+		# ~ pool.starmap(run_exonerate_hits, list_of_list)
 	
 	if args.target_enrichment_data:
-		logging.info("*******************************************************************************************************")
-		logging.info("          TRIMMING TARGET ENRICHMENT FASTQ FILES  WITH TRIMMOMATC          ")
-		logging.info("*******************************************************************************************************")
+		logging.info("*****************************************************************************************************************************")
+		logging.info("          TRIMMING TARGET ENRICHMENT FASTQ FILES  WITH TRIMMOMATC (Bolger et al. 2014)          ")
+		logging.info("*****************************************************************************************************************************")
 		logging.info('Path to TE data: '+args.target_enrichment_data)
 		trimming_cmd = "python3 {}/trimmer.py -f {}".format(main_script_dir, args.target_enrichment_data)
 		os.system(trimming_cmd)
@@ -340,9 +337,9 @@ def main():
 		logging.info("Gunzipping paired reads trimmed fastq archives")
 		gunzip_fastq =' parallel gunzip ::: {}*_paired.fastq.gz'.format(args.target_enrichment_data) 
 		os.system(gunzip_fastq)
-		logging.info("**********************************************************************************************************")
-		logging.info("           EXTRACTING GENES FROM TARGET ENRICHMENT DATA  WITH Hybpiper")
-		logging.info("**********************************************************************************************************")
+		logging.info("******************************************************************************************************************************************")
+		logging.info("           EXTRACTING GENES FROM TARGET ENRICHMENT DATA  WITH Hybpiper (Johnson et al. 2016)")
+		logging.info("******************************************************************************************************************************************")
 		os.chdir(args.target_enrichment_data)
 		with open(path_to_namelist, 'r') as f:
 			for line in f:
@@ -350,7 +347,8 @@ def main():
 				sample_path = args.target_enrichment_data + '/' + line.rstrip('\n') + '_R*.trimmed_paired.fastq'
 				run_Hybpiper =  '{}HybPiper/reads_first.py -b {} -r {}  --prefix {} --cpu {} '.format(main_script_dir, args.target_markers, sample_path, line, args.cpu)
 				os.system(run_Hybpiper)
-		os.chdir(main_script_dir)		
+		os.chdir(main_script_dir)
+				
 	if args.target_enrichment_data or args.assemblies:	
 		logging.info("*********************************************")
 		logging.info("          BUILDING FASTA FILES          ")
@@ -362,14 +360,15 @@ def main():
 			logging.info("Building alignments from target enrichment data")
 			get_alignment(args.target_enrichment_data)
 		merge_alignments(args.assemblies, args.target_enrichment_data)
+		if 	args.target_enrichment_data:
+			path_to_merged_alignments = args.target_enrichment_data.replace('target_enrichment/', 'alignments_merged/')
+		if args.assemblies:
+			path_to_merged_alignments = args.assemblies.replace('assemblies/', 'alignments_merged/')	
+		
 		if args.ncbi_assemblies:
 			logging.info("****************************************************************************************************************************")
 			logging.info("           ADDING SELECTED TAXONOMIC RANKS GENES FROM PRE-MINED ASSEMBLY DATABASE           ")
 			logging.info("****************************************************************************************************************************")
-			if 	args.target_enrichment_data:
-				path_to_merged_alignments = args.target_enrichment_data.replace('target_enrichment/', 'alignments_merged/')
-			if args.assemblies:
-				path_to_merged_alignments = args.assemblies.replace('assemblies/', 'alignments_merged/')	
 			path_to_ranks = path_to_taxonomy.replace('Accession_plus_taxonomy_Pezizomycotina.txt','Accession_plus_taxonomy_reduced.txt')
 			#print(path_to_ranks)
 			# make the folder for the selected sample from NCBI database
@@ -390,8 +389,7 @@ def main():
 					for d in dirs:
 						if i in d:
 							copy_folder = "cp -r {} {}".format(path_to_premined + "/" + d, path_to_premined_selected )
-							os.system(copy_folder) 
-					
+							os.system(copy_folder) 			
 			# add the genes from the database to the alignments		
 			for fi in os.listdir(path_to_merged_alignments):
 				if fi.endswith("_protein_merged.fasta"):
@@ -419,7 +417,11 @@ def main():
 												gene_file_content = gene_file.read()
 												#print(gene_file_content)
 												merged_ali.write(gene_file_content)
-		
+												
+			# remove the temporary text file storing the selected taxa taxonomy and assembly, from the pre-calculated database folder		
+			remove_taxonomy_file = "rm {}".format(path_to_ranks)
+			os.system(remove_taxonomy_file)
+
 		# Get rid of the trash strings after the accession number to be able to replace with speciens name later									
 		logging.info("Cleaning sequences names to only retain accession numbers...")
 		for f in os.listdir(path_to_merged_alignments):
@@ -443,9 +445,9 @@ def main():
 		run_markers_retrieved_percentage = "python3 {} -b {} -f {} ".format(markers_retrieved_percentage_script, args.target_markers, path_to_merged_alignments)						
 		os.system(run_markers_retrieved_percentage)
 		
-		logging.info("**********************************************************************************************************")
-		logging.info("          PERFORMING ALIGNMENT WITH OMM_MACSE with HMMcleaner filtering          ")
-		logging.info("**********************************************************************************************************")
+		logging.info("************************************************************************************************************************************************************")
+		logging.info("          PERFORMING ALIGNMENT WITH OMM_MACSE with HMMcleaner filtering (Ranwez et al. 2018; Di Franco et al. 2019)         ")
+		logging.info("************************************************************************************************************************************************************")
 		if args.target_enrichment_data:
 			path_to_merged_alignments = args.target_enrichment_data.replace('target_enrichment/', 'alignments_merged/')
 		if args.assemblies:
@@ -455,7 +457,7 @@ def main():
 		run_OMM_MACSE = 'find %s -type f -name "*_nucleotide_merged_headmod.fas" | parallel -j %s %s --out_dir {}_out --out_file_prefix macsed --in_seq_file {} --no_prefiltering --no_postfiltering --alignAA_soft MAFFT  --min_percent_NT_at_ends 0.01 ' %(path_to_merged_alignments, args.cpu, MACSE_script)
 		os.system(run_OMM_MACSE)
 		logging.info(run_OMM_MACSE)
-
+		# move aligned files
 		path_to_macsed_align = path_to_merged_alignments.replace('alignments_merged/','macsed_alignments/')
 		make_align_fold = "mkdir {}".format(path_to_macsed_align)
 		os.system(make_align_fold)
@@ -471,15 +473,15 @@ def main():
 		
 		gblocks_path= main_script_dir + "Gblocks"
 		if args.gblocks_relaxed:
-			logging.info("*******************************************************************************************************")
-			logging.info("          PERFORMING ALIGNMENT FILTERING WITH Gblocks (relaxed param.)            ")
-			logging.info("*******************************************************************************************************")
+			logging.info("***********************************************************************************************************")
+			logging.info("          PERFORMING ALIGNMENT FILTERING WITH Gblocks (Castresana, 2000)            ")
+			logging.info("***********************************************************************************************************")
 			#print(path_to_macsed_align)
 			run_gblocks("_final_align_NT.aln.fas","_final_align_AA.aln.fas", path_to_macsed_align, gblocks_path)	
 			
-		logging.info("************************************************************************************************")
-		logging.info("          RECONSTRUCTING SINGLE MARKER TREES WITH IQTREE2           ")
-		logging.info("************************************************************************************************")
+		logging.info("******************************************************************************************************************")
+		logging.info("          RECONSTRUCTING SINGLE MARKER TREES WITH IQTREE2 (Minh et al. 2020)           ")
+		logging.info("******************************************************************************************************************")
 		iqtree_script = main_script_dir + "iqtree2"
 		#print(path_to_macsed_align)
 		# DNA alignments
@@ -496,7 +498,7 @@ def main():
 		else:
 			iqtree_parallel2 = "find %s -type f  -name '*_final_align_AA.aln.fas' | parallel -j %s %s  -s {} -m MFP -B 1000 -T 1" %(path_to_macsed_align, args.cpu, iqtree_script)
 			os.system(iqtree_parallel2)
-				
+		# move trees and other iqtree files to the dedicated folder		
 		path_to_single_trees = path_to_macsed_align.replace('macsed_alignments/', 'single_locus_trees/')
 		mkdir_raxml_out = "mkdir {}".format(path_to_single_trees) 
 		os.system(mkdir_raxml_out)
@@ -505,9 +507,9 @@ def main():
 				if  f.endswith("treefile") or f.endswith("nex") or f.endswith("parttrees") or f.endswith("gz") or f.endswith("mldist") or f.endswith("log") or f.endswith("iqtree") or f.endswith("contree") or f.endswith("bionj") or f.endswith("best_scheme"):
 					os.rename(path_to_macsed_align + f, path_to_single_trees + f)
 	
-		logging.info("************************************************************************************************")
-		logging.info("          PERFORMING ALIGNMENTS CONCATENATION WITH Fasconcat           ")
-		logging.info("************************************************************************************************")
+		logging.info("************************************************************************************************************************")
+		logging.info("          PERFORMING ALIGNMENTS CONCATENATION WITH Fasconcat (Kück & Longo, 2014)          ")
+		logging.info("*************************************************************************************************************************")
 		path_to_supermatrix= path_to_macsed_align.replace('macsed_alignments/', 'supermatrix/')
 		make_supermatrix_folder="mkdir {} ".format(path_to_supermatrix)
 		os.system(make_supermatrix_folder)
@@ -545,7 +547,6 @@ def main():
 			copy_alignments_aa= "cp -r {}*macsed_final_align_AA.aln.fas {}".format(path_to_macsed_align, path_to_supermatrix_aa)
 			os.system(copy_alignments_aa)
 				
-		
 		if args.gblocks_relaxed:
 			for f in os.listdir(path_to_supermatrix_gblocked_dna):
 				if f.endswith("-gb"):
@@ -603,9 +604,9 @@ def main():
 			os.system("rm *.fas")	
 		os.chdir(main_script_dir)
 			
-		logging.info("*****************************************************************************************")
-		logging.info("          RECONSTRUCTING SUPERMATRIX TREE WITH IQTREE2           ")
-		logging.info("*****************************************************************************************")
+		logging.info("*************************************************************************************************************")
+		logging.info("          RECONSTRUCTING SUPERMATRIX TREE WITH IQTREE2  (Minh et al. 2020)          ")
+		logging.info("*************************************************************************************************************")
 		iqtree_script=main_script_dir + "iqtree2"
 		if args.gblocks_relaxed:
 			#path_to_supermatrix_gblocked_dna = path_to_supermatrix +"supermatrix_gblocked_dna/"
@@ -622,11 +623,11 @@ def main():
 			iqtree_on_supermatrix =  "%s -s %s -Q %s -m MFP -B 1000 -T %s" %(iqtree_script, path_to_supermatrix_aa + 'FcC_supermatrix_AA.fasta' , path_to_supermatrix_aa + 'FcC_supermatrix_partition_AA.txt', args.cpu)
 			os.system(iqtree_on_supermatrix)
 
-		##### MAYBE RUN RAXML-NG USING THE IQTREE TOPOLOGY TO GET mbe BOOTSTRAP VALUES???
+		##### MAYBE RUN RAXML-NG USING THE IQTREE TOPOLOGY TO GET mbe BOOTSTRAP VALUES (very slow, as it is a complete boostrap?
 		
-		logging.info("*******************************************************************************")
-		logging.info("            RECONSTRUCTING SUPERTREE WITH ASTRAL")
-		logging.info("*******************************************************************************")
+		logging.info("******************************************************************************************************")
+		logging.info("            RECONSTRUCTING SUPERTREE WITH ASTRAL (Zhang et al. 2018)")
+		logging.info("******************************************************************************************************")
 		path_to_supertree = path_to_supermatrix.replace( 'supermatrix/','supertree/')
 		make_supertree_folder ="mkdir {}".format(path_to_supertree)
 		os.system(make_supertree_folder)
@@ -736,7 +737,7 @@ def main():
 		for treefile in os.listdir(path_to_finaltrees):
 			if treefile.endswith("treefile") or treefile.endswith("tree"):		
 				from_accession_to_species(accession_species_file, path_to_finaltrees + treefile)
-
+	logging.info("PIPELINE COMPLETED!")
 if __name__=='__main__':
 	logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.DEBUG)
 	main()
