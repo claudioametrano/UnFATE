@@ -11,6 +11,73 @@ import logging
 from os import path
 from Bio import SeqIO
 import csv
+import pandas
+
+def select_best_reference_seq(prot_file_path, assemblies_path, cpu):
+	"""in the assembly mode thase use exonerate_hits.py script from Hybpiper, there is no way to know what sequences from the protein file is the best for each markes,
+		as we do not have the BLAST or the BWA results mappig the reads from target enrichment to those sequences, so we just BLAST all the reference for each gene
+		on the assemblyes, the one with best bitscore is used to run exonerate_hits.py for that gene.
+	"""
+	ref_gene_list = []
+	# Get a list of genes without redundancy
+	for seq in SeqIO.parse(prot_file_path,"fasta"):
+		regex_id = re.search("^GCA_[0-9]+\.[0-9]-([0-9]+at4890)", seq.id)
+		if regex_id != None:
+			ref_gene_list.append(regex_id.group(1))
+	ref_gene_list = list(set(ref_gene_list))
+	logging.info("Gene list: ")
+	logging.info(ref_gene_list)
+	# 	Generate a separate fasta for each gene in the reference sequnces file	
+	for gene in ref_gene_list:
+		with open(assemblies_path + gene+ "_ref.fasta", "a+") as gene_file:
+			for seq in SeqIO.parse(prot_file_path,"fasta"):
+				regex_id = re.search("^GCA_[0-9]+\.[0-9]-([0-9]+at4890)", seq.id)
+				if regex_id != None:
+					if regex_id.group(1) == gene:
+						SeqIO.write(seq, gene_file, "fasta")
+					else:
+						pass	
+	# build BLST databases for each alignment and then run every gene reference file against it usung tBLASTn									
+	for f in os.listdir(assemblies_path):
+		if f.endswith(".fna"):
+			# Build a BLAST database for each of the assemblies
+			make_db = "makeblastdb -in {} -dbtype nucl -out {}".format(assemblies_path + f, assemblies_path + f.rstrip("\.fna"))
+			os.system(make_db)
+			for g in os.listdir(assemblies_path):
+				if g.endswith("_ref.fasta"):
+					logging.info("Blasting protein %s On assembly database  %s"%(g, f))
+					# -outfmt 6 is a tab delimited format, custom column output used
+					do_tblastn ='tblastn -query {} -db {} -out {} -num_threads {} -evalue 0.00001 -outfmt "6 delim=\t qseqid sseqid pident length qcovs qstart qend sstart send evalue bitscore"'.format(assemblies_path + g, assemblies_path + f.rstrip("\.fna"), assemblies_path +f.rstrip("\.fna") + "___" + g + "_blastout.tsv", cpu)
+					os.system(do_tblastn)
+	# from the BLAST output file in .tsv extract the reference sequence with the best bitscore (better than e-value as it does not depend on database sequence number, easier than filter by multiple things e.g. query length percentid e-value etc.)
+	for f in os.listdir(assemblies_path):
+		if f.endswith("_blastout.tsv"):
+			#create dataframe
+			df = pandas.read_table(assemblies_path + f , header=None)
+			# assign columns names
+			blast_custom_columns = ['qseqid','sseqid','pident','length','qcovs','qstart','qend','sstart','send','evalue','bitscore']
+			df.columns = blast_custom_columns
+			# sort by bitscore (descending)
+			df.sort_values(by='bitscore', ascending=False, inplace=True)
+			# only retain the best hit
+			top1 = df['qseqid'][0:1]
+			regex = re.search("(.+?)___([0-9]+at4890)_ref.fasta_blastout.tsv",f)
+			logging.info("For the assembly %s and gene %s reference sequence will be: "%(regex.group(1), regex.group(2)))
+			logging.info(top1)
+			# Write the best hit for every gene in an output file, taking the sequence from the original protein file
+			output_file = open(assemblies_path + regex.group(1) + "_best_blast_scoring_reference_Hybpiper_format_aa.fas","a+")
+			for rec in SeqIO.parse(prot_file_path, 'fasta'):
+				if rec.id in str(top1):
+					SeqIO.write(rec, output_file, 'fasta')				
+			output_file.close()
+		else:
+			pass			
+	os.system("rm -r %s"%(assemblies_path + "*_ref.fasta"))
+	os.system("rm -r %s"%(assemblies_path + "*_blastout.tsv"))
+	os.system("rm -r %s"%(assemblies_path + "*.nin"))
+	os.system("rm -r %s"%(assemblies_path + "*.nsq"))
+	os.system("rm -r %s"%(assemblies_path + "*.nhr"))
+	return()
 
 def run_exonerate_hits(file_, ref_seq_file):
 	logging.info("Extracting genes from: " +file_)
@@ -183,10 +250,6 @@ def from_accession_to_species(csv_file, treefile):
 	return()
 
 def check_arg(args=None):
-	''' 
-	 
-	
-	'''
 	parser = argparse.ArgumentParser(description='UnFATE: the wrapper script that brings YOU from target enrichment sequencing data straight to phylogenetic tree inference! BE CAREFUL: At least one argument between assemblies and target enrichment is mandatory! See the readme file for data structure and more info.')
 	parser.add_argument('-bb', '--target_markers', default= '',
 						help=' Path to fasta files containg all the sequences used to design the bait set, IT MUST BE A PROTEIN FASTA, USE  AN ABSOLUTE PATH!'
@@ -301,6 +364,9 @@ def main():
 		logging.info("********************************************************************************************************************")
 		logging.info("... it can take long time according to assembly dimension and reference sequences number  ")
 		logging.info('Path to assemblies '+path_to_assemblies)
+		
+		select_best_reference_seq(args.target_markers, args.assemblies, args.cpu)
+		
 		for root, dirs, files in os.walk(path_to_assemblies, topdown=True):
 			for name in files:
 				if name.endswith(".fna.gz"):
@@ -311,16 +377,24 @@ def main():
 				if name.endswith(".fna"):
 					pezizo_list.append(root + name)
 		#print("Samples are: ", pezizo_list)
-		empty_list = []
-		empty_list.append(args.target_markers)
-		#print(empty_list)
-		# product function from itertools does the cartesian product (lane * rows), it is like a nested for!!
-		list_of_list = list(itertools.product(pezizo_list, empty_list))
+		ref_list = []
+		for k in os.listdir(path_to_assemblies):
+			if k.endswith("_best_blast_scoring_reference_Hybpiper_format_aa.fas"):
+				ref_list.append(path_to_assemblies + k)
+		#print(ref_list)
+		list_of_list = []
+		for z in pezizo_list:
+			empty_list = []
+			for v in ref_list:
+				if z.rstrip("\.fna") in v:
+					empty_list.append(z)
+					empty_list.append(v)
+					list_of_list.append(empty_list)
 		#print(list_of_list)
 		logging.info("Running exonerate using exonerate_hits.py script from Hybpiper..")	
 		args.cpu = int(args.cpu)
-		# ~ pool = multiprocessing.Pool(processes=args.cpu)
-		# ~ pool.starmap(run_exonerate_hits, list_of_list)
+		pool = multiprocessing.Pool(processes=args.cpu)
+		pool.starmap(run_exonerate_hits, list_of_list)
 	
 	if args.target_enrichment_data:
 		logging.info("*****************************************************************************************************************************")
