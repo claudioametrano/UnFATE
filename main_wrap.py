@@ -43,40 +43,49 @@ def select_best_reference_seq(prot_file_path, assemblies_path, cpu):
 			# Build a BLAST database for each of the assemblies
 			make_db = "makeblastdb -in {} -dbtype nucl -out {}".format(assemblies_path + f, assemblies_path + f.rstrip("\.fna"))
 			os.system(make_db)
-			for g in os.listdir(assemblies_path):
-				if g.endswith("_ref.fasta"):
-					logging.info("Blasting protein %s On assembly database  %s"%(g, f))
-					# -outfmt 6 is a tab delimited format, custom column output used
-					do_tblastn ='tblastn -query {} -db {} -out {} -num_threads {} -evalue 0.00001 -outfmt "6 delim=\t qseqid sseqid pident length qcovs qstart qend sstart send evalue bitscore"'.format(assemblies_path + g, assemblies_path + f.rstrip("\.fna"), assemblies_path +f.rstrip("\.fna") + "___" + g + "_blastout.tsv", cpu)
-					os.system(do_tblastn)
+			parallel_tblastn = 'find %s -type f -name "*_ref.fasta" | parallel -j %s tblastn -query {} -db %s -out {}%s -num_threads 1 -outfmt 6'%(assemblies_path, cpu, assemblies_path + f.rstrip("\.fna"), "___" + f.rstrip("\.fna") + "_blastout.tsv")
+			os.system(parallel_tblastn)
+			# tblastn command parallelized (this is the original loop used)
+			#for g in os.listdir(assemblies_path):
+				#if g.endswith("_ref.fasta"):
+					#logging.info("Blasting protein %s On assembly database  %s"%(g, f))
+					## -outfmt 6 is a tab delimited format, custom column output used
+					#do_tblastn ='tblastn -query {} -db {} -out {} -num_threads {} -outfmt "6 delim=\t qseqid sseqid pident length qcovs qstart qend sstart send evalue bitscore"'.format(assemblies_path + g, assemblies_path + f.rstrip("\.fna"), assemblies_path +f.rstrip("\.fna") + "___" + g + "_blastout.tsv", cpu)
+					#os.system(do_tblastn)
 	# from the BLAST output file in .tsv extract the reference sequence with the best bitscore (better than e-value as it does not depend on database sequence number, easier than filter by multiple things e.g. query length percentid e-value etc.)
 	for f in os.listdir(assemblies_path):
-		if f.endswith("_blastout.tsv"):
+		# check if is one of the blast file output and if not empty
+		if f.endswith("_blastout.tsv") and os.stat(assemblies_path + f).st_size != 0:
 			#create dataframe
 			df = pandas.read_table(assemblies_path + f , header=None)
 			# assign columns names
-			blast_custom_columns = ['qseqid','sseqid','pident','length','qcovs','qstart','qend','sstart','send','evalue','bitscore']
-			df.columns = blast_custom_columns
+			blast_columns = ['qaccver', 'saccver', 'pident', 'length', 'mismatch', 'gapopen', 'qstart', 'qend', 'sstart', 'send', 'evalue', 'bitscore']
+			df.columns = blast_columns
 			# sort by bitscore (descending)
 			df.sort_values(by='bitscore', ascending=False, inplace=True)
 			# only retain the best hit
-			top1 = df['qseqid'][0:1]
-			regex = re.search("(.+?)___([0-9]+at4890)_ref.fasta_blastout.tsv",f)
-			logging.info("For the assembly %s and gene %s reference sequence will be: "%(regex.group(1), regex.group(2)))
+			top1 = df['qaccver'][0:1]
+			regex = re.search("([0-9]+at4890)_ref.fasta___(.+?)_blastout.tsv",f)
+			logging.info("For the assembly %s and gene %s reference sequence will be: "%(regex.group(2), regex.group(1)))
 			logging.info(top1)
 			# Write the best hit for every gene in an output file, taking the sequence from the original protein file
-			output_file = open(assemblies_path + regex.group(1) + "_best_blast_scoring_reference_Hybpiper_format_aa.fas","a+")
+			output_file = open(assemblies_path + regex.group(2) + "_best_blast_scoring_reference_Hybpiper_format_aa.fas","a+")
 			for rec in SeqIO.parse(prot_file_path, 'fasta'):
 				if rec.id in str(top1):
 					SeqIO.write(rec, output_file, 'fasta')				
 			output_file.close()
 		else:
 			pass			
+	# remove all the garbage needed to do the blasts
 	os.system("rm -r %s"%(assemblies_path + "*_ref.fasta"))
 	os.system("rm -r %s"%(assemblies_path + "*_blastout.tsv"))
 	os.system("rm -r %s"%(assemblies_path + "*.nin"))
 	os.system("rm -r %s"%(assemblies_path + "*.nsq"))
 	os.system("rm -r %s"%(assemblies_path + "*.nhr"))
+	os.system("rm -r %s"%(assemblies_path + "*.ndb"))
+	os.system("rm -r %s"%(assemblies_path + "*.nto"))
+	os.system("rm -r %s"%(assemblies_path + "*.not"))
+	os.system("rm -r %s"%(assemblies_path + "*.ntf"))
 	return()
 
 def run_exonerate_hits(file_, ref_seq_file):
@@ -364,7 +373,7 @@ def main():
 		logging.info("********************************************************************************************************************")
 		logging.info("... it can take long time according to assembly dimension and reference sequences number  ")
 		logging.info('Path to assemblies '+path_to_assemblies)
-		
+		logging.info('Selecting the best reference sequence for each assembly by BLAST...')
 		select_best_reference_seq(args.target_markers, args.assemblies, args.cpu)
 		
 		for root, dirs, files in os.walk(path_to_assemblies, topdown=True):
