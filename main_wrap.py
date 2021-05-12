@@ -45,13 +45,6 @@ def select_best_reference_seq(prot_file_path, assemblies_path, cpu):
 			os.system(make_db)
 			parallel_tblastn = 'find %s -type f -name "*_ref.fasta" | parallel -j %s tblastn -query {} -db %s -out {}%s -num_threads 1 -outfmt 6'%(assemblies_path, cpu, assemblies_path + f.rstrip("\.fna"), "___" + f.rstrip("\.fna") + "_blastout.tsv")
 			os.system(parallel_tblastn)
-			# tblastn command parallelized (this is the original loop used)
-			#for g in os.listdir(assemblies_path):
-				#if g.endswith("_ref.fasta"):
-					#logging.info("Blasting protein %s On assembly database  %s"%(g, f))
-					## -outfmt 6 is a tab delimited format, custom column output used
-					#do_tblastn ='tblastn -query {} -db {} -out {} -num_threads {} -outfmt "6 delim=\t qseqid sseqid pident length qcovs qstart qend sstart send evalue bitscore"'.format(assemblies_path + g, assemblies_path + f.rstrip("\.fna"), assemblies_path +f.rstrip("\.fna") + "___" + g + "_blastout.tsv", cpu)
-					#os.system(do_tblastn)
 	# from the BLAST output file in .tsv extract the reference sequence with the best bitscore (better than e-value as it does not depend on database sequence number, easier than filter by multiple things e.g. query length percentid e-value etc.)
 	for f in os.listdir(assemblies_path):
 		# check if is one of the blast file output and if not empty
@@ -76,16 +69,36 @@ def select_best_reference_seq(prot_file_path, assemblies_path, cpu):
 			output_file.close()
 		else:
 			pass			
-	# remove all the garbage needed to do the blasts
-	os.system("rm -r %s"%(assemblies_path + "*_ref.fasta"))
-	os.system("rm -r %s"%(assemblies_path + "*_blastout.tsv"))
-	os.system("rm -r %s"%(assemblies_path + "*.nin"))
-	os.system("rm -r %s"%(assemblies_path + "*.nsq"))
-	os.system("rm -r %s"%(assemblies_path + "*.nhr"))
-	os.system("rm -r %s"%(assemblies_path + "*.ndb"))
-	os.system("rm -r %s"%(assemblies_path + "*.nto"))
-	os.system("rm -r %s"%(assemblies_path + "*.not"))
-	os.system("rm -r %s"%(assemblies_path + "*.ntf"))
+	# remove all the garbage needed to blast
+	# find is used in order to pass to the remove command one file at a time, otherwise if there are too many files the rm command throws the error:"-bash: /bin/rm: Argument list too long" 
+	extension = "*_ref.fasta"
+	remove_lot_of_files = "find %s -type f -name '%s' -exec rm {} \;" %(assemblies_path, extension)
+	os.system(remove_lot_of_files)
+	remove_lot_of_files = "find %s -type f -name '%s' -exec rm {} \;" %(assemblies_path, extension)
+	extension = "*_blastout.tsv"
+	remove_lot_of_files = "find %s -type f -name '%s' -exec rm {} \;" %(assemblies_path, extension)
+	os.system(remove_lot_of_files)
+	extension = "*.nin"
+	remove_lot_of_files = "find %s -type f -name '%s' -exec rm {} \;" %(assemblies_path, extension)
+	os.system(remove_lot_of_files)
+	extension = "*.nsq"
+	remove_lot_of_files = "find %s -type f -name '%s' -exec rm {} \;" %(assemblies_path, extension)
+	os.system(remove_lot_of_files)
+	extension = "*.nhr"
+	remove_lot_of_files = "find %s -type f -name '%s' -exec rm {} \;" %(assemblies_path, extension)
+	os.system(remove_lot_of_files)
+	extension = "*.ndb"
+	remove_lot_of_files = "find %s -type f -name '%s' -exec rm {} \;" %(assemblies_path, extension)
+	os.system(remove_lot_of_files)
+	extension = "*.nto"
+	remove_lot_of_files = "find %s -type f -name '%s' -exec rm {} \;" %(assemblies_path, extension)
+	os.system(remove_lot_of_files)
+	extension = "*.not"
+	remove_lot_of_files = "find %s -type f -name '%s' -exec rm {} \;" %(assemblies_path, extension)
+	os.system(remove_lot_of_files)
+	extension = "*.ntf"
+	remove_lot_of_files = "find %s -type f -name '%s' -exec rm {} \;" %(assemblies_path, extension)
+	os.system(remove_lot_of_files)
 	return()
 
 def run_exonerate_hits(file_, ref_seq_file):
@@ -346,7 +359,7 @@ def main():
 		#logging.info("ASTRAL cloned")
 	
 	if args.ncbi_assemblies:
-		logging.info("Extracting pre-mined NCBI assemblies genes")
+		logging.info("Obtaining target genes from pre-extracted assembly database ")
 		path_to_premined = main_script_dir + "pre_mined_assemblies.tar.gz"
 		unzip_premined_assemblies = "tar -zxf {}".format(path_to_premined)
 		os.system(unzip_premined_assemblies)
@@ -371,7 +384,7 @@ def main():
 		logging.info("********************************************************************************************************************")
 		logging.info("          PERFORMING ASSEMBLIES DATA ANALYSIS WITH Exonerate (Slater & Birney 2005)       ")
 		logging.info("********************************************************************************************************************")
-		logging.info("... it can take long time according to assembly dimension and reference sequences number  ")
+		logging.info("... it can be time consuming, it depends on assembly dimension")
 		logging.info('Path to assemblies '+path_to_assemblies)
 		logging.info('Selecting the best reference sequence for each assembly by BLAST...')
 		select_best_reference_seq(args.target_markers, args.assemblies, args.cpu)
