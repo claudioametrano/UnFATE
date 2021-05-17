@@ -10,6 +10,8 @@ import subprocess
 import logging
 from os import path
 from Bio import SeqIO
+from Bio.Seq import Seq
+from Bio.SeqRecord import SeqRecord
 import csv
 import pandas
 
@@ -41,9 +43,10 @@ def select_best_reference_seq(prot_file_path, assemblies_path, cpu):
 	for f in os.listdir(assemblies_path):
 		if f.endswith(".fna"):
 			# Build a BLAST database for each of the assemblies
-			make_db = "makeblastdb -in {} -dbtype nucl -out {}".format(assemblies_path + f, assemblies_path + f.rstrip("\.fna"))
+			# As assembly names ends in various characters os.pat.splitext is safer than .rstrip() that truncates some of the sample names
+			make_db = "makeblastdb -in {} -dbtype nucl -out {}".format(assemblies_path + f, assemblies_path + os.path.splitext(f)[0])
 			os.system(make_db)
-			parallel_tblastn = 'find %s -type f -name "*_ref.fasta" | parallel -j %s tblastn -query {} -db %s -out {}%s -num_threads 1 -outfmt 6'%(assemblies_path, cpu, assemblies_path + f.rstrip("\.fna"), "___" + f.rstrip("\.fna") + "_blastout.tsv")
+			parallel_tblastn = 'find %s -type f -name "*_ref.fasta" | parallel -j %s tblastn -query {} -db %s -out {}%s -num_threads 1 -outfmt 6'%(assemblies_path, cpu, assemblies_path + os.path.splitext(f)[0], "___" + os.path.splitext(f)[0] + "_blastout.tsv")
 			os.system(parallel_tblastn)
 	# from the BLAST output file in .tsv extract the reference sequence with the best bitscore (better than e-value as it does not depend on database sequence number, easier than filter by multiple things e.g. query length percentid e-value etc.)
 	for f in os.listdir(assemblies_path):
@@ -67,6 +70,7 @@ def select_best_reference_seq(prot_file_path, assemblies_path, cpu):
 				if rec.id in str(top1):
 					SeqIO.write(rec, output_file, 'fasta')				
 			output_file.close()
+			os.system("rm {}".format(assemblies_path + f))
 		else:
 			pass			
 	# remove all the garbage needed to blast
@@ -74,10 +78,9 @@ def select_best_reference_seq(prot_file_path, assemblies_path, cpu):
 	extension = "*_ref.fasta"
 	remove_lot_of_files = "find %s -type f -name '%s' -exec rm {} \;" %(assemblies_path, extension)
 	os.system(remove_lot_of_files)
-	remove_lot_of_files = "find %s -type f -name '%s' -exec rm {} \;" %(assemblies_path, extension)
-	extension = "*_blastout.tsv"
-	remove_lot_of_files = "find %s -type f -name '%s' -exec rm {} \;" %(assemblies_path, extension)
-	os.system(remove_lot_of_files)
+	#extension = "*_blastout.tsv"
+	#remove_lot_of_files = "find %s -type f -name '%s' -exec rm {} \;" %(assemblies_path, extension)
+	#os.system(remove_lot_of_files)
 	extension = "*.nin"
 	remove_lot_of_files = "find %s -type f -name '%s' -exec rm {} \;" %(assemblies_path, extension)
 	os.system(remove_lot_of_files)
@@ -107,10 +110,10 @@ def run_exonerate_hits(file_, ref_seq_file):
 	regex_spades_header =re.search("^>NODE_[0-9]+_length_[0-9]+_cov_[0-9]+",fline)
 	#if spades assembly, run exonerate_hits from HybPiper
 	if regex_spades_header != None:
-		os.system("python3 exonerate_hits.py {} --prefix {} {} ".format(ref_seq_file, file_.rstrip("\.fna"), file_))
+		os.system("python3 exonerate_hits.py {} --prefix {} {} ".format(ref_seq_file, os.path.splitext(file_)[0], file_))
 	# else use the script version not using coverage information
 	else:
-		os.system("python3 exonerate_alt.py {} --prefix {} {} ".format(ref_seq_file, file_.rstrip("\.fna"), file_))
+		os.system("python3 exonerate_alt.py {} --prefix {} {} ".format(ref_seq_file, os.path.splitext(file_)[0], file_))
 	return(file_)
 
 def get_alignment(path_to_data):
@@ -336,7 +339,7 @@ def main():
 					data = data.replace('muscle="${LG_MUSCLE} $ALIGNER_EXTRA_OPTION"', 'muscle="muscle $ALIGNER_EXTRA_OPTION"')
 					data = data.replace('prank="${LG_PRANK} $ALIGNER_EXTRA_OPTION"', 'prank="prank $ALIGNER_EXTRA_OPTION"')
 					data = data.replace('hmmcleaner="perl ${LG_HMMCLEANER}"', 'hmmcleaner="perl ' + MACSE_utils_dir + '/HMMcleanerV1_8_VR2/HMMcleanAA_VR.pl"')
-					data = data.replace('macse="java -jar -Xmx${JAVA_MEM} ${LG_MACSE}"', 'macse="java -jar -Xms4g -Xmx8g ' + MACSE_utils_dir + '/macse_v2.03.jar"')
+					data = data.replace('macse="java -jar -Xmx${JAVA_MEM} ${LG_MACSE}"', 'macse="java -jar -Xms1g -Xmx2g ' + MACSE_utils_dir + '/macse_v2.03.jar"')
 					fin.close()
 					fin = open(MACSE_dir + "/" + filename, "wt")
 					fin.write(data)
@@ -408,7 +411,7 @@ def main():
 		for z in pezizo_list:
 			empty_list = []
 			for v in ref_list:
-				if z.rstrip("\.fna") in v:
+				if os.path.splitext(z)[0] in v:
 					empty_list.append(z)
 					empty_list.append(v)
 					list_of_list.append(empty_list)
@@ -518,21 +521,31 @@ def main():
 			remove_taxonomy_file = "rm {}".format(path_to_ranks)
 			os.system(remove_taxonomy_file)
 
-		# Get rid of the trash strings after the accession number to be able to replace with speciens name later									
+		# Get rid of the trash strings after the accession number to be able to replace with speciens name later	
+		# As OMM_MACSE will use soft masking to align and trim better get rig of all small case letters in the alignments before running MACSE pipeline								
 		logging.info("Cleaning sequences names to only retain accession numbers...")
+		logging.info("Converting all nucleotides to uppercase...")
 		for f in os.listdir(path_to_merged_alignments):
-			if f.endswith("_merged.fasta"):
-				output_file = open(path_to_merged_alignments + f.rstrip("\.fasta") + "_headmod.fas","a")
-				for seq in SeqIO.parse(path_to_merged_alignments + f,"fasta"):
-					regex_id = re.search("(^GCA_[0-9]+.[0-9])_", seq.id)
-					if regex_id is not None:
-						# this strips the old header out (.id is only the accession in theory .description is the whole header instead
-						seq.description = ""
-						seq.id = regex_id.group(1)
-						SeqIO.write(seq, output_file,"fasta")
-					else:
-						SeqIO.write(seq, output_file,"fasta")	
-				output_file.close()
+					if f.endswith("_merged.fasta"):
+						output_file = open(path_to_merged_alignments + f.rstrip("\.fasta") + "_headmod.fas","a")
+						for seq in SeqIO.parse(path_to_merged_alignments + f,"fasta"):
+							regex_id = re.search("(^GCA_[0-9]+.[0-9])_", seq.id)
+							if regex_id is not None:
+								# this strips the old header out (.id is only the accession in theory .description is the whole header instead
+								seq.description = ""
+								seq.id = regex_id.group(1)
+								# replace sequence with the same but uppercase
+								sequence = str(seq.seq).upper()
+								# arrange sequence and id in a format that SeqIO can write to file
+								record = SeqRecord(Seq(sequence), seq.id, "","")
+								print(record)
+								SeqIO.write(record, output_file,"fasta")
+							else:
+								sequence = str(seq.seq).upper()
+								record = SeqRecord(Seq(sequence), seq.id, "","")
+								print(record)
+								SeqIO.write(record, output_file,"fasta")						
+						output_file.close()
 		
 		logging.info("**********************************************************************************************************")
 		logging.info("          COMPARING RETRIEVED GENES TO REFERENCE SEQUENCES LENGTH          ")
@@ -550,6 +563,7 @@ def main():
 			path_to_merged_alignments = args.assemblies.replace('assemblies/', 'alignments_merged/')
 		MACSE_dir = main_script_dir + "MACSE_V2_PIPELINES/OMM_MACSE/"
 		MACSE_script = MACSE_dir + "S_OMM_MACSE_V10.02.sh"
+		# As OMM_MACSE uses soft masking put all the sequences in upper case before alignment and filtering 
 		run_OMM_MACSE = 'find %s -type f -name "*_nucleotide_merged_headmod.fas" | parallel -j %s %s --out_dir {}_out --out_file_prefix macsed --in_seq_file {} --no_prefiltering --no_postfiltering --alignAA_soft MAFFT  --min_percent_NT_at_ends 0.01 ' %(path_to_merged_alignments, args.cpu, MACSE_script)
 		os.system(run_OMM_MACSE)
 		logging.info(run_OMM_MACSE)
