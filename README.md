@@ -76,7 +76,7 @@ $ python3 main_wrap.py -b ~/path/to/protein/fasta/Target_markers_rep_seq_aa.fas 
   * Consider to run the script from a "tmux" detachable session, as the run can be very long, according to how many samples you have (this tools is usually preinstalled in Linux)  
   * Analyses with hundreds of sample should be run on a server-grade hardware!  
 
-5.  Cross your fingers and wait, good luck!  ...Take into account that the script parallelizes using the --cpu n you specify as an argument, HybPiper and Exonerate will process n sample at a time. The same number of cpu is then used to parallelize RAxML runs and for concatenated supermatrix.  
+5.  Cross your fingers and wait, good luck!  ...Take into account that the script parallelizes using the --cpu n you specify as an argument, HybPiper and Exonerate will process n sample at a time. The same number of cpu is then used to parallelize IQTREE runs  for signle locus trees and for concatenated supermatrices.  
  
 
 ## Output description
