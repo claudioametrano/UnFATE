@@ -406,16 +406,18 @@ def main():
 		for k in os.listdir(path_to_assemblies):
 			if k.endswith("_best_blast_scoring_reference_Hybpiper_format_aa.fas"):
 				ref_list.append(path_to_assemblies + k)
-		#print(ref_list)
+		print(ref_list)
 		list_of_list = []
 		for z in pezizo_list:
+			regex_fna = re.search("(.+?)\.fna", z)
 			empty_list = []
 			for v in ref_list:
-				if os.path.splitext(z)[0] in v:
+				regex_ref = re.search("(.+?)_best_blast_scoring_reference_Hybpiper_format_aa\.fas", v)
+				if regex_fna.group(1) == regex_ref.group(1):
 					empty_list.append(z)
 					empty_list.append(v)
 					list_of_list.append(empty_list)
-		#print(list_of_list)
+		print(list_of_list)
 		logging.info("Running exonerate using exonerate_hits.py script from Hybpiper..")	
 		args.cpu = int(args.cpu)
 		pool = multiprocessing.Pool(processes=args.cpu)
