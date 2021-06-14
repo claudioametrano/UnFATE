@@ -21,10 +21,10 @@ The wrapper script relies on many great software developed by other people. If y
 The wrapper is designed to be easy to use and to provide a fast way from target enrichment data (assemblies and whole genome sequence) to phylogenetic tree.
 In order to avoid the installation of dependancies and external software, that often lead to problems for inexperienced users (...well, not only for them), most of the software needed by UnFATE is already included in this repository, therefore, aknowledge their work citing them!!.
                                                                                                                                                                            
-1. Data from:  **Target enrichment** sequencing (mandatory. Also Whole Genome Sequencing data are accepted), **Assemblies** (optional, also from NCBI assembly database).  
+1. Data from:  **Target enrichment** sequencing (Also Whole Genome Sequencing data are accepted), **Assemblies** (At least one between target enrichment and assembly data must be provide).  
 **Representative sequences** used to build the bait set (included in the repository: Target_markers_rep_seq_aa.fas)  
 
-2. **Exonerate 2.2.0** and Exonerate_hits.py script from Hybpiper to mine gene using the amino acid fasta file
+2. **Exonerate 2.2.0** and Exonerate_hits.py script from Hybpiper to mine genes from assemblies using the amino acid  representative sequences fasta file (the best reference sequence is selected by BLAST)
                               
 3. **Trimmomatic 0.39** to trim Illumina paired reads .fastq.gz from TE or WGS 
 
@@ -36,7 +36,7 @@ In order to avoid the installation of dependancies and external software, that o
 
 7. **Gblocks 0.91b** to add an optional second block-based filtering step
 
-8. **RAxML-NG 1.0.2** is used for single locus phylogenetic inference
+8. **IQTREE2** is used for single locus phylogenetic inference
 
 9. **FASconCAT-G_v1.04** is used to concatenate single marker alignments into a supermatrix
 
@@ -49,7 +49,7 @@ Prerequisites/Dependancies:
 * A working Ubuntu Linux operating system or Windows10 Linux subsystem:
   *   Many guides are available online, such as: https://www.windowscentral.com/install-windows-subsystem-linux-windows-10
 * Python 3 or later (already present in Ubuntu)
-* GNU Parallel (already present in Ubuntu)
+* GNU Parallel (usually preinstalled in Ubuntu)
 * Anaconda 
   *  Download and install the Anaconda installer for Linux: https://docs.anaconda.com/anaconda/install/linux/
   * $ bash ~/path/to/Anaconda3-2020.02-Linux-x86_64.sh
@@ -70,22 +70,23 @@ $ python3 main_script.py --help
 3. Set up the folder structure: sequencing data from target enrichment must be placed in a folder called "target_enrichment", the assemblies must be placed in a folder called "assemblies", in order to be used by the script.	
 
 4. Run UnFATE using the comman line. For example:  
-$ python3 main_wrap.py -b ~/path/to/protein/fasta/protein_markers_aa.fas -t ~/path/to/target_enrichment/ -a ~/path/to/assemblies/ --gblocks --cpu 8 -n Tuber Morchella --first_use  
+$ python3 main_wrap.py -b ~/path/to/protein/fasta/Target_markers_rep_seq_aa.fas -t ~/path/to/target_enrichment/ -a ~/path/to/assemblies/ --gblocks --cpu 8 -n Tuber Morchella --first_use  
   
   * Remember to use absolute paths for your data folders and the reference protein fasta (e.g. ~/this/is/an/absolute/path/to/the/folder/path/)  
   * Consider to run the script from a "tmux" detachable session, as the run can be very long, according to how many samples you have (this tools is usually preinstalled in Linux)  
-  * Analyses with hundreds of sample should definitely run on a server-grade hardware!  
+  * Analyses with hundreds of sample should be run on a server-grade hardware!  
 
-5.  Cross your fingers and wait, good luck!  ...Take into account that the script parallelizes using the --cpu n you specify as an argument, HybPiper and Exonerate will process n sample at a time. The same number of cpu is then used to parallelize RAxML runs and for concatenated supermatices.  
+5.  Cross your fingers and wait, good luck!  ...Take into account that the script parallelizes using the --cpu n you specify as an argument, HybPiper and Exonerate will process n sample at a time. The same number of cpu is then used to parallelize RAxML runs and for concatenated supermatrix.  
  
 
 ## Output description
-The UnFATE output will be placed in many folders in the same location of your "target_enrichment" folder, will be created several ouput folders corresponding to the pipeline steps:  
+The UnFATE output will be placed in many folders in the same location of your "target_enrichment" (or "assemblies") folder, will be created several ouput folders corresponding to the pipeline steps:  
 * Within the "target_enrichment" folder there will be the HybPiper runs folder, one per sample  
 * Within the "assemblies" folder there will be the "Exonerate_hits.py" runs folder, one per sample  
-* "alignments" folder will contain DNA and aa fasta file of the sequences from assemblies (optional) and target enrichment separately, one each marker of interest.  
+* "alignments" folder will contain DNA and AA fasta file of the sequences from assemblies and target enrichment separately, one each marker of interest.  
 * "alignments_merged" folder will contain DNA and aa fasta file, one per marker of interest, and the MACSE runs folders.  
-* "alignments_merged" folder will contain DNA and aa alignments, aligned and filtered with OMM_MACSE pipeline and their optional version also filtered with Gblocks  
-* "single_locus_trees" folder will contain the RAxML phylogenetic analyse on single markers
-* "supermatrix" will contain both the concatenation of the single marker alignments and the IQTREE2 phylogenetic inference  
-* "supertree" will contain both the file with the best tree for each marker and the ASTRAL species tree
+* "macsed_alignments" folder will contain DNA and aa alignments, aligned and filtered with OMM_MACSE pipeline and (optionally) filtered with Gblocks  
+* "single_locus_trees" folder will contain the IQTREE phylogenetic analyses on single markers (from both DNA and AA alignments)
+* "supermatrix" will contain both the concatenation of the single marker alignments and the IQTREE2 phylogenetic inference (from both DNA and AA alignments)  
+* "supertree" will contain both the file with the best tree for each marker and the ASTRAL species tree (from both DNA and AA alignments)
+* "final_trees" will contain the trees generate from concatenation (IQTREE) and coalescence-based approach (ASTRAL) and their version renamed to species name (where NCBI accession numbers were used; e.g. when samples from the precalculated database or assemblies downloaded from NCBI are used)

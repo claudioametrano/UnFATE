@@ -275,7 +275,7 @@ def from_accession_to_species(csv_file, treefile):
 	return()
 
 def check_arg(args=None):
-	parser = argparse.ArgumentParser(description='UnFATE: the wrapper script that brings YOU from target enrichment sequencing data straight to phylogenetic tree inference! BE CAREFUL: At least one argument between assemblies and target enrichment is mandatory! See the readme file for data structure and more info.')
+	parser = argparse.ArgumentParser(description='UnFATE: the wrapper script that brings YOU from target enrichment sequencing data straight to phylogenetic tree inference! BE CAREFUL: At least one argument between assemblies and target enrichment is mandatory! See the readme file for data structure and additional info.')
 	parser.add_argument('-bb', '--target_markers', default= '',
 						help=' Path to fasta files containg all the sequences used to design the bait set, IT MUST BE A PROTEIN FASTA, USE  AN ABSOLUTE PATH!'
 						)
