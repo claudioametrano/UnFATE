@@ -39,7 +39,7 @@ def select_best_reference_seq(prot_file_path, assemblies_path, cpu):
 						SeqIO.write(seq, gene_file, "fasta")
 					else:
 						pass	
-	# build BLST databases for each alignment and then run every gene reference file against it usung tBLASTn									
+	# build BLAST databases for each alignment and then run every gene reference file against it usung tBLASTn									
 	for f in os.listdir(assemblies_path):
 		if f.endswith(".fna"):
 			# Build a BLAST database for each of the assemblies
@@ -110,10 +110,10 @@ def run_exonerate_hits(file_, ref_seq_file):
 	regex_spades_header =re.search("^>NODE_[0-9]+_length_[0-9]+_cov_[0-9]+",fline)
 	#if spades assembly, run exonerate_hits from HybPiper
 	if regex_spades_header != None:
-		os.system("python3 exonerate_hits.py {} --prefix {} {} ".format(ref_seq_file, os.path.splitext(file_)[0], file_))
+		os.system("python3 {}exonerate_hits.py {} --prefix {} {} ".format(main_script_dir, ref_seq_file, os.path.splitext(file_)[0], file_))
 	# else use the script version not using coverage information
 	else:
-		os.system("python3 exonerate_alt.py {} --prefix {} {} ".format(ref_seq_file, os.path.splitext(file_)[0], file_))
+		os.system("python3 {}exonerate_alt.py {} --prefix {} {} ".format(main_script_dir, ref_seq_file, os.path.splitext(file_)[0], file_))
 	return(file_)
 
 def get_alignment(path_to_data):
@@ -128,6 +128,7 @@ def get_alignment(path_to_data):
 	logging.info("List of genes found: ")
 	logging.info( genes_list)
 	os.chdir(path_to_data)
+
 	for g in genes_list:
 		#logging.info("Building nucleotide alignment for gene {}".format(g))
 		with open("Alignment_" + g + "_nucleotide.FAS",'a+') as alignment:
@@ -161,6 +162,7 @@ def merge_alignments(path_to_assemblies, path_to_target_enrichment):
 		output_path = path_to_target_enrichment + '../'
 	else:	
 		output_path = path_to_assemblies + '../'
+		
 	os.makedirs(output_path + 'alignments')
 	os.makedirs(output_path + 'alignments_merged')
 	output_path = output_path + 'alignments/'
@@ -170,6 +172,7 @@ def merge_alignments(path_to_assemblies, path_to_target_enrichment):
 		for filename in (os.listdir(path_to_assemblies)):
 			if filename.endswith(".FAS"):
 				os.rename(path_to_assemblies + filename , path_to_assemblies + filename.rstrip("FAS") + "assembly.FA")
+
 	if os.path.exists(path_to_target_enrichment):
 		for filename in (os.listdir(path_to_target_enrichment)):
 			if filename.endswith(".FAS"):
@@ -274,40 +277,95 @@ def from_accession_to_species(csv_file, treefile):
 	output_file.close()
 	return()
 
+def set_up_directories():
+	#if it exists and is not an absolute path
+	if args.assemblies:
+		if not args.assemblies.startswith("/") or args.assemblies.startswith("~"):
+			args.assemblies = os.path.abspath(args.assemblies) + "/"
+
+	if args.target_enrichment_data:
+		if not args.target_enrichment_data.startswith("/") or args.assemblies.startswith("~"):
+			args.target_enrichment_data = os.path.abspath(args.target_enrichment_data) + "/"
+
+	if args.target_markers:
+		if not args.target_markers.startswith("/") or args.assemblies.startswith("~"):
+			args.target_markers = os.path.abspath(args.target_markers)
+
+	if args.out:
+		if not args.out.startswith("/") or args.out.startswith("~"):
+			args.out = os.path.abspath(args.out) + "/"
+
+	#print("raw, potentially modified paths:", args.assemblies)
+	#print("absolute paths:", os.path.abspath(args.assemblies))
+
+	#if the user has specified an output directory, move their assemblies and target enrichment data
+	#into the output directory (symlink), then run using those directories.
+	if args.out:
+		#make args.out directory if it doesn't already exist
+		if not os.path.isdir(args.out):
+			os.mkdir(args.out)
+			if args.assemblies:
+				os.mkdir(os.path.join(args.out, "assemblies"))
+			if args.target_enrichment_data:
+				os.mkdir(os.path.join(args.out, "target_enrichment_data"))
+		else:
+			if args.target_enrichment_data:
+				if not os.path.isdir(os.path.join(args.out, "target_enrichment_data")):
+					os.mkdir(os.path.join(args.out, "target_enrichment_data"))
+			if args.assemblies:
+				if not os.path.isdir(os.path.join(args.out, "assemblies")):
+					os.mkdir(os.path.join(args.out, "assemblies"))
+
+		if args.target_enrichment_data:
+			for file in os.listdir(args.target_enrichment_data):
+	                        if file.lower().endswith(".fastq") or file.lower().endswith(".fastq.gz"):
+	                                os.symlink(os.path.join(args.target_enrichment_data, file), os.path.join(args.out, "target_enrichment_data", file))
+			args.target_enrichment_data = os.path.join(args.out, "target_enrichment_data", "") #the empty one causes a trailing /
+
+		if args.assemblies:
+			for file in os.listdir(args.assemblies):
+				if file.lower().endswith(".fna") or file.lower().endswith(".fasta"):
+					os.symlink(os.path.join(args.assemblies, file), os.path.join(args.out, "assemblies", file))
+			args.assemblies = os.path.join(args.out, "assemblies", "")
+
 def check_arg(args=None):
 	parser = argparse.ArgumentParser(description='UnFATE: the wrapper script that brings YOU from target enrichment sequencing data straight to phylogenetic tree inference! BE CAREFUL: At least one argument between assemblies and target enrichment is mandatory! See the readme file for data structure and additional info.')
-	parser.add_argument('-bb', '--target_markers', default= '',
+	parser.add_argument('-bb', '--target_markers', default= 'Target_markers_rep_seq_aa.fas',
 						help=' Path to fasta files containg all the sequences used to design the bait set, IT MUST BE A PROTEIN FASTA, USE  AN ABSOLUTE PATH!'
 						)
 	parser.add_argument('-c', '--cpu', default= '4',
 						help='CPU number used by Hybpiper or parallel run of Exonerate, MACSE, RAxML etc.' 
 						)				
 	parser.add_argument('-t', '--target_enrichment_data', default= '',
-						help='Path to target enriched data, USE AN ABSOLUTE PATH (include "/" after the folder name)! Folder must be named "target_enrichment". Files must end with "R1.fastq.gz" and "R2.fastq.gz"',
+						help='Path to target enriched data. Files must end with "R1.fastq.gz" and "R2.fastq.gz"',
 						)
 #	parser.add_argument('-w', '--whole_genome_data', default= '',
 #						help='Input path of de novo whole genome sequence data.'
 #						)
 	parser.add_argument('-a', '--assemblies', default= '',
-						help='Path to assemblies, USE AN ABSOLUTE PATH (include "/" after the folder name)!  Folder must be named "assemblies", Files must end with ".fna.gz" or ".fna"',
+						help='Path to assemblies. Files must end with ".fna.gz" or ".fna"',
 						)	
 	parser.add_argument('-f', '--first_use', action= 'store_true', 
-						help='Modifies some path in MACSE pipeline folder, use this argument only if is the first time you run the pipeline, then do not move the UnFATE folder, if you have to: git clone the repository again and use this arguement for the first run',
+						help='Modifies some path in MACSE pipeline folder, use this argument only if is the first time you run the pipeline, then do not move the UnFATE folder.',
 						)		
 	parser.add_argument('-g', '--gblocks_relaxed', action= 'store_true', 
-						help='Applies Gblocks with relaxed parameters (Talavera et al. 2007)',
+						help='Applies Gblocks with relaxed parameters (Talavera & Castresana, 2007)',
 						)	
 	parser.add_argument('-n', '--ncbi_assemblies', nargs = '+', 
-						help='Extracts the pre-mined NCBI assemblies genes, then it uses the selected taxonomic rank to only include the needed samples. Can take a list of ranks (e.g. Morchella Tuber Fuffaria)'
-						)	
-	parser.add_argument('--nargs', nargs='+')																				
+						help='Extracts the requested pre-mined NCBI assemblies genes from the database, Can take a list of taxononomic ranks (e.g. Morchella Tuber Fuffaria)'
+						)
+	parser.add_argument('-o', '--out', required=True, 
+						help='The directory where output will be placed upon completion. MANDATORY ARGUMENT!'
+						)							
+	#parser.add_argument('--nargs', nargs='+')
+																				
 	return parser.parse_args(args)
 args = check_arg(sys.argv[1:])
 print("Arguments are: ", args)
 
-
 def main():
 	#print(args)
+	global main_script_dir
 	main_script_dir = os.path.realpath(__file__)
 	main_script_dir = main_script_dir.rstrip("main_wrap.py")
 	#print(main_script_dir)
@@ -315,6 +373,7 @@ def main():
 	#print(args.assemblies)
 	os.system('ulimit -n 1024000')
 	
+	set_up_directories()	
 	
 	if args.first_use == True:	
 		# this git clones are not needed anymore as this software are now included directly in the UnFATE repository to avoid the wrapper to crash when a new version is released (could use github 
@@ -406,7 +465,7 @@ def main():
 		for k in os.listdir(path_to_assemblies):
 			if k.endswith("_best_blast_scoring_reference_Hybpiper_format_aa.fas"):
 				ref_list.append(path_to_assemblies + k)
-		print(ref_list)
+		#print(ref_list)
 		list_of_list = []
 		for z in pezizo_list:
 			regex_fna = re.search("(.+?)\.fna", z)
@@ -556,9 +615,9 @@ def main():
 		run_markers_retrieved_percentage = "python3 {} -b {} -f {} ".format(markers_retrieved_percentage_script, args.target_markers, path_to_merged_alignments)						
 		os.system(run_markers_retrieved_percentage)
 		
-		logging.info("************************************************************************************************************************************************************")
-		logging.info("          PERFORMING ALIGNMENT WITH OMM_MACSE with HMMcleaner filtering (Ranwez et al. 2018; Di Franco et al. 2019)         ")
-		logging.info("************************************************************************************************************************************************************")
+		logging.info("*************************************************************************************************************************************")
+		logging.info("          PERFORMING ALIGNMENT WITH OMM_MACSE (Ranwez et al. 2018; Di Franco et al. 2019)           ")
+		logging.info("*************************************************************************************************************************************")
 		if args.target_enrichment_data:
 			path_to_merged_alignments = args.target_enrichment_data.replace('target_enrichment/', 'alignments_merged/')
 		if args.assemblies:
@@ -590,7 +649,44 @@ def main():
 			logging.info("***********************************************************************************************************")
 			#print(path_to_macsed_align)
 			run_gblocks("_final_align_NT.aln.fas","_final_align_AA.aln.fas", path_to_macsed_align, gblocks_path)	
-			
+		
+		logging.info("Deleting spaces and sequences with > 70% gaps from alignments") 
+		for f in os.listdir(path_to_macsed_align):
+			if f.endswith("-gb") or f.endswith(".fas"):
+				logging.info("Processing %s" % f)
+				alignment_file = open(path_to_macsed_align + f,'rt')
+				alignment_file_content = alignment_file.read()
+				#delete spaces created by Gblocks in the alignemtns, if it is not a Gblocked alignment it does the same just to be safe (so there will be no spaces at all in the alignment file)
+				alignment_file_content = alignment_file_content.replace(' ','')
+				alignment_file.close()
+				alignment_file = open(path_to_macsed_align + f,'wt')
+				alignment_file.write(alignment_file_content)
+				alignment_file.close()
+		
+		# get rid of the sequences with > 75% of gaps (sequence which remained empty o almost empty after filtering, i.e. not well alignable and/or already short before filtering)		
+		for f in os.listdir(path_to_macsed_align):
+			if f.endswith("-gb") or f.endswith(".fas"):
+				logging.info("Processing %s" % f)
+				input_file = path_to_macsed_align + f
+				with open(path_to_macsed_align + f +"_cleaned.fasta", "a+") as output_file:
+					for seqs in SeqIO.parse(input_file, 'fasta'):
+						drop_cutoff = 0.75
+						name = seqs.id
+						seq = seqs.seq
+						seqLen = len(seqs)
+						gap_count = 0
+						for z in range(seqLen):
+							if seq[z]=='-':
+								gap_count += 1
+						#print(seqLen)
+						#print(gap_count)		
+						#print(gap_count/(seqLen))		
+						if (gap_count/seqLen) >= drop_cutoff:
+							logging.info(" %s was removed." % name)
+						else:
+							SeqIO.write(seqs, output_file , 'fasta')
+					output_file.close()
+				
 		logging.info("******************************************************************************************************************")
 		logging.info("          RECONSTRUCTING SINGLE MARKER TREES WITH IQTREE2 (Minh et al. 2020)           ")
 		logging.info("******************************************************************************************************************")
@@ -598,17 +694,17 @@ def main():
 		#print(path_to_macsed_align)
 		# DNA alignments
 		if args.gblocks_relaxed:
-			iqtree_parallel1 = "find %s -type f  -name '*_final_align_NT.aln.fas-gb' | parallel -j %s %s  -s {} -m MFP -B 1000 -T 1" %(path_to_macsed_align, args.cpu, iqtree_script)
+			iqtree_parallel1 = "find %s -type f  -name '*_final_align_NT.aln.fas-gb_cleaned.fasta' | parallel -j %s %s  -s {} -m MFP -B 1000 -T 1" %(path_to_macsed_align, args.cpu, iqtree_script)
 			os.system(iqtree_parallel1)
 		else:
-			iqtree_parallel = "find %s -type f  -name '*_final_align_NT.aln.fas' | parallel -j %s %s -s {} -m MFP -B 1000 -T 1" %(path_to_macsed_align, args.cpu, iqtree_script)
+			iqtree_parallel = "find %s -type f  -name '*_final_align_NT.aln.fas_cleaned.fasta' | parallel -j %s %s -s {} -m MFP -B 1000 -T 1" %(path_to_macsed_align, args.cpu, iqtree_script)
 			os.system(iqtree_parallel)
 		# Amino acid alignments
 		if args.gblocks_relaxed:
-			iqtree_parallel3 = "find %s -type f  -name '*_final_align_AA.aln.fas-gb' | parallel -j %s %s  -s {} -m MFP -B 1000 -T 1" %(path_to_macsed_align, args.cpu, iqtree_script)
+			iqtree_parallel3 = "find %s -type f  -name '*_final_align_AA.aln.fas-gb_cleaned.fasta' | parallel -j %s %s  -s {} -m MFP -B 1000 -T 1" %(path_to_macsed_align, args.cpu, iqtree_script)
 			os.system(iqtree_parallel3)
 		else:
-			iqtree_parallel2 = "find %s -type f  -name '*_final_align_AA.aln.fas' | parallel -j %s %s  -s {} -m MFP -B 1000 -T 1" %(path_to_macsed_align, args.cpu, iqtree_script)
+			iqtree_parallel2 = "find %s -type f  -name '*_final_align_AA.aln.fas_cleaned.fasta' | parallel -j %s %s  -s {} -m MFP -B 1000 -T 1" %(path_to_macsed_align, args.cpu, iqtree_script)
 			os.system(iqtree_parallel2)
 		# move trees and other iqtree files to the dedicated folder		
 		path_to_single_trees = path_to_macsed_align.replace('macsed_alignments/', 'single_locus_trees/')
@@ -643,9 +739,9 @@ def main():
 			os.system(copy_fasconcat)
 			copy_fasconcat = "cp {} {}".format(main_script_dir + "FASconCAT-G_v1.04.pl", path_to_supermatrix_gblocked_aa)
 			os.system(copy_fasconcat)
-			copy_alignments_dna= "cp -r {}*macsed_final_align_NT.aln.fas-gb {}".format(path_to_macsed_align, path_to_supermatrix_gblocked_dna)
+			copy_alignments_dna= "cp -r {}*macsed_final_align_NT.aln.fas-gb_cleaned.fasta {}".format(path_to_macsed_align, path_to_supermatrix_gblocked_dna)
 			os.system(copy_alignments_dna)
-			copy_alignments_aa= "cp -r {}*macsed_final_align_AA.aln.fas-gb {}".format(path_to_macsed_align, path_to_supermatrix_gblocked_aa)
+			copy_alignments_aa= "cp -r {}*macsed_final_align_AA.aln.fas-gb_cleaned.fasta {}".format(path_to_macsed_align, path_to_supermatrix_gblocked_aa)
 			os.system(copy_alignments_aa)
 		else:
 			path_to_supermatrix_dna = path_to_supermatrix +"supermatrix_dna/"
@@ -654,66 +750,41 @@ def main():
 			os.system(copy_fasconcat)
 			copy_fasconcat = "cp {} {}".format(main_script_dir + "FASconCAT-G_v1.04.pl", path_to_supermatrix_aa)
 			os.system(copy_fasconcat)
-			copy_alignments_dna= "cp -r {}*macsed_final_align_NT.aln.fas {}".format(path_to_macsed_align, path_to_supermatrix_dna)
+			copy_alignments_dna= "cp -r {}*macsed_final_align_NT.aln.fas_cleaned.fasta {}".format(path_to_macsed_align, path_to_supermatrix_dna)
 			os.system(copy_alignments_dna)
-			copy_alignments_aa= "cp -r {}*macsed_final_align_AA.aln.fas {}".format(path_to_macsed_align, path_to_supermatrix_aa)
+			copy_alignments_aa= "cp -r {}*macsed_final_align_AA.aln.fas_cleaned.fasta {}".format(path_to_macsed_align, path_to_supermatrix_aa)
 			os.system(copy_alignments_aa)
-				
-		if args.gblocks_relaxed:
-			for f in os.listdir(path_to_supermatrix_gblocked_dna):
-				if f.endswith("-gb"):
-					alignment_file = open(path_to_supermatrix_gblocked_dna + f,'rt')
-					alignment_file_content = alignment_file.read()
-					#delete spaces created by Gblocks in the alignemtns
-					alignment_file_content = alignment_file_content.replace(' ','')
-					alignment_file.close()
-					alignment_file = open(path_to_supermatrix_gblocked_dna + f,'wt')
-					alignment_file.write(alignment_file_content)
-					alignment_file.close()
-			for f in os.listdir(path_to_supermatrix_gblocked_dna):
-				if f.endswith("-gb"):		
-					os.rename(path_to_supermatrix_gblocked_dna + f, path_to_supermatrix_gblocked_dna + f +".fas" )
+		if args.gblocks_relaxed:				
 			run_fasconcat = 'perl {}FASconCAT-G_v1.04.pl -l -s'.format(path_to_supermatrix_gblocked_dna) 
 			os.chdir(path_to_supermatrix_gblocked_dna)
 			os.system(run_fasconcat)
 			os.rename('FcC_supermatrix.fas','FcC_supermatrix_gblocked_NT.fasta')
 			os.rename('FcC_supermatrix_partition.txt','FcC_supermatrix_partition_gblocked_NT.txt')
 			os.rename('FcC_info.xls','FcC_info_gblocked_NT.xls')
-			os.system("rm *.fas")
-			for f in os.listdir(path_to_supermatrix_gblocked_aa):
-				if f.endswith("-gb"):
-					alignment_file = open(path_to_supermatrix_gblocked_aa + f,'rt')
-					alignment_file_content = alignment_file.read()
-					alignment_file_content = alignment_file_content.replace(' ','')
-					alignment_file.close()
-					alignment_file = open(path_to_supermatrix_gblocked_aa + f,'wt')
-					alignment_file.write(alignment_file_content)
-					alignment_file.close()
-			for f in os.listdir(path_to_supermatrix_gblocked_aa):
-				if f.endswith("-gb"):			
-					os.rename(path_to_supermatrix_gblocked_aa + f, path_to_supermatrix_gblocked_aa + f +".fas" )
+			os.system("rm *_cleaned.fasta")
+			
 			run_fasconcat = 'perl {}FASconCAT-G_v1.04.pl -l -s'.format(path_to_supermatrix_gblocked_aa) 
 			os.chdir(path_to_supermatrix_gblocked_aa)
 			os.system(run_fasconcat)
 			os.rename('FcC_supermatrix.fas','FcC_supermatrix_gblocked_AA.fasta')
 			os.rename('FcC_supermatrix_partition.txt','FcC_supermatrix_partition_gblocked_AA.txt')
 			os.rename('FcC_info.xls','FcC_info_gblocked_AA.xls')
-			os.system("rm *.fas")
-		else:			
+			os.system("rm *_cleaned.fasta")
+		else:
 			run_fasconcat = 'perl {}FASconCAT-G_v1.04.pl -l -s'.format(path_to_supermatrix_dna) 
 			os.chdir(path_to_supermatrix_dna)
 			os.system(run_fasconcat)
 			os.rename('FcC_supermatrix.fas','FcC_supermatrix_NT.fasta')
 			os.rename('FcC_supermatrix_partition.txt','FcC_supermatrix_partition_NT.txt')
 			os.rename('FcC_info.xls','FcC_info_NT.xls')
-			os.system("rm *.fas")
+			os.system("rm *_cleaned.fasta")
 			run_fasconcat = 'perl {}FASconCAT-G_v1.04.pl -l -s'.format(path_to_supermatrix_aa) 
 			os.chdir(path_to_supermatrix_aa)
 			os.system(run_fasconcat)
 			os.rename('FcC_supermatrix.fas','FcC_supermatrix_AA.fasta')
 			os.rename('FcC_supermatrix_partition.txt','FcC_supermatrix_partition_AA.txt')
 			os.rename('FcC_info.xls','FcC_info_AA.xls')
-			os.system("rm *.fas")	
+			os.system("rm *_cleaned.fasta")	
 		os.chdir(main_script_dir)
 			
 		logging.info("*************************************************************************************************************")
@@ -748,8 +819,8 @@ def main():
 			make_supertree_gblocked_aa = "mkdir {}".format(path_to_supertree + "supertree_gblocked_aa")
 			os.system(make_supertree_gblocked_dna)
 			os.system(make_supertree_gblocked_aa)
-			copy_trees_gblocked_dna= "cp -r {}*macsed_final_align_NT.aln.fas-gb.treefile {}".format(path_to_single_trees, path_to_supertree + "supertree_gblocked_dna")
-			copy_trees_gblocked_aa= "cp -r {}*macsed_final_align_AA.aln.fas-gb.treefile {}".format(path_to_single_trees, path_to_supertree + "supertree_gblocked_aa")
+			copy_trees_gblocked_dna= "cp -r {}*macsed_final_align_NT.aln.fas-gb_cleaned.fasta.treefile {}".format(path_to_single_trees, path_to_supertree + "supertree_gblocked_dna")
+			copy_trees_gblocked_aa= "cp -r {}*macsed_final_align_AA.aln.fas-gb_cleaned.fasta.treefile {}".format(path_to_single_trees, path_to_supertree + "supertree_gblocked_aa")
 			os.system(copy_trees_gblocked_dna)
 			os.system(copy_trees_gblocked_aa)
 			os.chdir(path_to_supertree + "supertree_gblocked_dna")
@@ -771,8 +842,8 @@ def main():
 			make_supertree_aa = "mkdir {}".format(path_to_supertree + "supertree_aa")
 			os.system(make_supertree_dna)
 			os.system(make_supertree_aa)
-			copy_trees_dna= "cp -r {}*macsed_final_align_NT.aln.fas.treefile {}".format(path_to_single_trees, path_to_supertree + "supertree_dna")
-			copy_trees_aa= "cp -r {}*macsed_final_align_AA.aln.fas.treefile {}".format(path_to_single_trees, path_to_supertree + "supertree_aa")
+			copy_trees_dna= "cp -r {}*macsed_final_align_NT.aln.fas_cleaned.fasta.treefile {}".format(path_to_single_trees, path_to_supertree + "supertree_dna")
+			copy_trees_aa= "cp -r {}*macsed_final_align_AA.aln.fas_cleaned.fasta.treefile {}".format(path_to_single_trees, path_to_supertree + "supertree_aa")
 			os.system(copy_trees_dna)
 			os.system(copy_trees_aa)
 			os.chdir(path_to_supertree + "supertree_dna")
