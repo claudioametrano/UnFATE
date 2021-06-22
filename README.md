@@ -1,6 +1,6 @@
 # UnFATE
 
-#### Universal Filamentous Ascomycetes Target Enrichement bait set and wrapper script for phylogenetics and genome-based barcoding 
+#### Universal Filamentous Ascomycetes Target Enrichment bait set and wrapper script for phylogenetics and genome-based barcoding 
 
 ## Please cite: 
 The wrapper script relies on many great software developed by other people. If you use this wrapper and bait set please cite:
@@ -19,9 +19,9 @@ The wrapper script relies on many great software developed by other people. If y
 
 ## Workflow
 The wrapper is designed to be easy to use and to provide a fast way from target enrichment data (assemblies and whole genome sequence) to phylogenetic tree.
-In order to avoid the installation of dependancies and external software, that often lead to problems for inexperienced users (...well, not only for them), most of the software needed by UnFATE is already included in this repository, therefore, aknowledge their work citing them!!.
+In order to avoid the installation of dependencies and external software, that often lead to problems for inexperienced users (...well, not only for them), most of the software needed by UnFATE is already included in this repository, therefore, acknowledge their work by citing them!!.
                                                                                                                                                                            
-1. Data from:  **Target enrichment** sequencing (Also Whole Genome Sequencing data are accepted), **Assemblies** (At least one between target enrichment and assembly data must be provide).  
+1. Data from:  **Target enrichment** sequencing (Also Whole Genome Sequencing data are accepted), **Assemblies** (At least one between target enrichment and assembly data must be provided).  
 **Representative sequences** used to build the bait set (included in the repository: Target_markers_rep_seq_aa.fas)  
 
 2. **Exonerate 2.2.0** and Exonerate_hits.py script from Hybpiper to mine genes from assemblies using the amino acid  representative sequences fasta file (the best reference sequence is selected by BLAST)
@@ -30,7 +30,7 @@ In order to avoid the installation of dependancies and external software, that o
 
 4. **HybPiper 1.3.1** to extract the markers from target enrichment sequening reads .fastq files  
 
-5. Fasta files are built from retrieved markers, eventually adding the markers from the pre-mined batabase of NCBI assemblies included in UnFATE repository (if you plan to use it, make sure you download the repository from the browser interface, or install the Github large file storage system before you git clone Unfate)
+5. Fasta files are built from retrieved markers, eventually adding the markers from the pre-mined database of NCBI assemblies included in UnFATE repository (if you plan to use it, make sure you download the repository from the browser interface, or install the Github large file storage system before you git clone Unfate)
 
 6. **MACSE2.03** pipline **OMM_MACSE10.02**  to perform codon-aware alignment and segment-based filtering **(HMMcleaner 1.8)**
 
@@ -42,10 +42,10 @@ In order to avoid the installation of dependancies and external software, that o
 
 10. **IQTREE2** is used for the supermatrix phylogenetic inference
 
- 11. **ASTRAL 5.7.7** is used to buil the species tree from single locus trees
+ 11. **ASTRAL 5.7.7** is used to build the species tree from single locus trees
   
 ## Installation and use
-Prerequisites/Dependancies:  
+Prerequisites/Dependencies:  
 * A working Ubuntu Linux operating system or Windows10 Linux subsystem:
   *   Many guides are available online, such as: https://www.windowscentral.com/install-windows-subsystem-linux-windows-10
 * Python 3 or later (already present in Ubuntu)
@@ -55,11 +55,15 @@ Prerequisites/Dependancies:
   * $ bash ~/path/to/Anaconda3-2020.02-Linux-x86_64.sh
   * Answer "yes" to conda init
   * Restart Ubuntu, it should show the (base) conda environment at the beginning of your command line
-* Install HybPiper dependancies:  
+* Install HybPiper dependencies:  
    * BIOPYTHON 1.59 or later : $ conda install biopython  
    * BLAST command line tools: $ conda install -c bioconda blast 
    * SPAdes: $ conda install -c bioconda spades 
    * EXONERATE: $ conda install -c bioconda exonerate 
+* Install miscellaneous dependencies:
+   * pandas: $ conda install pandas
+   * seaborn: $ conda install seaborn
+   * click: $ conda install click
 
 1. Clone the UnFATE repository with (or download the .zip file from Github browser interface). Chose a position for the UnFATE folder you like, do not move the repository after the first run (use the argument --first_use) 
 $ git clone https://github.com/claudioametrano/UnFATE.git  
@@ -67,25 +71,26 @@ $ git clone https://github.com/claudioametrano/UnFATE.git
 2. Read the help section of the script to set up the command line for your analysis:  
 $ python3 main_script.py --help  
 
-3. Set up the folder structure: sequencing data from target enrichment must be placed in a folder called "target_enrichment", the assemblies must be placed in a folder called "assemblies", in order to be used by the script.	
+3. Set up the file extensions: Sequencing data from target enrichment must be in files ending in .fastq or .fastq.gz. Assemblies must be in fasta files ending in .fna or .fna.gz. Unzip and/or rename your data as needed.
 
-4. Run UnFATE using the comman line. For example:  
-$ python3 main_wrap.py -b ~/path/to/protein/fasta/Target_markers_rep_seq_aa.fas -t ~/path/to/target_enrichment/ -a ~/path/to/assemblies/ --gblocks --cpu 8 -n Tuber Morchella --first_use  
+4. Run UnFATE using the command line. For example:  
+$ python3 main_wrap.py -b ~/path/to/protein/fasta/Target_markers_rep_seq_aa.fas -t ~/path/to/target_enrichment/ -a ~/path/to/assemblies/ --gblocks --cpu 8 -n Tuber Morchella --first_use -o ~/path/to/output/
   
-  * Remember to use absolute paths for your data folders and the reference protein fasta (e.g. ~/this/is/an/absolute/path/to/the/folder/path/)  
   * Consider to run the script from a "tmux" detachable session, as the run can be very long, according to how many samples you have (this tools is usually preinstalled in Linux)  
-  * Analyses with hundreds of sample should be run on a server-grade hardware!  
+  * Analyses with hundreds of samples should be run on server-grade hardware!  
 
-5.  Cross your fingers and wait, good luck!  ...Take into account that the script parallelizes using the --cpu n you specify as an argument, HybPiper and Exonerate will process n samples at a time. The same number of cpu is then used to parallelize IQTREE runs  for signle locus trees and for concatenated supermatrices.  
+5. Consider logging the script output with `python3 main_wrap.py {params} |& tee <logfile>`. This saves the stdout and stderr from running main_wrap.py into <logfile> as well as printing it to the console.
+
+6.  Cross your fingers and wait, good luck!  ...Take into account that the script parallelizes using the --cpu n you specify as an argument, HybPiper and Exonerate will process n samples at a time. The same number of cpu is then used to parallelize IQTREE runs for single locus trees and for concatenated supermatrices.  
  
 
 ## Output description
-The UnFATE output will be placed in many folders in the same location of your "target_enrichment" (or "assemblies") folder, will be created several ouput folders corresponding to the pipeline steps:  
-* Within the "target_enrichment" folder there will be the HybPiper runs folder, one per sample  
-* Within the "assemblies" folder there will be the "Exonerate_hits.py" runs folder, one per sample  
+The UnFATE output will be placed in many folders within the location specified by -o, several output folders will be created corresponding to the pipeline steps:  
+* Within the "target_enrichment" folder there will be the HybPiper runs folder, one per sample. Your data will also be symlinked into this directory.
+* Within the "assemblies" folder there will be the "Exonerate_hits.py" runs folder, one per sample. Your data will aslo be symlinked into this directory
 * "alignments" folder will contain DNA and AA fasta file of the sequences from assemblies and target enrichment separately, one each marker of interest.  
-* "alignments_merged" folder will contain DNA and aa fasta file, one per marker of interest, and the MACSE runs folders.  
-* "macsed_alignments" folder will contain DNA and aa alignments, aligned and filtered with OMM_MACSE pipeline and (optionally) filtered with Gblocks  
+* "alignments_merged" folder will contain DNA and AA fasta file, one per marker of interest, and the MACSE runs folders.  
+* "macsed_alignments" folder will contain DNA and AA alignments, aligned and filtered with OMM_MACSE pipeline and (optionally) filtered with Gblocks  
 * "single_locus_trees" folder will contain the IQTREE phylogenetic analyses on single markers (from both DNA and AA alignments)
 * "supermatrix" will contain both the concatenation of the single marker alignments and the IQTREE2 phylogenetic inference (from both DNA and AA alignments)  
 * "supertree" will contain both the file with the best tree for each marker and the ASTRAL species tree (from both DNA and AA alignments)
