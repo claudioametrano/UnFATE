@@ -368,7 +368,7 @@ def main():
 	global main_script_dir
 	main_script_dir = os.path.realpath(__file__)
 	main_script_dir = main_script_dir.rstrip("main_wrap.py")
-	#print(main_script_dir)
+	print(main_script_dir)
 	#print(args.target_enrichment_data)
 	#print(args.assemblies)
 	os.system('ulimit -n 1024000')
@@ -423,7 +423,7 @@ def main():
 	if args.ncbi_assemblies:
 		logging.info("Obtaining target genes from pre-extracted assembly database ")
 		path_to_premined = main_script_dir + "pre_mined_assemblies.tar.gz"
-		unzip_premined_assemblies = "tar -zxf {}".format(path_to_premined)
+		unzip_premined_assemblies = "tar -C {} -zxf {}".format(main_script_dir, path_to_premined)
 		os.system(unzip_premined_assemblies)
 		path_to_premined = main_script_dir + "pre_mined_assemblies/"
 		path_to_taxonomy = path_to_premined + "Accession_plus_taxonomy_Pezizomycotina.txt"
