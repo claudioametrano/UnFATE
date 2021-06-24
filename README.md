@@ -82,7 +82,8 @@ $ python3 main_wrap.py -b ~/path/to/protein/fasta/Target_markers_rep_seq_aa.fas 
 5. Consider logging the script output with `python3 main_wrap.py {params} |& tee <logfile>`. This saves the stdout and stderr from running main_wrap.py into <logfile> as well as printing it to the console.
 
 6.  Cross your fingers and wait, good luck!  ...Take into account that the script parallelizes using the --cpu n you specify as an argument, HybPiper and Exonerate will process n samples at a time. The same number of cpu is then used to parallelize IQTREE runs for single locus trees and for concatenated supermatrices.  
- 
+
+7. A run can be resumed if the script is terminated before generating trees, but after generating supermatrices. This will happen automatically if the output directory contains the assemblies/ and/or target_enrichment/, alignments/, alignments_merged/, macsed_alignments/, and supermatrix/ directories. Please remove any tree directories from the output directory (if present) before resuming to avoid errors.
 
 ## Output description
 The UnFATE output will be placed in many folders within the location specified by -o, several output folders will be created corresponding to the pipeline steps:  
