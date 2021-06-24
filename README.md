@@ -48,7 +48,7 @@ In order to avoid the installation of dependencies and external software, that o
 Prerequisites/Dependencies:  
 * A working Ubuntu Linux operating system or Windows10 Linux subsystem:
   *   Many guides are available online, such as: https://www.windowscentral.com/install-windows-subsystem-linux-windows-10
-* Python 3 or later (usually prinstalled in Linix)
+* Python 3 or later (usually preinstalled in Linux)
 * GNU Parallel (usually preinstalled in Linux)
 * Anaconda 
   *  Download and install the Anaconda installer for Linux: https://docs.anaconda.com/anaconda/install/linux/
