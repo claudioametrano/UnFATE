@@ -76,21 +76,20 @@ $ python3 main_script.py --help
 4. Run UnFATE using the command line. For example:  
 $ python3 main_wrap.py -b ~/path/to/protein/fasta/Target_markers_rep_seq_aa.fas -t ~/path/to/target_enrichment/ -a ~/path/to/assemblies/ --gblocks --cpu 8 -n Tuber Morchella --first_use -o ~/path/to/output/
   
-  * Consider to run the script from a "tmux" detachable session, as the run can be very long, according to how many samples you have (this tools is usually preinstalled in Linux)  
+  * Consider running the script from a "tmux" detachable session, as the run can be very long, according to how many samples you have (this tools is usually preinstalled in Linux)  
   * Analyses with hundreds of samples should be run on server-grade hardware!  
 
 5. Consider logging the script output with `python3 main_wrap.py {params} |& tee <logfile>`. This saves the stdout and stderr from running main_wrap.py into <logfile> as well as printing it to the console.
 
 6.  Cross your fingers and wait, good luck!  ...Take into account that the script parallelizes using the --cpu n you specify as an argument, HybPiper and Exonerate will process n samples at a time. The same number of cpu is then used to parallelize IQTREE runs for single locus trees and for concatenated supermatrices.  
 
-7. A run can be resumed if the script is terminated before generating trees, but after generating supermatrices. This will happen automatically if the output directory contains the assemblies/ and/or target_enrichment/, alignments/, alignments_merged/, macsed_alignments/, and supermatrix/ directories. Please remove any tree directories from the output directory (if present) before resuming to avoid errors.
+7. A run can be resumed if the script is terminated before generating trees, but after generating supermatrices. This will happen automatically if the output directory contains the assemblies/ and/or target_enrichment/, fastas/, macsed_alignments/, and supermatrix/ directories. Please remove any tree directories from the output directory (if present) before resuming to avoid errors.
 
 ## Output description
 The UnFATE output will be placed in many folders within the location specified by -o, several output folders will be created corresponding to the pipeline steps:  
 * Within the "target_enrichment" folder there will be the HybPiper runs folder, one per sample. Your data will also be symlinked into this directory.
-* Within the "assemblies" folder there will be the "Exonerate_hits.py" runs folder, one per sample. Your data will aslo be symlinked into this directory
-* "alignments" folder will contain DNA and AA fasta file of the sequences from assemblies and target enrichment separately, one each marker of interest.  
-* "alignments_merged" folder will contain DNA and AA fasta file, one per marker of interest, and the MACSE runs folders.  
+* Within the "assemblies" folder there will be the "Exonerate_hits.py" runs folder, one per sample. Your data will aslo be symlinked into this directory 
+* "fastas" folder will contain DNA and AA fasta files, one per marker of interest, and the MACSE runs folders.  
 * "macsed_alignments" folder will contain DNA and AA alignments, aligned and filtered with OMM_MACSE pipeline and (optionally) filtered with Gblocks  
 * "single_locus_trees" folder will contain the IQTREE phylogenetic analyses on single markers (from both DNA and AA alignments)
 * "supermatrix" will contain both the concatenation of the single marker alignments and the IQTREE2 phylogenetic inference (from both DNA and AA alignments)  
