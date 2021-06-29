@@ -468,7 +468,7 @@ def main():
 			logging.info("          TRIMMING TARGET ENRICHMENT FASTQ FILES  WITH TRIMMOMATC (Bolger et al. 2014)          ")
 			logging.info("*****************************************************************************************************************************")
 			logging.info('Path to TE data: '+args.target_enrichment_data)
-			trimming_cmd = "python3 {}/trimmer.py -f {}".format(main_script_dir, args.target_enrichment_data)
+			trimming_cmd = "python3 {}/trimmer.py -f {} -c {}".format(main_script_dir, args.target_enrichment_data, args.cpu)
 			os.system(trimming_cmd)
 			#Get namelist.txt from dataset directory
 			namelist_cmd = 'python3 {}/getNameList.py -f {}'.format(main_script_dir, args.target_enrichment_data)

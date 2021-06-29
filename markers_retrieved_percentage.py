@@ -1,4 +1,4 @@
-import os 
+import os
 import click
 from Bio import SeqIO
 import sys
@@ -12,6 +12,7 @@ import logging
 @click.option('--bait_file_aa_path','-b', default='./all_genes_names_FG_2_Hybpiper_format_aa.fas', help='path to baits file')
 @click.option('--alignments_folder_path','-f', default='.', help='path of the folder containing the fasta files')
 @click.option('--plot_heatmap','-p', is_flag=True, help=' if used, plots the heatmap using the dataframe (WARNING: do not use on a server, it need a GUI)')
+
 def seq_percentage(bait_file_aa_path, alignments_folder_path, plot_heatmap ):
 	""" Takes the protein fasta (the reference sequences) and the alignment files.
 		 For each marker an average length values for the reference sequences is produced.
@@ -72,24 +73,45 @@ def seq_percentage(bait_file_aa_path, alignments_folder_path, plot_heatmap ):
 			#print(sample_gene_lenght_dict)
 		else:
 			pass
-		
+
 			#print(protein.id)
 			#print(protein.seq)
+
+	#normalized data frame
+	ndf = data_frame.copy()
+
+	#get the row with mean marker length, then divide everything else by that, columnwise
+	marker_means = ndf.iloc[-1:,:]
+	ndf = ndf.iloc[:,:].div(marker_means.iloc[0,:], axis='columns')
+
+	logging.info(ndf)
+	logging.info(ndf.shape)
+
 	logging.info("Exporting the length table to gene_length.csv in 'alignments_merged' folder")
 	logging.info("LAST ROW OF THE TABLE REPRESENTS THE AVERAGE VALUE OF THE REFERECE SEQUENCES USED TO EXTRACT THESE GENES")
 	logging.info(data_frame)
 	# Exports dataframe to .csv file
 	data_frame.to_csv(alignments_folder_path + 'gene_length.csv', encoding='utf-8')
+	ndf.to_csv(alignments_folder_path + 'gene_length_normalized.csv', encoding='utf-8')
 			
 	# Plot an heatmap from dataframe table
 	fig, ax = plt.subplots(figsize=(60, 60))
-	seaborn.heatmap(data_frame, cmap="Greens")
+	seaborn.heatmap(data_frame, cmap="Greens", vmin=0)
 	if plot_heatmap:
 		logging.info("Plotting the heatmap...")
 		plt.show()
 	else:	
-		logging.info("Exporting the length table as heatmap to 'gene_lengths_heatmap.pdf' in 'alignments_merged' folder")
+		logging.info("Exporting the length table as heatmap to 'gene_lengths_heatmap.pdf' in the 'fastas' folder")
 		plt.savefig(alignments_folder_path + 'gene_lengths_heatmap.pdf')
+
+	fig, ax = plt.subplots(figsize=(60,60))
+	seaborn.heatmap(ndf, cmap="Greens", vmin=0)
+	if plot_heatmap:
+		logging.info("Plotting the heatmap...")
+		plt.show()
+	else:
+		logging.info("Exporting the normalized length table as heatmap to 'gene_lengths_normalized_heatmap.pdf' in the 'fastas' folder")
+		plt.savefig(alignments_folder_path + 'gene_lengths_normalized_heatmap.pdf')
 	
 		
 # starts the function					
