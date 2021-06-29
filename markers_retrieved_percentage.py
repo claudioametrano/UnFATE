@@ -95,8 +95,8 @@ def seq_percentage(bait_file_aa_path, alignments_folder_path, plot_heatmap ):
 	ndf.to_csv(alignments_folder_path + 'gene_length_normalized.csv', encoding='utf-8')
 			
 	# Plot an heatmap from dataframe table
-	fig, ax = plt.subplots(figsize=(60, 60))
-	seaborn.heatmap(data_frame, cmap="Greens", vmin=0)
+	fig, ax = plt.subplots(figsize=(100, 60))
+	seaborn.heatmap(data_frame, cmap="Greens", vmin=0, xticklabels=1, yticklabels=1)
 	if plot_heatmap:
 		logging.info("Plotting the heatmap...")
 		plt.show()
@@ -104,8 +104,8 @@ def seq_percentage(bait_file_aa_path, alignments_folder_path, plot_heatmap ):
 		logging.info("Exporting the length table as heatmap to 'gene_lengths_heatmap.pdf' in the 'fastas' folder")
 		plt.savefig(alignments_folder_path + 'gene_lengths_heatmap.pdf')
 
-	fig, ax = plt.subplots(figsize=(60,60))
-	seaborn.heatmap(ndf, cmap="Greens", vmin=0)
+	fig, ax = plt.subplots(figsize=(100,60))
+	seaborn.heatmap(ndf, cmap="Greens", vmin=0, xticklabels=1, yticklabels=1)
 	if plot_heatmap:
 		logging.info("Plotting the heatmap...")
 		plt.show()
