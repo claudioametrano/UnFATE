@@ -486,11 +486,11 @@ def main():
 				for line in f:
 					logging.info("Processing sample:" + line)
 					sample_path = args.target_enrichment_data + '/' + line.rstrip('\n') + '_R*.trimmed_paired.fastq'
-					run_Hybpiper =  '{}HybPiper/reads_first.py -b {} -r {}  --prefix {} --cpu {} '.format(main_script_dir, args.target_markers, sample_path, line, args.cpu)
+					run_Hybpiper =  '{}HybPiper/reads_first.py -b {} -r {}  --prefix {} --cpu {} '.format(main_script_dir, args.target_markers, sample_path, line.strip(), args.cpu)
+					logging.info("running HybPiper with: " + run_Hybpiper)
 					os.system(run_Hybpiper)
 			os.chdir(main_script_dir)
 					
-			#end assemblies/
 
 			#start filling fastas/
 #		if args.target_enrichment_data or args.assemblies:	
