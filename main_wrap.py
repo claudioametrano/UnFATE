@@ -290,7 +290,7 @@ def check_arg(args=None):
 						help='Applies Gblocks with relaxed parameters (Talavera & Castresana, 2007)',
 						)	
 	parser.add_argument('-n', '--ncbi_assemblies', nargs = '+', 
-						help='Extracts the requested pre-mined NCBI assemblies genes from the database, Can take a list of taxononomic ranks (e.g. Morchella Tuber Fuffaria)'
+#						help='Extracts the requested pre-mined NCBI assemblies genes from the database, Can take a list of taxononomic ranks (e.g. Morchella Tuber Fuffaria)'
 						)
 	parser.add_argument('-o', '--out', required=True, 
 						help='The directory where output will be placed upon completion. MANDATORY ARGUMENT!'
@@ -300,6 +300,12 @@ def check_arg(args=None):
 						)
 	parser.add_argument('-l', '--low_memory', action= 'store_true',
 						help='Turns off automatic spades assembly of target enrichment data before running HybPiper. Probably not required unless running whole genome data on a low memory computer.'
+						)
+	parser.add_argument('-p', '--phypartspiecharts', action='store_true',
+						help='Runs phyparts on single locus gene trees and creates a plot describing the support for each node. Only uses AA data.'
+						)
+	parser.add_argument('-u', '--outgroup',
+						help='Only used if -p is used, specifies the sample to re-root the trees on for use in phyparts.'
 						)
 	#parser.add_argument('--nargs', nargs='+')
 																				
@@ -976,6 +982,22 @@ def main():
 	for treefile in os.listdir(path_to_finaltrees):
 		if treefile.endswith("treefile") or treefile.endswith("tree"):		
 			from_accession_to_species(accession_species_file, path_to_finaltrees + treefile)
+
+	if args.phypartspiecharts:
+		pie_wrap_path = os.path.join(main_script_dir, "pie_wrap.py")
+		tree_path = os.path.join(args.out, "single_locus_trees")
+		species_path = ""
+		if args.gblocks_relaxed:
+			species_path = os.path.join(args.out, "final_trees", "astral_species_tree_gblocked_aa.tree")
+		else:
+			species_path = os.path.join(args.out, "final_trees", "astral_species_tree_aa.tree")
+		phyparts_path = os.path.join(main_script_dir, "phyparts-0.0.1-SNAPSHOT-jar-with-dependencies.jar")
+		pppc_path = os.path.join(main_script_dir, "phypartspiecharts.py")
+		pppc_command = "python {} -t {} -s {} -g {} -p {} -c {}".format(pie_wrap_path, tree_path, species_path, args.outgroup, phyparts_path, pppc_path)
+		logging.info("Running phypartspiecharts wrapper (pie_wrap.py)")
+		print("running pppc with: " + pppc_command)
+		os.system(pppc_command)
+
 	logging.info("PIPELINE COMPLETED!")
 if __name__=='__main__':
 	logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.DEBUG)

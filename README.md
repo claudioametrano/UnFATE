@@ -52,29 +52,31 @@ Prerequisites/Dependencies:
 * GNU Parallel (usually preinstalled in Linux)
 * Anaconda 
   *  Download and install the Anaconda installer for Linux: https://docs.anaconda.com/anaconda/install/linux/
-  * $ bash ~/path/to/Anaconda3-2020.02-Linux-x86_64.sh
+  * `$ bash ~/path/to/Anaconda3-2020.02-Linux-x86_64.sh`
   * Answer "yes" to conda init
   * Restart Ubuntu, it should show the (base) conda environment at the beginning of your command line
 * Install HybPiper dependencies:  
-   * BIOPYTHON 1.59 or later : $ conda install biopython  
-   * BLAST command line tools: $ conda install -c bioconda blast 
-   * SPAdes: $ conda install -c bioconda spades 
-   * EXONERATE: $ conda install -c bioconda exonerate 
+   * BIOPYTHON 1.59 or later : `$ conda install biopython`
+   * BLAST command line tools: `$ conda install -c bioconda blast`
+   * SPAdes: `$ conda install -c bioconda spades` 
+   * EXONERATE: `$ conda install -c bioconda exonerate` 
 * Install miscellaneous dependencies:
-   * pandas: $ conda install pandas
-   * seaborn: $ conda install seaborn
-   * click: $ conda install click
+   * pandas: `$ conda install pandas`
+   * seaborn: `$ conda install seaborn`
+   * click: `$ conda install click`
+* Install phypartspiecharts dependencies (if desired):
+   * ete3 and ete_toolchain: $ conda install -c etetoolkit ete3 ete_toolchain, then check installation with `$ ete3 build check`
 
 1. Clone the UnFATE repository with (or download the .zip file from Github browser interface). Chose a position for the UnFATE folder you like, do not move the repository after the first run (use the argument --first_use) 
-$ git clone https://github.com/claudioametrano/UnFATE.git  
+`$ git clone https://github.com/claudioametrano/UnFATE.git`
 
 2. Read the help section of the script to set up the command line for your analysis:  
-$ python3 main_script.py --help  
+`$ python3 main_script.py --help`
 
 3. Set up the file extensions: Sequencing data from target enrichment must be in files ending in .fastq or .fastq.gz. Assemblies must be in fasta files ending in .fna or .fna.gz. Unzip and/or rename your data as needed.
 
 4. Run UnFATE using the command line. For example:  
-$ python3 main_wrap.py -b ~/path/to/protein/fasta/Target_markers_rep_seq_aa.fas -t ~/path/to/target_enrichment/ -a ~/path/to/assemblies/ --gblocks --cpu 8 -n Tuber Morchella --first_use -o ~/path/to/output/
+`$ python3 main_wrap.py -b ~/path/to/protein/fasta/Target_markers_rep_seq_aa.fas -t ~/path/to/target_enrichment/ -a ~/path/to/assemblies/ --gblocks --cpu 8 -n Tuber Morchella --first_use -o ~/path/to/output/`
   
   * Consider running the script from a "tmux" detachable session, as the run can be very long, according to how many samples you have (this tools is usually preinstalled in Linux)  
   * Analyses with hundreds of samples should be run on server-grade hardware!  
