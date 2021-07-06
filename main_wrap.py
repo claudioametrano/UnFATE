@@ -42,7 +42,7 @@ def select_best_reference_seq(prot_file_path, assemblies_path, cpu):
 						pass	
 	# build BLAST databases for each alignment and then run every gene reference file against it usung tBLASTn									
 	for f in os.listdir(assemblies_path):
-		if f.endswith(".fna") or f.endswith(".fasta"):
+		if f.endswith(".fna"): #can't include.fastas right now because alignment fastas have been moved into assemblies/
 			# Build a BLAST database for each of the assemblies
 			# As assembly names ends in various characters os.pat.splitext is safer than .rstrip() that truncates some of the sample names
 			make_db = "makeblastdb -in {} -dbtype nucl -out {}".format(assemblies_path + f, assemblies_path + os.path.splitext(f)[0])
@@ -492,12 +492,12 @@ def main():
 
 			for root, dirs, files in os.walk(path_to_assemblies, topdown=True):
 				for name in files:
-					if name.endswith(".fna.gz") or name.endswith(".fasta.gz"):
+					if name.endswith(".fna.gz"): # or name.endswith(".fasta.gz"):
 						os.system("gunzip "+ path_to_assemblies + name)		
 			pezizo_list = []	
 			for root, dirs, files in os.walk(path_to_assemblies, topdown=True):
 				for name in files:
-					if name.endswith(".fna") or name.endswith(".fasta"):
+					if name.endswith(".fna"): #or name.endswith(".fasta"):
 						pezizo_list.append(root + name)
 			#print("Samples are: ", pezizo_list)
 			ref_list = []
