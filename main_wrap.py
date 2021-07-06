@@ -42,7 +42,7 @@ def select_best_reference_seq(prot_file_path, assemblies_path, cpu):
 						pass	
 	# build BLAST databases for each alignment and then run every gene reference file against it usung tBLASTn									
 	for f in os.listdir(assemblies_path):
-		if f.endswith(".fna"):
+		if f.endswith(".fna") or f.endswith(".fasta"):
 			# Build a BLAST database for each of the assemblies
 			# As assembly names ends in various characters os.pat.splitext is safer than .rstrip() that truncates some of the sample names
 			make_db = "makeblastdb -in {} -dbtype nucl -out {}".format(assemblies_path + f, assemblies_path + os.path.splitext(f)[0])
@@ -117,9 +117,13 @@ def run_exonerate_hits(file_, ref_seq_file):
 		os.system("python3 {}exonerate_alt.py {} --prefix {} {} ".format(main_script_dir, ref_seq_file, os.path.splitext(file_)[0], file_))
 	return(file_)
 
-def get_fastas_exonerate(path_to_data):
+def get_fastas_exonerate(path_to_data, isAssemblies):
 	for moleculeType in ["FNA", "FAA"]:
-		for filename in glob(os.path.join(path_to_data, "*", "sequences", moleculeType, "*")):
+		if isAssemblies:
+			search_location = os.path.join(path_to_data, "*", "sequences", moleculeType, "*")
+		else:
+			search_location = os.path.join(path_to_data, "*", "*", "*", "sequences", moleculeType, "*")
+		for filename in glob(search_location):
 			geneName = filename.split("/")[-1][:-4]
 			if moleculeType == "FNA":
 				with open(filename) as inFile, open(os.path.join(args.out, "fastas", "Alignment_" + geneName + "_nucleotide_merged.fasta"), 'a') as outFile:
@@ -294,6 +298,9 @@ def check_arg(args=None):
 	parser.add_argument('-x', '--test', action= 'store_true',
 						help='Allows the user to exit early. Each step needs to be started by the user explicitly.'
 						)
+	parser.add_argument('-l', '--low_memory', action= 'store_true',
+						help='Turns off automatic spades assembly of target enrichment data before running HybPiper. Probably not required unless running whole genome data on a low memory computer.'
+						)
 	#parser.add_argument('--nargs', nargs='+')
 																				
 	return parser.parse_args(args)
@@ -419,6 +426,58 @@ def main():
 				# SAME AS TARGET ENRICHMENT DATA OR MAYBE ASSEMBLY WITH SPADES THEN EXONERATE?? 
 				TEST THIS!!"""	
 				
+		#create hybpiper output in target_enrichment/
+		if args.target_enrichment_data:
+			logging.info("*****************************************************************************************************************************")
+			logging.info("          TRIMMING TARGET ENRICHMENT FASTQ FILES  WITH TRIMMOMATC (Bolger et al. 2014)          ")
+			logging.info("*****************************************************************************************************************************")
+			logging.info('Path to TE data: '+args.target_enrichment_data)
+			trimming_cmd = "python3 {}/trimmer.py -f {} -c {}".format(main_script_dir, args.target_enrichment_data, args.cpu)
+			os.system(trimming_cmd)
+			#Get namelist.txt from dataset directory
+			namelist_cmd = 'python3 {}/getNameList.py -f {}'.format(main_script_dir, args.target_enrichment_data)
+			os.system(namelist_cmd)
+			namelist = 'namelist.txt'
+			path_to_namelist = os.path.join(args.target_enrichment_data,namelist)
+
+			if not args.low_memory:
+				with open(path_to_namelist) as namelistFile:
+					for name in namelistFile:
+						name = name.strip()
+						sample_R1_path = os.path.join(args.out, "target_enrichment_data", name + "_R1.trimmed_paired.fastq.gz")
+						sample_R2_path = os.path.join(args.out, "target_enrichment_data", name + "_R2.trimmed_paired.fastq.gz")
+						spades_out_path = os.path.join(args.out, "target_enrichment_data", name + "_spades/")
+						spades_command = "spades.py -1 {} -2 {} -o {} -t {} --careful".format(sample_R1_path, sample_R2_path, spades_out_path, args.cpu)
+						logging.info("running spades with " + spades_command)
+						os.system(spades_command)
+						if args.assemblies:
+							os.rename(os.path.join(spades_out_path, "scaffolds.fasta"), os.path.join(args.assemblies, name + ".fna"))
+						else:
+							os.mkdir(os.path.join(args.out, "assemblies"))
+							args.assemblies = os.path.join(args.out, "assemblies", "")
+							os.rename(os.path.join(spades_out_path, "scaffolds.fasta"), os.path.join(args.assemblies, name + ".fna"))
+				args.target_enrichment_data = None
+				#I don't think this will break anything, args.target_enrichment isn't used below except to get exonerate results
+				#Because exonerate results will be in assemblies/ in this scenario, we don't need target_enrichment_data anymore
+
+			if args.low_memory:
+				logging.info("Gunzipping paired reads trimmed fastq archives")
+				gunzip_fastq =' parallel gunzip ::: {}*_paired.fastq.gz'.format(args.target_enrichment_data) 
+				os.system(gunzip_fastq)
+				logging.info("******************************************************************************************************************************************")
+				logging.info("           EXTRACTING GENES FROM TARGET ENRICHMENT DATA  WITH Hybpiper (Johnson et al. 2016)")
+				logging.info("******************************************************************************************************************************************")
+				os.chdir(args.target_enrichment_data)
+				with open(path_to_namelist, 'r') as f:
+					for line in f:
+						logging.info("Processing sample:" + line)
+						sample_path = args.target_enrichment_data + '/' + line.rstrip('\n') + '_R*.trimmed_paired.fastq'
+						run_Hybpiper =  '{}HybPiper/reads_first.py -b {} -r {}  --prefix {} --cpu {} '.format(main_script_dir, args.target_markers, sample_path, line.strip(), args.cpu)
+						logging.info("running HybPiper with: " + run_Hybpiper)
+						os.system(run_Hybpiper)
+				os.chdir(main_script_dir)
+					
+
 		#user input: assemblies
 		#create hybpiper output in assemblies/
 		if args.assemblies:
@@ -433,12 +492,12 @@ def main():
 
 			for root, dirs, files in os.walk(path_to_assemblies, topdown=True):
 				for name in files:
-					if name.endswith(".fna.gz"):
+					if name.endswith(".fna.gz") or name.endswith(".fasta.gz"):
 						os.system("gunzip "+ path_to_assemblies + name)		
 			pezizo_list = []	
 			for root, dirs, files in os.walk(path_to_assemblies, topdown=True):
 				for name in files:
-					if name.endswith(".fna"):
+					if name.endswith(".fna") or name.endswith(".fasta"):
 						pezizo_list.append(root + name)
 			#print("Samples are: ", pezizo_list)
 			ref_list = []
@@ -448,11 +507,13 @@ def main():
 			#print(ref_list)
 			list_of_list = []
 			for z in pezizo_list:
-				regex_fna = re.search("(.+?)\.fna", z)
+				#regex_fna = re.search("(.+?)\.fna", z)
+				basename = ".".join(z.split(".")[:-1])
 				empty_list = []
 				for v in ref_list:
 					regex_ref = re.search("(.+?)_best_blast_scoring_reference_Hybpiper_format_aa\.fas", v)
-					if regex_fna.group(1) == regex_ref.group(1):
+					#if regex_fna.group(1) == regex_ref.group(1):
+					if basename == regex_ref.group(1):
 						empty_list.append(z)
 						empty_list.append(v)
 						list_of_list.append(empty_list)
@@ -462,49 +523,20 @@ def main():
 			pool = multiprocessing.Pool(processes=args.cpu)
 			pool.starmap(run_exonerate_hits, list_of_list)
 
-		#create hybpiper output in target_enrichment/
-		if args.target_enrichment_data:
-			logging.info("*****************************************************************************************************************************")
-			logging.info("          TRIMMING TARGET ENRICHMENT FASTQ FILES  WITH TRIMMOMATC (Bolger et al. 2014)          ")
-			logging.info("*****************************************************************************************************************************")
-			logging.info('Path to TE data: '+args.target_enrichment_data)
-			trimming_cmd = "python3 {}/trimmer.py -f {} -c {}".format(main_script_dir, args.target_enrichment_data, args.cpu)
-			os.system(trimming_cmd)
-			#Get namelist.txt from dataset directory
-			namelist_cmd = 'python3 {}/getNameList.py -f {}'.format(main_script_dir, args.target_enrichment_data)
-			os.system(namelist_cmd)
-			namelist = 'namelist.txt'
-			path_to_namelist = os.path.join(args.target_enrichment_data,namelist)
-			logging.info("Gunzipping paired reads trimmed fastq archives")
-			gunzip_fastq =' parallel gunzip ::: {}*_paired.fastq.gz'.format(args.target_enrichment_data) 
-			os.system(gunzip_fastq)
-			logging.info("******************************************************************************************************************************************")
-			logging.info("           EXTRACTING GENES FROM TARGET ENRICHMENT DATA  WITH Hybpiper (Johnson et al. 2016)")
-			logging.info("******************************************************************************************************************************************")
-			os.chdir(args.target_enrichment_data)
-			with open(path_to_namelist, 'r') as f:
-				for line in f:
-					logging.info("Processing sample:" + line)
-					sample_path = args.target_enrichment_data + '/' + line.rstrip('\n') + '_R*.trimmed_paired.fastq'
-					run_Hybpiper =  '{}HybPiper/reads_first.py -b {} -r {}  --prefix {} --cpu {} '.format(main_script_dir, args.target_markers, sample_path, line.strip(), args.cpu)
-					logging.info("running HybPiper with: " + run_Hybpiper)
-					os.system(run_Hybpiper)
-			os.chdir(main_script_dir)
-					
-
 			#start filling fastas/
-#		if args.target_enrichment_data or args.assemblies:	
+		#if args.target_enrichment_data or args.assemblies:
+		#if removed to allow for -n only
 		logging.info("*********************************************")
 		logging.info("          BUILDING FASTA FILES          ")
 		logging.info("*********************************************")
 		if args.assemblies:
 			logging.info("Building alignments from assemblies data")
 			#get_alignment(args.assemblies)
-			get_fastas_exonerate(args.assemblies)
+			get_fastas_exonerate(args.assemblies, True)
 		if args.target_enrichment_data:
 			logging.info("Building alignments from target enrichment data")
 			#get_alignment(args.target_enrichment_data)
-			get_fastas_exonerate(args.target_enrichment_data)
+			get_fastas_exonerate(args.target_enrichment_data, False)
 
 
 		#merge_alignments(args.assemblies, args.target_enrichment_data)
@@ -532,29 +564,6 @@ def main():
 					regex_accession = re.search('(GCA_[0-9]+.[0-9]),\w+',line)
 					if regex_accession != None:
 						accession_from_ncbi_list.append(regex_accession.group(1))
-
-			#find alignment files, get locus name and find combined ncbi file for same locus, if accession from list in record, add record to alignment file
-			for alignmentFile in glob(os.path.join(fastas_directory, "Alignment_*protein_merged.fasta")):
-				locusName = alignmentFile.strip().split("/")[-1][10:-21]
-				with open(os.path.join(path_to_premined_combined, "combined_" + locusName + ".FAA")) as proteinIn, open(alignmentFile, 'a') as proteinOut:
-					for line in proteinIn:
-						if line.startswith(">"):
-							for accession in accession_from_ncbi_list:
-								if accession in line:
-									proteinOut.write(line)
-									sequenceLine = proteinIn.readline()
-									proteinOut.write(sequenceLine)
-
-			for alignmentFile in glob(os.path.join(fastas_directory, "Alignment_*nucleotide_merged.fasta")):
-				locusName = alignmentFile.strip().split("/")[-1][10:-24]
-				with open(os.path.join(path_to_premined_combined, "combined_" + locusName + ".FNA")) as nucIn, open(alignmentFile, 'a') as nucOut:
-					for line in nucIn:
-						if line.startswith(">"):
-							for accession in accession_from_ncbi_list:
-								if accession in line:
-									nucOut.write(line)
-									sequenceLine = nucIn.readline()
-									nucOut.write(sequenceLine)
 
 			#do same stuff as above, but with fastas/
 			for fasta in glob(os.path.join(args.out, "fastas", "*.fasta")):
@@ -632,6 +641,9 @@ def main():
 #			path_to_merged_alignments = args.assemblies.replace('assemblies/', 'alignments_merged/')
 
 		#path_to_merged_alignments = os.path.join(args.out, "fastas", "")
+
+
+		os.chdir(fastas_directory)
 
 		MACSE_dir = main_script_dir + "MACSE_V2_PIPELINES/OMM_MACSE/"
 		MACSE_script = MACSE_dir + "S_OMM_MACSE_V10.02.sh"
