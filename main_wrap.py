@@ -304,9 +304,9 @@ def check_arg(args=None):
 	parser.add_argument('-p', '--phypartspiecharts', action='store_true',
 						help='Runs phyparts on single locus gene trees and creates a plot describing the support for each node. Only uses AA data.'
 						)
-	parser.add_argument('-u', '--outgroup',
-						help='Only used if -p is used, specifies the sample to re-root the trees on for use in phyparts.'
-						)
+	#parser.add_argument('-u', '--outgroup',
+	#					help='Only used if -p is used, specifies the sample to re-root the trees on for use in phyparts.'
+	#					)
 	#parser.add_argument('--nargs', nargs='+')
 																				
 	return parser.parse_args(args)
@@ -993,7 +993,8 @@ def main():
 			species_path = os.path.join(args.out, "final_trees", "astral_species_tree_aa.tree")
 		phyparts_path = os.path.join(main_script_dir, "phyparts-0.0.1-SNAPSHOT-jar-with-dependencies.jar")
 		pppc_path = os.path.join(main_script_dir, "phypartspiecharts.py")
-		pppc_command = "python {} -t {} -s {} -g {} -p {} -c {}".format(pie_wrap_path, tree_path, species_path, args.outgroup, phyparts_path, pppc_path)
+		#pppc_command = "python {} -t {} -s {} -g {} -p {} -c {}".format(pie_wrap_path, tree_path, species_path, args.outgroup, phyparts_path, pppc_path)
+		pppc_command = "python {} -t {} -s {}".format(pie_wrap_path, tree_path, species_path)
 		logging.info("Running phypartspiecharts wrapper (pie_wrap.py)")
 		print("running pppc with: " + pppc_command)
 		os.system(pppc_command)
