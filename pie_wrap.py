@@ -5,17 +5,11 @@ import os
 
 def getRootName():
   species_tree = Tree(args.species_tree)
-  root_node = species_tree.get_tree_root()
-  root_sample = ""
-  if root_node.children[0].name != "":
-    root_sample = root_node.children[0].name
-  elif root_node.children[1].name != "":
-    root_sample = root_node.children[1].name
-  else:
-    print("Couldn't find a root, using args.outgroup.")
-  return root_sample
+  names = [a.name for a in species_tree.children[0].get_leaves()]
+  print(names)
+  return names
 
-def handleTrees(root_sample, do_astral):
+def handleTrees(rootTaxa, rootSp):
   new_path = os.path.join(args.tree_directory, "..", "PhyParts")
   new_tree_directory = os.path.join(new_path, "testd")
 
@@ -30,8 +24,22 @@ def handleTrees(root_sample, do_astral):
     basename = treename.split("/")[-1]
     tree = Tree(treename)
     try:
-      tree.set_outgroup(root_sample)
-      tree.write(format=9, outfile=os.path.join(new_tree_directory, basename + "_REROOTED"))
+      if len(rootTaxa) == 1:
+        tree.set_outgroup(rootTaxa[0])
+        tree.write(format=9, outfile=os.path.join(new_tree_directory, basename + "_REROOTED"))
+      else:
+        #re-root to taxon not in rootTaxa, then root to rootTaxa
+        #this keeps things from breaking if the common ancestor of rootTaxa is the root node of the tree
+        for taxon in tree.get_leaves():
+          taxon = taxon.name
+          if taxon not in rootTaxa:
+            tree.set_outgroup(taxon)
+            break
+
+        common_taxa = [leaf.name for leaf in tree.get_leaves() if leaf.name in rootTaxa]
+        common_node = tree.get_common_ancestor(common_taxa)
+        tree.set_outgroup(common_node)
+        tree.write(format=9, outfile=os.path.join(new_tree_directory, basename + "_REROOTED"))
     except:
       print("{} does not have the outgroup".format(treename))
       num_trees -= 1
@@ -41,8 +49,12 @@ def handleTrees(root_sample, do_astral):
   spBasename = args.species_tree.split("/")[-1]
   spTree = Tree(args.species_tree)
 
-  if do_astral:
-    spTree.set_outgroup(root_sample)
+  if rootSp:
+    if len(rootTaxa) == 1:
+      spTree.set_outgroup(rootTaxa[0])
+    else:
+      common_node = spTree.get_common_ancestor(rootTaxa)
+      spTree.set_outgroup(common_node)
 
   new_spTree = os.path.join(new_path, spBasename + "_REROOTED")
   spTree.write(format=9, outfile=new_spTree)
@@ -50,18 +62,29 @@ def handleTrees(root_sample, do_astral):
   return new_spTree, num_trees
 
 def main():
+  rootTaxa = []
+  if not args.outgroup:
+    rootTaxa = getRootName()
+  else:
+    rootTaxa = args.outgroup
 
-  root = getRootName()
   #print(root)
   new_spTree = ""
   num_trees = 0
+
+  if not args.outgroup:
+    new_spTree, num_trees = handleTrees(rootTaxa, False)
+  else:
+    new_spTree, num_trees = handleTrees(rootTaxa, True)
+
+  """
   if not args.outgroup:
     new_spTree, num_trees = handleTrees(root, False)
   elif args.outgroup == root:
     new_spTree, num_trees = handleTrees(args.outgroup, False)
   elif args.outgroup != root:
     new_spTree, num_trees = handleTrees(args.outgroup, True)
-
+  """
   #print(new_spTree)
 
   new_path = os.path.join(args.tree_directory, "..", "PhyParts")
@@ -82,8 +105,8 @@ def main():
 
 parser = argparse.ArgumentParser(description="Helper script for PhyParts and PhyPartsPieCharts")
 parser.add_argument('-t', '--tree_directory', help = 'The path to the directory with the single locus gene trees')
-parser.add_argument('-s', '--species_tree', help = 'The tree you consider to be the species tree')
-parser.add_argument('-g', '--outgroup', help = 'If left out, trees will automatically be rooted to have the same root as your species tree (if it is rooted). The sample you consider the outgroup for rooting purposes')
+parser.add_argument('-p', '--species_tree', help = 'The tree you consider to be the species tree')
+parser.add_argument('-g', '--outgroup', nargs="+", help = 'If left out, trees will automatically be rooted to have the same root as your species tree (if it is rooted). The sample you consider the outgroup for rooting purposes')
 #parser.add_argument('-p', '--phyparts_path', help = 'The path to the phyparts .jar')
 #parser.add_argument('-c', '--phypartspiecharts_path', help = 'The path to phypartspiecharts.py')
 args = parser.parse_args()

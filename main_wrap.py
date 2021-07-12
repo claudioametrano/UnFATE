@@ -418,7 +418,7 @@ def main():
 				os.system(unzip_premined_assemblies)
 
 			path_to_premined = main_script_dir + "combined_pre_mined_assemblies/"
-			path_to_taxonomy = path_to_premined + "Accession_plus_taxonomy_Pezizomycotina.txt"
+			path_to_taxonomy = main_script_dir + "Accession_plus_taxonomy_Pezizomycotina.txt"
 			for item in args.ncbi_assemblies:
 				# using the commas that are present in the csv file containing the taxonomy prevents to include ranks with similar name to the one requested in the command line (e.g. Fuffaria and Fuffarialongis)
 				item1 = "," + item + ","
@@ -523,7 +523,7 @@ def main():
 						empty_list.append(z)
 						empty_list.append(v)
 						list_of_list.append(empty_list)
-			print(list_of_list)
+			#print(list_of_list)
 			logging.info("Running exonerate using exonerate_hits.py script from Hybpiper..")	
 			args.cpu = int(args.cpu)
 			pool = multiprocessing.Pool(processes=args.cpu)
@@ -938,12 +938,12 @@ def main():
 	supermatrix_accession_file = path_to_finaltrees + 'Accessions_not_found.csv'
 	accessions_plus_taxonomy_file = path_to_finaltrees + 'Accessions_plus_taxonomy.csv'
 	with open(supermatrix_accession_file, 'w') as accessions, open(accessions_plus_taxonomy_file, 'w') as accessions_tax,\
-			open(supermatrix_file, 'r') as supermatrix, open(os.path.join(main_script_dir, "combined_pre_mined_assemblies", "Accession_plus_taxonomy_Pezizomycotina.txt")) as tax_in:
+			open(supermatrix_file, 'r') as supermatrix, open(os.path.join(main_script_dir, "Accession_plus_taxonomy_Pezizomycotina.txt")) as tax_in:
 		supermatrix_content = supermatrix.readlines()
 		all_accessions = []
 		accessions_added = []
 		for line in supermatrix_content:
-			regex = re.search("^>(GC[FA]_[0-9]+\.[0-9])", line)
+			regex = re.search("^>(GCA_[0-9]+\.[0-9])", line)
 			if regex:
 				all_accessions.append(regex.group(1))
 #				accessions.write(regex.group(1)+"\n")	
@@ -970,7 +970,7 @@ def main():
 		with open(accessions_plus_taxonomy_file, 'r') as acc_taxo:
 			acc_taxo_cont = acc_taxo.readlines()
 			for line in acc_taxo_cont:
-				regex = re.search("^(GC[FA]_[0-9]+\.[0-9],\w+ \w+)", line)
+				regex = re.search("^(GCA_[0-9]+\.[0-9],\w+ \w+)", line)
 				if regex != None:
 					#print(regex.group(1))
 					species.write(regex.group(1) +"\n")	
@@ -994,7 +994,7 @@ def main():
 		phyparts_path = os.path.join(main_script_dir, "phyparts-0.0.1-SNAPSHOT-jar-with-dependencies.jar")
 		pppc_path = os.path.join(main_script_dir, "phypartspiecharts.py")
 		#pppc_command = "python {} -t {} -s {} -g {} -p {} -c {}".format(pie_wrap_path, tree_path, species_path, args.outgroup, phyparts_path, pppc_path)
-		pppc_command = "python {} -t {} -s {}".format(pie_wrap_path, tree_path, species_path)
+		pppc_command = "python {} -t {} -p {}".format(pie_wrap_path, tree_path, species_path)
 		logging.info("Running phypartspiecharts wrapper (pie_wrap.py)")
 		print("running pppc with: " + pppc_command)
 		os.system(pppc_command)
