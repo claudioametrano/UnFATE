@@ -18,7 +18,13 @@ def handleTrees(rootTaxa, rootSp):
   if not os.path.isdir(new_tree_directory):
     os.mkdir(new_tree_directory)
 
-  raw_trees = glob(os.path.join(args.tree_directory, "*AA*.treefile"))
+  raw_trees = []
+
+  if "dna.tree" in args.species_tree:
+    raw_trees = glob(os.path.join(args.tree_directory, "*NT*.treefile"))
+  else:
+    raw_trees = glob(os.path.join(args.tree_directory, "*AA*.treefile"))
+
   num_trees = len(raw_trees)
   for treename in raw_trees:
     basename = treename.split("/")[-1]
@@ -77,14 +83,6 @@ def main():
   else:
     new_spTree, num_trees = handleTrees(rootTaxa, True)
 
-  """
-  if not args.outgroup:
-    new_spTree, num_trees = handleTrees(root, False)
-  elif args.outgroup == root:
-    new_spTree, num_trees = handleTrees(args.outgroup, False)
-  elif args.outgroup != root:
-    new_spTree, num_trees = handleTrees(args.outgroup, True)
-  """
   #print(new_spTree)
 
   new_path = os.path.join(args.tree_directory, "..", "PhyParts")

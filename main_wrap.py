@@ -374,11 +374,8 @@ def check_arg(args=None):
 	parser.add_argument('-l', '--low_memory', action= 'store_true',
 						help='Turns off automatic spades assembly of target enrichment data before running HybPiper. Probably not required unless running whole genome data on a low memory computer.'
 						)
-	parser.add_argument('-p', '--phypartspiecharts', action='store_true',
-						help='Runs phyparts on single locus gene trees and creates a plot describing the support for each node. Only uses AA data.'
-						)
-	#parser.add_argument('-u', '--outgroup',
-	#					help='Only used if -p is used, specifies the sample to re-root the trees on for use in phyparts.'
+	#parser.add_argument('-p', '--phypartspiecharts', action='store_true',
+	#					help='Runs phyparts on single locus gene trees and creates a plot describing the support for each node. Only uses AA data.'
 	#					)
 	#parser.add_argument('--nargs', nargs='+')
 																				
@@ -698,7 +695,7 @@ def main():
 					#print(root)
 					#print(f)
 					file_path = root +"/"+ f   
-					regex1 =re.search("Alignment_([0-9]+at[0-9]+)_nucleotide_merged_headmod.fas_out",root)
+					regex1 =re.search("Alignment_(\S+)_nucleotide_merged_headmod.fas_out",root)
 					#os.rename both renames and moves files
 					os.rename(file_path,  path_to_macsed_align + regex1.group(1) + f + ".fas")
 			

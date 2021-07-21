@@ -61,11 +61,10 @@ Prerequisites/Dependencies:
    * SPAdes: `$ conda install -c bioconda spades` 
    * EXONERATE: `$ conda install -c bioconda exonerate` 
 * Install miscellaneous dependencies:
-   * pandas: `$ conda install pandas`
-   * seaborn: `$ conda install seaborn`
-   * click: `$ conda install click`
+   * Python packages: `$ conda install pandas seaborn click`
+
 * Install phypartspiecharts dependencies (if desired):
-   * ete3 and ete_toolchain: $ conda install -c etetoolkit ete3 ete_toolchain, then check installation with `$ ete3 build check`
+   * ete3 and ete_toolchain: `$ conda install -c etetoolkit ete3 ete_toolchain`, then check installation with `$ ete3 build check`
 
 1. Clone the UnFATE repository with (or download the .zip file from Github browser interface). Chose a position for the UnFATE folder you like, do not move the repository after the first run (use the argument --first_use) 
 `$ git clone https://github.com/claudioametrano/UnFATE.git`
@@ -73,7 +72,7 @@ Prerequisites/Dependencies:
 2. Read the help section of the script to set up the command line for your analysis:  
 `$ python3 main_script.py --help`
 
-3. Set up the file extensions: Sequencing data from target enrichment must be in files ending in .fastq or .fastq.gz. Assemblies must be in fasta files ending in .fna or .fna.gz. Unzip and/or rename your data as needed.
+3. Set up the file extensions: Sequencing data from target enrichment must be in files ending in .fastq or .fastq.gz. Assemblies must be in fasta files ending in .fna or .fna.gz. Rename your files as needed.
 
 4. Run UnFATE using the command line. For example:  
 `$ python3 main_wrap.py -b ~/path/to/protein/fasta/Target_markers_rep_seq_aa.fas -t ~/path/to/target_enrichment/ -a ~/path/to/assemblies/ --gblocks --cpu 8 -n Tuber Morchella --first_use -o ~/path/to/output/`
@@ -87,13 +86,17 @@ Prerequisites/Dependencies:
 
 7. A run can be resumed if the script is terminated before generating trees, but after generating supermatrices. This will happen automatically if the output directory contains the assemblies/ and/or target_enrichment/, fastas/, macsed_alignments/, and supermatrix/ directories. Please remove any tree directories from the output directory (if present) before resuming to avoid errors.
 
+8. [PhypartsPieCharts](https://github.com/mossmatters/phyloscripts/tree/master/phypartspiecharts) is a nice tool for viewing the support for the topology of the species tree. Consider running PhypartsPieCharts through our helper script with `pie_wrap.py -t /path/to/single_locus_trees/ -p /path/to/species/tree`. You may need to use `ssh -Y` for the script to run properly on a remote device.
+
 ## Output description
 The UnFATE output will be placed in many folders within the location specified by -o, several output folders will be created corresponding to the pipeline steps:  
-* Within the "target_enrichment" folder there will be the HybPiper runs folder, one per sample. Your data will also be symlinked into this directory.
+* Within the "target_enrichment" folder there will be the HybPiper runs folders, one per sample. Your data will also be symlinked into this directory.
+* Within the "whole_genome_data" folder will be symlinks to your supplied WGS data, trimmed read files, and either spades or HybPiper output depending on whether -l was used.
 * Within the "assemblies" folder there will be the "Exonerate_hits.py" runs folder, one per sample. Your data will aslo be symlinked into this directory 
-* "fastas" folder will contain DNA and AA fasta files, one per marker of interest, and the MACSE runs folders.  
-* "macsed_alignments" folder will contain DNA and AA alignments, aligned and filtered with OMM_MACSE pipeline and (optionally) filtered with Gblocks  
-* "single_locus_trees" folder will contain the IQTREE phylogenetic analyses on single markers (from both DNA and AA alignments)
-* "supermatrix" will contain both the concatenation of the single marker alignments and the IQTREE2 phylogenetic inference (from both DNA and AA alignments)  
-* "supertree" will contain both the file with the best tree for each marker and the ASTRAL species tree (from both DNA and AA alignments)
-* "final_trees" will contain the trees generate from concatenation (IQTREE) and coalescence-based approach (ASTRAL) and their version renamed to species name (where NCBI accession numbers were used; e.g. when samples from the precalculated database or assemblies downloaded from NCBI are used)
+* The "fastas" folder will contain DNA and AA fasta files, one per marker of interest, and the MACSE runs folders.  
+* The "macsed_alignments" folder will contain DNA and AA alignments, aligned and filtered with OMM_MACSE pipeline and (optionally) filtered with Gblocks  
+* The "single_locus_trees" folder will contain the IQTREE phylogenetic analyses on single markers (from both DNA and AA alignments)
+* The "supermatrix" folder will contain both the concatenation of the single marker alignments and the IQTREE2 phylogenetic inference (from both DNA and AA alignments)  
+* The "supertree" folder will contain both the file with the best tree for each marker and the ASTRAL species tree (from both DNA and AA alignments)
+* The "final_trees" folder will contain the trees generate from concatenation (IQTREE) and coalescence-based approach (ASTRAL) and their version renamed to species name (where NCBI accession numbers were used; e.g. when samples from the precalculated database or assemblies downloaded from NCBI are used)
+* The "PhyParts" folder will be made if `pie_wrap.py` is run. The key output is pies.svg, but the full phyparts output will be present as well.
