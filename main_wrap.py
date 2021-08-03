@@ -24,9 +24,11 @@ def select_best_reference_seq(prot_file_path, assemblies_path, cpu):
 	ref_gene_list = []
 	# Get a list of genes without redundancy
 	for seq in SeqIO.parse(prot_file_path,"fasta"):
-		regex_id = re.search("^GCA_[0-9]+\.[0-9]-([0-9]+at4890)", seq.id)
-		if regex_id != None:
-			ref_gene_list.append(regex_id.group(1))
+#		regex_id = re.search("^GCA_[0-9]+\.[0-9]-([0-9]+at4890)", seq.id)
+#		if regex_id != None:
+#			ref_gene_list.append(regex_id.group(1))
+		geneName = seq.id.strip().split("-")[1]
+		ref_gene_list.append(geneName)
 	ref_gene_list = list(set(ref_gene_list))
 	logging.info("Gene list: ")
 	logging.info(ref_gene_list)
@@ -34,12 +36,17 @@ def select_best_reference_seq(prot_file_path, assemblies_path, cpu):
 	for gene in ref_gene_list:
 		with open(assemblies_path + gene+ "_ref.fasta", "a+") as gene_file:
 			for seq in SeqIO.parse(prot_file_path,"fasta"):
-				regex_id = re.search("^GCA_[0-9]+\.[0-9]-([0-9]+at4890)", seq.id)
-				if regex_id != None:
-					if regex_id.group(1) == gene:
-						SeqIO.write(seq, gene_file, "fasta")
-					else:
-						pass	
+				#regex_id = re.search("^GCA_[0-9]+\.[0-9]-([0-9]+at4890)", seq.id)
+				geneName = seq.id.strip().split("-")[1]
+				#if regex_id != None:
+					#if regex_id.group(1) == gene:
+					#	SeqIO.write(seq, gene_file, "fasta")
+					#else:
+					#	pass	
+				if geneName == gene:
+					SeqIO.write(seq, gene_file, "fasta")
+				else:
+					pass
 	# build BLAST databases for each alignment and then run every gene reference file against it usung tBLASTn									
 	for f in os.listdir(assemblies_path):
 		if f.endswith(".fna"): #can't include.fastas right now because alignment fastas have been moved into assemblies/
@@ -62,7 +69,7 @@ def select_best_reference_seq(prot_file_path, assemblies_path, cpu):
 			df.sort_values(by='bitscore', ascending=False, inplace=True)
 			# only retain the best hit
 			top1 = df['qaccver'][0:1]
-			regex = re.search("([0-9]+at4890)_ref.fasta___(.+?)_blastout.tsv",f)
+			regex = re.search(r"(.+?)_ref\.fasta___(.+?)_blastout.tsv",f)
 			logging.info("For the assembly %s and gene %s reference sequence will be: "%(regex.group(2), regex.group(1)))
 			logging.info(top1)
 			# Write the best hit for every gene in an output file, taking the sequence from the original protein file
@@ -300,12 +307,13 @@ def run_exonerate(data_dir):
 	logging.info("... it can be time consuming, it depends on assembly dimension")
 	logging.info('Path to assemblies ' + path_to_assemblies)
 	logging.info('Selecting the best reference sequence for each assembly by BLAST...')
+	for root, dirs, files in os.walk(path_to_assemblies, topdown=True):
+		for name in files:
+			if name.endswith(".fna.gz"): # or name.endswith(".fasta.gz"):
+				os.system("gunzip -f "+ path_to_assemblies + name)
+
 	select_best_reference_seq(args.target_markers, path_to_assemblies, args.cpu)
 
-	for root, dirs, files in os.walk(path_to_assemblies, topdown=True):
-	        for name in files:
-	                if name.endswith(".fna.gz"): # or name.endswith(".fasta.gz"):
-	                        os.system("gunzip "+ path_to_assemblies + name)         
 	pezizo_list = []        
 	for root, dirs, files in os.walk(path_to_assemblies, topdown=True):
 	        for name in files:
