@@ -56,37 +56,37 @@ Prerequisites/Dependencies:
   * Answer "yes" to conda init
   * Restart Ubuntu, it should show the (base) conda environment at the beginning of your command line
 * Install HybPiper dependencies:  
-   * BIOPYTHON 1.59 or later : `$ conda install biopython`
-   * BLAST command line tools: `$ conda install -c bioconda blast`
-   * SPAdes: `$ conda install -c bioconda spades` 
-   * EXONERATE: `$ conda install -c bioconda exonerate` 
+   * BIOPYTHON 1.59 or later : `conda install biopython`
+   * BLAST command line tools: `conda install -c bioconda blast`
+   * SPAdes: `conda install -c bioconda spades` 
+   * EXONERATE: `conda install -c bioconda exonerate` 
 * Install miscellaneous dependencies:
-   * Python packages: `$ conda install pandas seaborn click`
+   * Python packages: `conda install pandas seaborn click`
 
 * Install phypartspiecharts dependencies (if desired):
-   * ete3 and ete_toolchain: `$ conda install -c etetoolkit ete3 ete_toolchain`, then check installation with `$ ete3 build check`
+   * ete3 and ete_toolchain: `conda install -c etetoolkit ete3 ete_toolchain`, then check installation with `$ ete3 build check`
 
 1. Clone the UnFATE repository with (or download the .zip file from Github browser interface). Chose a position for the UnFATE folder you like, do not move the repository after the first run (use the argument --first_use) 
-`$ git clone https://github.com/claudioametrano/UnFATE.git`
+`git clone https://github.com/claudioametrano/UnFATE.git`
 
 2. Read the help section of the script to set up the command line for your analysis:  
-`$ python3 main_script.py --help`
+`python3 main_script.py --help`
 
 3. Set up the file extensions: Sequencing data from target enrichment must be in files ending in .fastq or .fastq.gz. Assemblies must be in fasta files ending in .fna or .fna.gz. Rename your files as needed.
 
 4. Run UnFATE using the command line. For example:  
-`$ python3 main_wrap.py -b ~/path/to/protein/fasta/Target_markers_rep_seq_aa.fas -t ~/path/to/target_enrichment/ -a ~/path/to/assemblies/ --gblocks --cpu 8 -n Tuber Morchella --first_use -o ~/path/to/output/`
+`python3 main_wrap.py -b ~/path/to/protein/fasta/Target_markers_rep_seq_aa.fas -t ~/path/to/target_enrichment/ -a ~/path/to/assemblies/ --gblocks --cpu 8 -n Tuber Morchella --first_use -o ~/path/to/output/`
   
   * Consider running the script from a "tmux" detachable session, as the run can be very long, according to how many samples you have (this tools is usually preinstalled in Linux)  
   * Analyses with hundreds of samples should be run on server-grade hardware!  
 
-5. Consider logging the script output with `python3 main_wrap.py {params} |& tee <logfile>`. This saves the stdout and stderr from running main_wrap.py into <logfile> as well as printing it to the console.
+5. Consider logging the script output with `python3 main_wrap.py {params} |& tee <logfile>`. This saves the stdout and stderr from running main_wrap.py into \<logfile\> as well as printing it to the console.
 
-6.  Cross your fingers and wait, good luck!  ...Take into account that the script parallelizes using the --cpu n you specify as an argument, HybPiper and Exonerate will process n samples at a time. The same number of cpu is then used to parallelize IQTREE runs for single locus trees and for concatenated supermatrices.  
+6.  Cross your fingers and wait, good luck!  ...Take into account that the script parallelizes using the `--cpu n` you specify as an argument, HybPiper and Exonerate will process n samples at a time. The same number of cpu is then used to parallelize IQTREE runs for single locus trees and for concatenated supermatrices.  
 
 7. A run can be resumed if the script is terminated before generating trees, but after generating supermatrices. This will happen automatically if the output directory contains the assemblies/ and/or target_enrichment/, fastas/, macsed_alignments/, and supermatrix/ directories. Please remove any tree directories from the output directory (if present) before resuming to avoid errors.
 
-8. [PhypartsPieCharts](https://github.com/mossmatters/phyloscripts/tree/master/phypartspiecharts) is a nice tool for viewing the support for the topology of the species tree. Consider running PhypartsPieCharts through our helper script with `pie_wrap.py -t /path/to/single_locus_trees/ -p /path/to/species/tree`. You may need to use `ssh -Y` for the script to run properly on a remote device.
+8. [PhypartsPieCharts](https://github.com/mossmatters/phyloscripts/tree/master/phypartspiecharts) is a nice tool for viewing the support for the topology of the species tree. Consider running PhypartsPieCharts through our helper script with `python pie_wrap.py -t /path/to/single_locus_trees/ -p /path/to/species/tree`. You may need to use `ssh -Y` for the script to run properly on a remote device.
 
 ## Output description
 The UnFATE output will be placed in many folders within the location specified by -o, several output folders will be created corresponding to the pipeline steps:  

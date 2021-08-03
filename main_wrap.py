@@ -264,7 +264,7 @@ def set_up_directories():
 				if os.path.exists(os.path.join(args.out, "assemblies", file)):
 					print("Path already exists")
 					continue
-				if file.lower().endswith(".fna") or file.lower().endswith(".fasta"):
+				if file.lower().endswith(".fna") or file.lower().endswith(".fasta") or file.lower().endswith(".fna.gz"):
 					os.symlink(os.path.join(args.assemblies, file), os.path.join(args.out, "assemblies", file))
 			args.assemblies = os.path.join(args.out, "assemblies", "")
 
@@ -1011,7 +1011,7 @@ def main():
 		if treefile.endswith("treefile") or treefile.endswith("tree"):		
 			from_accession_to_species(accession_species_file, path_to_finaltrees + treefile)
 
-	if args.phypartspiecharts:
+	"""if args.phypartspiecharts:
 		pie_wrap_path = os.path.join(main_script_dir, "pie_wrap.py")
 		tree_path = os.path.join(args.out, "single_locus_trees")
 		species_path = ""
@@ -1022,7 +1022,7 @@ def main():
 		pppc_command = "python {} -t {} -p {}".format(pie_wrap_path, tree_path, species_path)
 		logging.info("Running phypartspiecharts wrapper (pie_wrap.py)")
 		print("running pppc with: " + pppc_command)
-		os.system(pppc_command)
+		os.system(pppc_command)"""
 
 	logging.info("PIPELINE COMPLETED!")
 if __name__=='__main__':

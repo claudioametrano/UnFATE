@@ -62,7 +62,7 @@ def seq_percentage(bait_file_aa_path, alignments_folder_path, plot_heatmap ):
 	for f in os.listdir(alignments_folder_path):
 		if f.endswith("_protein_merged.fasta"):
 			sample_gene_length_dict = {}
-			regex = re.search("Alignment_([0-9]+at4890)_protein_merged.fasta",f)
+			regex = re.search(r"Alignment_([^_]+)_protein_merged\.fasta",f)
 			# every alignment is converted to a dictionary containing the sample name and its sequence length value
 			for protein in SeqIO.parse(alignments_folder_path + f ,"fasta"):
 				sample_gene_length_dict[protein.id] = len(protein.seq)
@@ -93,7 +93,8 @@ def seq_percentage(bait_file_aa_path, alignments_folder_path, plot_heatmap ):
 	# Exports dataframe to .csv file
 	data_frame.to_csv(alignments_folder_path + 'gene_length.csv', encoding='utf-8')
 	ndf.to_csv(alignments_folder_path + 'gene_length_normalized.csv', encoding='utf-8')
-			
+
+	"""
 	# Plot an heatmap from dataframe table
 	fig, ax = plt.subplots(figsize=(100, 60))
 	seaborn.heatmap(data_frame, cmap="Greens", vmin=0, xticklabels=1, yticklabels=1)
@@ -102,9 +103,9 @@ def seq_percentage(bait_file_aa_path, alignments_folder_path, plot_heatmap ):
 		plt.show()
 	else:	
 		logging.info("Exporting the length table as heatmap to 'gene_lengths_heatmap.pdf' in the 'fastas' folder")
-		plt.savefig(alignments_folder_path + 'gene_lengths_heatmap.pdf')
+		plt.savefig(alignments_folder_path + 'gene_lengths_heatmap.pdf')"""
 
-	fig, ax = plt.subplots(figsize=(100,60))
+	fig, ax = plt.subplots(figsize=(11,8.5))
 	seaborn.heatmap(ndf, cmap="Greens", vmin=0, xticklabels=1, yticklabels=1)
 	if plot_heatmap:
 		logging.info("Plotting the heatmap...")
