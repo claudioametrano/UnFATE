@@ -3,9 +3,9 @@ import re
 import os
 import sys
 import argparse
-import shlex
+#import shlex
 import multiprocessing
-import itertools
+#import itertools
 import subprocess
 import logging
 from os import path
@@ -19,7 +19,7 @@ from glob import glob
 def select_best_reference_seq(prot_file_path, assemblies_path, cpu):
 	"""in the assembly mode thase use exonerate_hits.py script from Hybpiper, there is no way to know what sequences from the protein file is the best for each markes,
 		as we do not have the BLAST or the BWA results mappig the reads from target enrichment to those sequences, so we just BLAST all the reference for each gene
-		on the assemblyes, the one with best bitscore is used to run exonerate_hits.py for that gene.
+		on the assemblies, the one with best bitscore is used to run exonerate_hits.py for that gene.
 	"""
 	ref_gene_list = []
 	# Get a list of genes without redundancy
@@ -300,6 +300,8 @@ def run_hybpiper(main_script_dir, data_dir, namelist):
 			run_Hybpiper =  '{}HybPiper/reads_first.py -b {} -r {}  --prefix {} --cpu {} '.format(main_script_dir, args.target_markers, sample_path, line.strip(), args.cpu)
 			logging.info("running HybPiper with: " + run_Hybpiper)
 			os.system(run_Hybpiper)
+			clean_command = "{}HybPiper/cleanup.py {}".format(main_script_dir, line.strip())
+			os.system(clean_command)
 	os.chdir(main_script_dir)
 
 def run_exonerate(data_dir):
@@ -520,13 +522,17 @@ def main():
 
 			if args.low_memory:
 				logging.info("Gunzipping paired reads trimmed fastq archives")
-				gunzip_fastq =' parallel gunzip ::: {}*_paired.fastq.gz'.format(args.whole_genome_data) 
+				gunzip_fastq = 'parallel -j {} gunzip ::: {}*_paired.fastq.gz'.format(args.cpu, args.whole_genome_data) 
 				os.system(gunzip_fastq)
 
 				logging.info("******************************************************************************************************************************************")
 				logging.info("           EXTRACTING GENES FROM WHOLE GENOME DATA  WITH Hybpiper (Johnson et al. 2016)")
 				logging.info("******************************************************************************************************************************************")
 				run_hybpiper(main_script_dir, args.whole_genome_data, path_to_namelist)
+
+				logging.info("Gzipping paired reads trimmed fastqs")
+				gzip_fastq = "parallel -j {} gzip ::: {}*_paired.fastq".format(args.cpu, args.whole_genome_data)
+				os.system(gzip_fastq)
 			else:
 				logging.info("*****************************************************************************************************************************")
 				logging.info("          ASSEMBLING WHOLE GENOME DATA WITH SPADES (***CITATION NEEDED***)          ")
@@ -559,7 +565,7 @@ def main():
 			path_to_namelist = os.path.join(args.target_enrichment_data,namelist)
 
 			logging.info("Gunzipping paired reads trimmed fastq archives")
-			gunzip_fastq =' parallel gunzip ::: {}*_paired.fastq.gz'.format(args.target_enrichment_data) 
+			gunzip_fastq =' parallel gunzip ::: {}*_paired.fastq.gz'.format(args.target_enrichment_data)
 			os.system(gunzip_fastq)
 
 			logging.info("******************************************************************************************************************************************")
@@ -567,8 +573,13 @@ def main():
 			logging.info("******************************************************************************************************************************************")
 			run_hybpiper(main_script_dir, args.target_enrichment_data, path_to_namelist)
 
+			logging.info("Gzipping paired reads trimmed fastqs")
+			gzip_fastq = "parallel -j {} gzip ::: {}*_paired.fastq".format(args.cpu, args.target_enrichment_data)
+			os.system(gzip_fastq)
+
+
 		#user input: assemblies
-		#create hybpiper output in assemblies/
+		#create exonerate output in assemblies/
 		if args.assemblies:
 			logging.info("********************************************************************************************************************")
 			logging.info("          PERFORMING ASSEMBLIES DATA ANALYSIS WITH Exonerate (Slater & Birney 2005)       ")
@@ -675,7 +686,7 @@ def main():
 		logging.info("**********************************************************************************************************")
 		logging.info("          COMPARING RETRIEVED GENES TO REFERENCE SEQUENCES LENGTH          ")
 		logging.info("**********************************************************************************************************")
-		markers_retrieved_percentage_script=main_script_dir + "markers_retrieved_percentage.py"		
+		markers_retrieved_percentage_script=main_script_dir + "markers_retrieved_percentage.py"
 		run_markers_retrieved_percentage = "python3 {} -b {} -f {} ".format(markers_retrieved_percentage_script, args.target_markers, fastas_directory)	
 		os.system(run_markers_retrieved_percentage)
 

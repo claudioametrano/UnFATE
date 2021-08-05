@@ -70,7 +70,7 @@ Prerequisites/Dependencies:
 `git clone https://github.com/claudioametrano/UnFATE.git`
 
 2. Read the help section of the script to set up the command line for your analysis:  
-`python3 main_script.py --help`
+`python3 main_wrap.py --help`
 
 3. Set up the file extensions: Sequencing data from target enrichment must be in files ending in .fastq or .fastq.gz. Assemblies must be in fasta files ending in .fna or .fna.gz. Rename your files as needed.
 
