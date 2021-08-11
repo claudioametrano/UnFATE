@@ -155,7 +155,7 @@ def run_gblocks(DNAextension, AAextension, path, path_to_gblocks):
 				if line.startswith(">"):
 					count = count + 1
 			print("The alignment has: ",count," sequences")
-			b1 = str(round(count * fraction1)) #I think this should be ceil() or round(), not int()
+			b1 = str(round(count * fraction1))
 			b2 = str(round(count * fraction2))	
 			print("Number of char in a column of the alignment to be considered conserved and flanking regions, respectively: ", b1, b2)		
 			start_Gblocks = "{} {} -t=c -b1={} -b2={} -b3=10 -b4=5 -b5=h -e=-gb".format(path_to_gblocks, path + gene_file, b1, b2)
