@@ -30,7 +30,7 @@ In order to avoid the installation of dependencies and external software, that o
 
 4. **HybPiper 1.3.1** to extract the markers from target enrichment sequening reads .fastq files  
 
-5. Fasta files are built from retrieved markers, eventually adding the markers from the pre-mined database of NCBI assemblies included in UnFATE repository (if you plan to use it, make sure you download the repository from the browser interface, or install the Github large file storage system before you git clone Unfate)
+5. Fasta files are built from retrieved markers, eventually adding the markers from the pre-mined database of NCBI assemblies included in UnFATE repository (if you plan to use it, make sure you download the repository from the browser interface, or install the Github large file storage system before you git clone UnFATE)
 
 6. **MACSE2.03** pipline **OMM_MACSE10.02**  to perform codon-aware alignment and segment-based filtering **(HMMcleaner 1.8)**
 
@@ -79,24 +79,39 @@ Prerequisites/Dependencies:
   
   * Consider running the script from a "tmux" detachable session, as the run can be very long, according to how many samples you have (this tools is usually preinstalled in Linux)  
   * Analyses with hundreds of samples should be run on server-grade hardware!  
+  * Consider logging the script output with `python3 main_wrap.py {params} |& tee <logfile>`. This saves the stdout and stderr from running main_wrap.py into \<logfile\> as well as printing it to the console.
+  * Although the script was written with our bait set in mind, it should work with any amino acid target file in the format required by HybPiper. If using an external baitfile, the pre-mined NCBI data will not be usable or helpful.
 
-5. Consider logging the script output with `python3 main_wrap.py {params} |& tee <logfile>`. This saves the stdout and stderr from running main_wrap.py into \<logfile\> as well as printing it to the console.
+5.  Cross your fingers and wait, good luck!  ...Take into account that the script parallelizes using the `--cpu n` you specify as an argument, HybPiper and Exonerate will process n samples at a time. The same number of cpu is then used to parallelize IQTREE runs for single locus trees and for concatenated supermatrices.  
 
-6.  Cross your fingers and wait, good luck!  ...Take into account that the script parallelizes using the `--cpu n` you specify as an argument, HybPiper and Exonerate will process n samples at a time. The same number of cpu is then used to parallelize IQTREE runs for single locus trees and for concatenated supermatrices.  
+6. A run can be resumed if the script is terminated before generating trees, but after generating supermatrices. This will happen automatically if the output directory contains the assemblies/ and/or target_enrichment/, fastas/, macsed_alignments/, and supermatrix/ directories. Please remove any tree directories from the output directory (if present) before resuming to avoid errors.
 
-7. A run can be resumed if the script is terminated before generating trees, but after generating supermatrices. This will happen automatically if the output directory contains the assemblies/ and/or target_enrichment/, fastas/, macsed_alignments/, and supermatrix/ directories. Please remove any tree directories from the output directory (if present) before resuming to avoid errors.
-
-8. [PhypartsPieCharts](https://github.com/mossmatters/phyloscripts/tree/master/phypartspiecharts) is a nice tool for viewing the support for the topology of the species tree. Consider running PhypartsPieCharts through our helper script with `python pie_wrap.py -t /path/to/single_locus_trees/ -p /path/to/species/tree`. You may need to use `ssh -Y` for the script to run properly on a remote device.
+7. [PhypartsPieCharts](https://github.com/mossmatters/phyloscripts/tree/master/phypartspiecharts) is a nice tool for viewing the support for the topology of the species tree. Consider running PhypartsPieCharts through our helper script with `python pie_wrap.py -t /path/to/single_locus_trees/ -p /path/to/species/tree`. You may need to use `ssh -Y` for the script to run properly on a remote device.
 
 ## Output description
 The UnFATE output will be placed in many folders within the location specified by -o, several output folders will be created corresponding to the pipeline steps:  
 * Within the "target_enrichment" folder there will be the HybPiper runs folders, one per sample. Your data will also be symlinked into this directory.
 * Within the "whole_genome_data" folder will be symlinks to your supplied WGS data, trimmed read files, and either spades or HybPiper output depending on whether -l was used.
 * Within the "assemblies" folder there will be the "Exonerate_hits.py" runs folder, one per sample. Your data will aslo be symlinked into this directory 
-* The "fastas" folder will contain DNA and AA fasta files, one per marker of interest, and the MACSE runs folders.  
-* The "macsed_alignments" folder will contain DNA and AA alignments, aligned and filtered with OMM_MACSE pipeline and (optionally) filtered with Gblocks  
+* The "fastas" folder will contain DNA and AA fasta files, one per marker of interest, and the MACSE runs folders.
+* The "macsed_alignments" folder will contain DNA and AA alignments, aligned and filtered with OMM_MACSE pipeline and (optionally) filtered with Gblocks.
 * The "single_locus_trees" folder will contain the IQTREE phylogenetic analyses on single markers (from both DNA and AA alignments)
 * The "supermatrix" folder will contain both the concatenation of the single marker alignments and the IQTREE2 phylogenetic inference (from both DNA and AA alignments)  
 * The "supertree" folder will contain both the file with the best tree for each marker and the ASTRAL species tree (from both DNA and AA alignments)
 * The "final_trees" folder will contain the trees generate from concatenation (IQTREE) and coalescence-based approach (ASTRAL) and their version renamed to species name (where NCBI accession numbers were used; e.g. when samples from the precalculated database or assemblies downloaded from NCBI are used)
 * The "PhyParts" folder will be made if `pie_wrap.py` is run. The key output is pies.svg, but the full phyparts output will be present as well.
+ 
+## `barcode_wrap.py`
+`barcode_wrap.py` is a spinoff of `main_wrap.py`. This script handles multilocus barcoding of target enrichment or WGS data. It assumes that each pair of input fastq files represents a single species.
+`barcode_wrap.py` finds the 20 most closely related samples to the input data in our pre-mined database from NCBI, then builds a tree of those 21 samples using as many genes as possible (up to 196).
+The specificity of the taxonomy inferred from the output trees will depend on the completeness of the pre-mined database. Species level identification could be possible in highly sequenced groups such as Aspergillaceae, but is less likely in groups with few sequenced genomes. 
+Specificity will increase as more genomes are added to NCBI and as more organisms are sequenced using our baits.
+
+`barcode_wrap.py` uses most of the same dependencies as `main_wrap.py` with the exception of MACSE and ASTRAL. If you wish to only run `barcode_wrap.py` on a certain machine, the only conda packages required are the HybPiper dependencies listed above.
+`barcode_wrap.py` is intended to be light enough to run on a desktop computer or laptop in less than 3 hours.
+
+A possible use case of `barcode_wrap.py` is to find a closely related group, then run `main_wrap.py` with all members of that group by using the `-n <taxon>` argument.
+
+The output directories of `barcode_wrap.py` generally mirror the output directories of `main_wrap.py`. The "reads" directory contains the raw and trimmed reads supplied, as well as the HybPiper output.
+The "fastas" directory contains various forms of the genes extracted from the input added to the pre-mined data. The "final_fastas" directory contains the genes extracted from the input aligned to the genes from the database, ran through Gblocks with relaxed parameters.
+The "trees" directory contains the iqtree2 output from running on the "final_fastas" directory, in addition to a treefile where the accession numbers from NCBI have been replaced with binomials.

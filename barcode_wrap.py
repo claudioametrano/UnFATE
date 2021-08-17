@@ -1,4 +1,21 @@
-#Very much still in develpment
+#!/usr/bin/env python
+
+#reasons this exists:
+#Using multiple loci most likely results in higher resolution phylogenies than just ITS (for example)
+#
+
+#pipeline:
+#trim fastqs (trimmomatic)
+#HybPiper
+#mafft adds captured sequences to pre-aligned database sequences for captured loci
+#gblocks filters previous alignment
+#FASconCAT-G concatenates filtered alignments
+#2-parameter substitution pairwise scores are calculated between query and all other samples
+#20 closest samples (with a maximum of 4 per species) are selected from the database
+#mafft aligns the captured loci with the loci from only those 20 samples
+#gblocks runs on the small alignment
+#iqtree2 runs on the small gblocked alignment
+
 from Bio.Phylo.TreeConstruction import DistanceCalculator
 from Bio import AlignIO
 from Bio import SeqIO
@@ -6,7 +23,7 @@ import argparse
 import os
 from glob import glob
 import multiprocessing
-from re import findall, sub
+from re import findall, sub, match
 
 parser = argparse.ArgumentParser()
 parser.add_argument("-r", "--read_dir", help="fastq or fastq.gz allowed in a directory") #expect readfile for now, allow assembly later
@@ -33,8 +50,18 @@ def run_hybpiper(main_script_dir, data_dir):
       clean_command = "{}/HybPiper/cleanup.py {}".format(main_script_dir, line.strip())
       os.system(clean_command)
       os.chdir(main_script_dir)
+
+
       return line.strip()
-#this only allows for one sample for now
+      #this only allows for one sample for now
+
+def get_taxes(main_script_dir):
+  taxes = {}
+  with open(os.path.join(main_script_dir, "Accession_plus_taxonomy_Pezizomycotina.txt")) as taxFile:
+    for line in taxFile:
+      line = line.strip().split(",")
+      taxes[line[0]] = " ".join(line[1].split(" ")[:2])
+  return taxes
 
 def add_fastas(path_to_data, isAssemblies, main_script_dir):
 #  for moleculeType in ["FNA"]:
@@ -42,10 +69,10 @@ def add_fastas(path_to_data, isAssemblies, main_script_dir):
     search_location = os.path.join(path_to_data, "*", "sequences", "FNA", "*")
   else:
     search_location = os.path.join(path_to_data, "*", "*", "*", "sequences", "FNA", "*")
-  mafft_command = "mafft --thread {} --add {} {} > {}"
+  mafft_command = "mafft --retree 1 --thread {} --add {} {} > {}"
   for filename in glob(search_location):
     geneName = filename.split("/")[-1][:-4]
-    inFasta = os.path.join(main_script_dir, "msa_test", "combined_" + geneName + ".fasta")
+    inFasta = os.path.join(main_script_dir, "msa_test", "truncatedIDs_" + geneName + ".fasta")
     outFasta = os.path.join(args.out, "fastas", "added_" + geneName + ".fasta")
     os.system(mafft_command.format(args.cpu, filename, inFasta, outFasta))
 
@@ -63,19 +90,51 @@ def set_up_dirs():
   for dir in directories:
     if not os.path.isdir(os.path.join(args.out, dir)):
       os.mkdir(os.path.join(args.out, dir))
-  """
-  if not os.path.isdir(os.path.join(args.out, "reads")):
-    os.mkdir(os.path.join(args.out, "reads"))
-  if not os.path.isdir(os.path.join(args.out, "fastas")):
-    os.mkdir(os.path.join(args.out, "fastas"))
-  if not os.path.isdir(os.path.join(args.out, "final_fastas")):
-    os.mkdir(os.path.join(args.out, "final_fastas"))
-  """
+
+  #get data
   for file in glob(os.path.join(args.read_dir, "*.fastq*")):
     if not os.path.exists(os.path.join(args.out, "reads", file.split("/")[-1])):
       os.symlink(file, os.path.join(args.out, "reads", file.split("/")[-1]))
 
-def find_similar_samples(query):
+#we don't want all of the recovered database samples to be from the same species
+#so we go through scores and take the top 20 where there are <= 4 of each species (not including query, of course)
+def get_scores_low_replication(scores, ids, taxes):
+  scoresToKeep = []
+  speciesKept = {}
+  accRe = r"GCA_[\d]+\.\d"
+  for scoreTuple in scores: #scores must already be sorted
+    score = scoreTuple[1]
+    id = scoreTuple[0] #eg. 123
+    id = ids[id]       #eg. GCA_4321.1_more_stuff
+    try:
+      id = match(accRe, id)[0]	#eg. GCA_4321.1
+    except:
+      print("id does not start with GCA, so it must be the query.")
+
+    #start logic of selecting samples
+    if id in taxes.keys(): #if not query, essentially
+      if taxes[id] in speciesKept.keys(): #if at least one of that species has been kept
+        if speciesKept[taxes[id]] < 4: #if fewer than 4 have been kept
+          scoresToKeep.append(scoreTuple)
+          speciesKept[taxes[id]] += 1
+        else: 	#more than 4 have been kept, so we don't care
+          pass
+      else:	#first of this species
+        scoresToKeep.append(scoreTuple)
+        speciesKept[taxes[id]] = 1
+    else: 	#almost certainly the query, unless the taxonomy stuff got messed up
+      scoresToKeep.append(scoreTuple)
+
+    if len(scoresToKeep) >= 20:
+      return scoresToKeep
+
+def get_score(seq1, seq2, index, calc, total):
+  score = calc._pairwise(seq1, seq2)
+  if index % 100 == 0:
+    print("Processed {} of {}".format(index, total))
+  return((index, score))
+
+def find_similar_samples(query, taxes):
   aln = AlignIO.read(open(os.path.join(args.out, "fastas", "FcC_supermatrix.fas")), "fasta")
   for record in aln:
     record.seq = record.seq.upper()
@@ -98,25 +157,25 @@ def find_similar_samples(query):
   ids = [record.id for record in aln]
   querySeq = sequences[queryIndex]
 
-  def get_score(seq1, seq2, index):
-    score = calc._pairwise(seq1, seq2)
-    #print(index)
-    return((index, score))
-
   scores = [] #list of tuples to allow sorting
 
-  with multiprocessing.Pool(args.cpu) as p:
-    scores=p.starmap(get_score, [(querySeq, seq, i) for i,seq in enumerate(sequences)])
+  with multiprocessing.Pool(int(args.cpu)) as p:
+    scores=p.starmap(get_score, [(querySeq, seq, i, calc, len(sequences)) for i,seq in enumerate(sequences)])
 
   scores.sort(key = lambda x: x[1])
   #print(scores)
+  #topScores = scores[0:21]
 
-  topScores = scores[0:21]
+  topScores = get_scores_low_replication(scores, ids, taxes)
+
   print(topScores)
-  print([ids[i[0]] for i in topScores])
-  return topScores
+  print([(taxes["_".join(ids[i[0]].split("_")[:2])], i[1]) for i in topScores if "_".join(ids[i[0]].split("_")[:2]) in taxes])
+  topSamples = [ids[i[0]] for i in topScores]
+  print(topSamples)
+  return topSamples
 
 def extract_similar_samples(samples):
+  print(samples)
   for file in glob(os.path.join(args.out, "fastas", "added_*.fasta")):
     baseName = file.split("/")[-1]
     dirs = "/".join(file.split("/")[:-1])
@@ -124,9 +183,15 @@ def extract_similar_samples(samples):
       aln = SeqIO.parse(open(file), "fasta")
       recordsToKeep = []
       for record in aln:
-        if record.id in samples:
-          recordsToKeep.append(record)
-      print([recordsToKeep])
+        #this is because the ids in msa/ were truncated to allow for gblocks
+        #print(record.id)
+        if len(record.id) > 30:
+          if record.id[:30] in samples:
+            recordsToKeep.append(record)
+        else:
+          if record.id in samples:
+            recordsToKeep.append(record)
+
       SeqIO.write(recordsToKeep, outFile, "fasta")
 
 def align_similar_samples():
@@ -155,14 +220,29 @@ def run_gblocks(isFew, main_script_dir):
     b1 = str(round(count * fraction1))
     b2 = str(round(count * fraction2))
     print("Number of char in a column of the alignment to be considered conserved and flanking regions, respectively: ", b1, b2)
-    start_Gblocks = "{} {} -t=c -b1={} -b2={} -b3=10 -b4=5 -b5=h -e=-gb".format(os.path.join(main_script_dir, "Gblocks"), file, b1, b2)
+    start_Gblocks = "{} {} -t=d -b1={} -b2={} -b3=10 -b4=5 -b5=h -e=-gb".format(os.path.join(main_script_dir, "Gblocks"), file, b1, b2)
     print(start_Gblocks)
+
+    #*.fasta -> *.fasta-gb
     os.system(start_Gblocks)
 
+    #*.fasta-gb -> *.fasta_temp
+    removeSpaces = "cat {} | sed 's/ //g' > {}"
+    os.system(removeSpaces.format(file + "-gb", file + "_temp"))
+
+    #*.fasta_temp -> *.fasta
+    os.remove(file)
+    os.rename(file + "_temp", file)
+
   if isFew:
-    for file in glob(os.path.join(args.out, "fastas", "*-gb")):
+    for file in glob(os.path.join(args.out, "fastas", "aligned_few*.fasta")):
       baseName = file.split("/")[-1]
-      os.rename(file, os.path.join(args.out, "final_fastas", "gb_" + baseName[:-3]))
+      os.rename(file, os.path.join(args.out, "final_fastas", "gb_" + baseName))
+  else:
+    for file in glob(os.path.join(args.out, "fastas", "*-gb.htm")):
+      #file is *.fasta-gb.htm
+      #we want to remove *.fasta-gb.htm
+      os.remove(file)
 
 def make_trees(main_script_dir):
   iqtree_command = "{}/iqtree2 -m TEST -s {} -T AUTO --threads-max {} --prefix {}/final_fastas"
@@ -188,6 +268,9 @@ def rename_terminals(main_script_dir):
 def main():
   main_script_dir = os.path.realpath(__file__)
   main_script_dir = "/".join(main_script_dir.split("/")[:-1])
+  args.out = os.path.realpath(args.out)
+  args.target_markers = os.path.realpath(args.target_markers)
+  args.read_dir = os.path.realpath(args.read_dir)
 
   #this isn't strictly necessary, but FASconCAT-G needs to be run from the
   #out/fastas directory, so we will change to main_script_dir, then to out/fastas,
@@ -211,6 +294,8 @@ def main():
   if not os.path.isdir(os.path.join(main_script_dir, "combined_pre_mined_assemblies/")):
     unzip_premined_assemblies = "tar -C {} -Jxf {}".format(main_script_dir, os.path.join(main_script_dir, "combined_pre_mined_assemblies.tar.xz"))
     os.system(unzip_premined_assemblies)
+  taxes = get_taxes(main_script_dir)
+
 
   add_fastas(reads_dir, False, main_script_dir)
   run_gblocks(False, main_script_dir)
@@ -220,14 +305,19 @@ def main():
   os.chdir(main_script_dir)
 
   #TESTING test_samples = ['Trypethelium_eluteriae_NAN5_GGAGCTAC-CTCCTTAC_L008', 'GCA_005059845.1_ASM505984v1_genomic', 'GCA_001692895.1_Cenococcum_geophilum_1.58_v2.0_genomic', 'GCA_001455585.1_Dip_scr_CMW30223_v1.0_genomic', 'GCA_001307955.1_ASM130795v1_genomic', 'GCA_001307945.1_ASM130794v1_genomic', 'GCA_015295685.1_ASM1529568v1_genomic', 'GCA_000281105.1_Coni_apol_CBS100218_V1_genomic', 'GCA_000504465.1_CryAan1.0_genomic', 'GCA_001692915.1_Glonium_stellatum_CBS_207.34_v1.0_genomic', 'GCA_002111425.1_ASM211142v1_genomic', 'GCA_010015785.1_Sacpr1_genomic', 'GCA_010093885.1_Aplpr1_genomic', 'GCA_009829795.1_ASM982979v1_genomic', 'GCA_008931885.1_ASM893188v1_genomic', 'GCA_009829455.1_ASM982945v1_genomic', 'GCA_009829845.1_ASM982984v1_genomic', 'GCA_001307885.1_ASM130788v1_genomic', 'GCA_009829855.1_ASM982985v1_genomic', 'GCA_001307935.1_ASM130793v1_genomic', 'GCA_011057605.1_IIL_Mf_1.0_genomic']
+  #TESTING query_sample = "DRR234452"
+
+
+  print("\n*** Finding most similar sequences in database ***\n")
+  similar_samples = find_similar_samples(query_sample, taxes)
   print("\n*** Adding genes from HybPiper to genes in database  ***\n")
-  similar_samples = find_similar_samples(query_sample)
   extract_similar_samples(similar_samples)
   #TESTING extract_similar_samples(test_samples)
 
-  print("\n*** Aligning sequences and creaing a phylogeny ***\n")
+  print("\n*** Aligning sequences ***\n")
   align_similar_samples()
   run_gblocks(True, main_script_dir)
+  print("\n*** Making a tree ***\n")
   make_trees(main_script_dir)
   rename_terminals(main_script_dir)
 

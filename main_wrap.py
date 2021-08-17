@@ -349,14 +349,14 @@ def checkTestContinue(user_input):
   if user_input == "c" or user_input == "C" or user_input == "Continue" or user_input == "continue":
     return True
 
-def check_arg(args=None):
+def check_arg():
 	parser = argparse.ArgumentParser(description='UnFATE: the wrapper script that brings YOU from target enrichment sequencing data straight to phylogenetic tree inference! BE CAREFUL: At least one argument between assemblies and target enrichment is mandatory! See the readme file for data structure and additional info.')
-	parser.add_argument('-bb', '--target_markers', default= 'Target_markers_rep_seq_aa.fas',
+	parser.add_argument('-c', '--cpu', default= '4',
+						help='CPU number used by Hybpiper or parallel run of Exonerate, MACSE, RAxML etc.'
+						)
+	parser.add_argument('-b', '--target_markers', default= 'Target_markers_rep_seq_aa.fas',
 						help=' Path to fasta files containg all the sequences used to design the bait set, IT MUST BE A PROTEIN FASTA, USE  AN ABSOLUTE PATH!'
 						)
-	parser.add_argument('-c', '--cpu', default= '4',
-						help='CPU number used by Hybpiper or parallel run of Exonerate, MACSE, RAxML etc.' 
-						)				
 	parser.add_argument('-t', '--target_enrichment_data', default= '',
 						help='Path to target enriched data. Files must end with "R1.fastq.gz" and "R2.fastq.gz"',
 						)
@@ -365,19 +365,19 @@ def check_arg(args=None):
 						)
 	parser.add_argument('-a', '--assemblies', default= '',
 						help='Path to assemblies. Files must end with ".fna.gz" or ".fna"',
-						)	
-	parser.add_argument('-f', '--first_use', action= 'store_true', 
-						help='Modifies some path in MACSE pipeline folder, use this argument only if is the first time you run the pipeline, then do not move the UnFATE folder.',
-						)		
-	parser.add_argument('-g', '--gblocks_relaxed', action= 'store_true', 
-						help='Applies Gblocks with relaxed parameters (Talavera & Castresana, 2007)',
-						)	
-	parser.add_argument('-n', '--ncbi_assemblies', nargs = '+', 
-#						help='Extracts the requested pre-mined NCBI assemblies genes from the database, Can take a list of taxononomic ranks (e.g. Morchella Tuber Fuffaria)'
 						)
-	parser.add_argument('-o', '--out', required=True, 
+	parser.add_argument('-f', '--first_use', action= 'store_true',
+						help='Modifies some path in MACSE pipeline folder, use this argument only if is the first time you run the pipeline, then do not move the UnFATE folder.',
+						)
+	parser.add_argument('-g', '--gblocks_relaxed', action= 'store_true',
+						help='Applies Gblocks with relaxed parameters (Talavera & Castresana, 2007)',
+						)
+	parser.add_argument('-n', '--ncbi_assemblies', nargs = '+',
+	#						help='Extracts the requested pre-mined NCBI assemblies genes from the database, Can take a list of taxononomic ranks (e.g. Morchella Tuber Fuffaria)'
+						)
+	parser.add_argument('-o', '--out', required=True,
 						help='The directory where output will be placed upon completion. MANDATORY ARGUMENT!'
-						)							
+						)
 	parser.add_argument('-x', '--test', action= 'store_true',
 						help='Allows the user to exit early. Each step needs to be started by the user explicitly.'
 						)
@@ -388,14 +388,15 @@ def check_arg(args=None):
 	#					help='Runs phyparts on single locus gene trees and creates a plot describing the support for each node. Only uses AA data.'
 	#					)
 	#parser.add_argument('--nargs', nargs='+')
-																				
-	return parser.parse_args(args)
-args = check_arg(sys.argv[1:])
-print("Arguments are: ", args)
 
-testPrompt = "Finished {}, next step is {}: (C)ontinue or (Q)uit?"
+	return parser.parse_args()
+
 
 def main():
+	args = check_arg()
+	print("Arguments are: ", args)
+	testPrompt = "Finished {}, next step is {}: (C)ontinue or (Q)uit?"
+
 	#print(args)
 	global main_script_dir
 	main_script_dir = os.path.realpath(__file__)

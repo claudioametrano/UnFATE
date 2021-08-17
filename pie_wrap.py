@@ -104,7 +104,7 @@ def main():
 parser = argparse.ArgumentParser(description="Helper script for PhyParts and PhyPartsPieCharts")
 parser.add_argument('-t', '--tree_directory', help = 'The path to the directory with the single locus gene trees')
 parser.add_argument('-p', '--species_tree', help = 'The tree you consider to be the species tree')
-parser.add_argument('-g', '--outgroup', nargs="+", help = 'If left out, trees will automatically be rooted to have the same root as your species tree (if it is rooted). The sample you consider the outgroup for rooting purposes')
+parser.add_argument('-g', '--outgroup', nargs="+", help = 'The sample you consider the outgroup for rooting purposes. If left out, trees will automatically be rooted to have the same root as your species tree.')
 #parser.add_argument('-p', '--phyparts_path', help = 'The path to the phyparts .jar')
 #parser.add_argument('-c', '--phypartspiecharts_path', help = 'The path to phypartspiecharts.py')
 args = parser.parse_args()
