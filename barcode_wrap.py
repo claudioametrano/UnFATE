@@ -24,9 +24,10 @@ import os
 from glob import glob
 import multiprocessing
 from re import findall, sub, match
+from sys import exit
 
 parser = argparse.ArgumentParser()
-parser.add_argument("-r", "--read_dir", help="fastq or fastq.gz allowed in a directory") #expect readfile for now, allow assembly later
+parser.add_argument("-r", "--reads", help="List the .fastq(.gz) file(s) for a single sample separated by a space", nargs="+") #expect readfile for now, allow assembly later
 parser.add_argument("-o", "--out", help="output directory, this will be made automatically")
 parser.add_argument("-c", "--cpu", default=1, help="number of threads to use")
 parser.add_argument("-b", "--target_markers", help="file with baits for HybPiper")
@@ -43,14 +44,17 @@ def run_hybpiper(main_script_dir, data_dir):
   with open(os.path.join(data_dir, "namelist.txt"), 'r') as f:
     for line in f:
       print("Processing sample:" + line)
-      sample_path = data_dir + '/' + line.rstrip('\n') + '_R*.trimmed_paired.fastq'
-      run_Hybpiper =  '{}/HybPiper/reads_first.py -b {} -r {}  --prefix {}/{} --cpu {} '.format(main_script_dir, args.target_markers, sample_path, data_dir, line.strip(), args.cpu)
+      sample_path = ""
+      if len(args.reads) == 2:
+        sample_path = data_dir + '/' + line.rstrip('\n') + '_R*.trimmed_paired.fastq'
+      else:
+        sample_path = data_dir + '/' + line.rstrip('\n') + '*trimmed.fastq'
+      run_Hybpiper = '{}/HybPiper/reads_first.py -b {} -r {}  --prefix {}/{} --cpu {} '.format(main_script_dir, args.target_markers, sample_path, data_dir, line.strip(), args.cpu)
       print("running HybPiper with: " + run_Hybpiper)
       os.system(run_Hybpiper)
-      clean_command = "{}/HybPiper/cleanup.py {}".format(main_script_dir, os.path.join(args.out, "reads", line.strip()))
+      clean_command = "{}/HybPiper/cleanup.py {}".format(main_script_dir, line.strip())
       os.system(clean_command)
       os.chdir(main_script_dir)
-
 
       return line.strip()
       #this only allows for one sample for now
@@ -92,7 +96,7 @@ def set_up_dirs():
       os.mkdir(os.path.join(args.out, dir))
 
   #get data
-  for file in glob(os.path.join(args.read_dir, "*.fastq*")):
+  for file in args.reads:  #args.reads is now a list
     if not os.path.exists(os.path.join(args.out, "reads", file.split("/")[-1])):
       os.symlink(file, os.path.join(args.out, "reads", file.split("/")[-1]))
 
@@ -270,7 +274,14 @@ def main():
   main_script_dir = "/".join(main_script_dir.split("/")[:-1])
   args.out = os.path.realpath(args.out)
   args.target_markers = os.path.realpath(args.target_markers)
-  args.read_dir = os.path.realpath(args.read_dir)
+  args.reads = [os.path.realpath(read) for read in args.reads]
+
+  print(args.reads)
+  if len(args.reads) > 2:
+    exit("\nERROR: Too many read files given as input, must be 1 (unpaired) or 2 (paired).")
+
+
+  #args.read_dir = os.path.realpath(args.read_dir)  #args.reads is now a list
 
   #this isn't strictly necessary, but FASconCAT-G needs to be run from the
   #out/fastas directory, so we will change to main_script_dir, then to out/fastas,
@@ -282,8 +293,12 @@ def main():
 
   print("\n***  Trimming  ***\n")
   trim_and_get_namelist(main_script_dir, reads_dir)
-  gunzip_fastq = 'parallel -j {} gunzip ::: {}*_paired.fastq.gz'.format(args.cpu, reads_dir + "/")
-  os.system(gunzip_fastq)
+  if len(args.reads) == 2:
+    gunzip_fastq = 'parallel -j {} gunzip ::: {}*_paired.fastq.gz'.format(args.cpu, reads_dir + "/")
+    os.system(gunzip_fastq)
+  else:
+    gunzip_fastq = 'gunzip {}*trimmed.fastq.gz'.format(reads_dir + "/")
+    os.system(gunzip_fastq)
 
   print("\n***  Running HybPiper ***\n")
   #run_hybpiper reads namelist.txt and returns the top entry
