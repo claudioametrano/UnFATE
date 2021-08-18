@@ -296,7 +296,10 @@ def run_hybpiper(main_script_dir, data_dir, namelist):
 	with open(namelist, 'r') as f:
 		for line in f:
 			logging.info("Processing sample:" + line)
-			sample_path = data_dir + '/' + line.rstrip('\n') + '_R*.trimmed_paired.fastq'
+			if len(glob(data_dir + '/' + line.rstrip('\n') + '_R*.trimmed_paired.fastq')) == 2:
+				sample_path = data_dir + '/' + line.rstrip('\n') + '_R*.trimmed_paired.fastq'
+			else:
+				sample_path = data_dir + '/' + line.rstrip('\n') + '_SE.trimmed.fastq'
 			run_Hybpiper =  '{}HybPiper/reads_first.py -b {} -r {}  --prefix {} --cpu {} '.format(main_script_dir, args.target_markers, sample_path, line.strip(), args.cpu)
 			logging.info("running HybPiper with: " + run_Hybpiper)
 			os.system(run_Hybpiper)
@@ -358,7 +361,7 @@ def check_arg():
 						help=' Path to fasta files containg all the sequences used to design the bait set, IT MUST BE A PROTEIN FASTA, USE  AN ABSOLUTE PATH!'
 						)
 	parser.add_argument('-t', '--target_enrichment_data', default= '',
-						help='Path to target enriched data. Files must end with "R1.fastq.gz" and "R2.fastq.gz"',
+						help='Path to target enriched data. Files must end with "R1.fastq.gz", "R2.fastq.gz" or "SE.fastq.gz". Each sample can either consist of paired end reads or single end reads.',
 						)
 	parser.add_argument('-w', '--whole_genome_data', default= '',
 						help='Input path of de novo whole genome sequence data.'
@@ -391,9 +394,8 @@ def check_arg():
 
 	return parser.parse_args()
 
-
+args = check_arg()
 def main():
-	args = check_arg()
 	print("Arguments are: ", args)
 	testPrompt = "Finished {}, next step is {}: (C)ontinue or (Q)uit?"
 
@@ -525,6 +527,8 @@ def main():
 				logging.info("Gunzipping paired reads trimmed fastq archives")
 				gunzip_fastq = 'parallel -j {} gunzip ::: {}*_paired.fastq.gz'.format(args.cpu, args.whole_genome_data) 
 				os.system(gunzip_fastq)
+				gunzip_fastq = 'parallel -j {} gunzip ::: {}*trimmed.fastq.gz'.format(args.cpu, args.whole_genome_data)
+				os.system(gunzip_fastq)
 
 				logging.info("******************************************************************************************************************************************")
 				logging.info("           EXTRACTING GENES FROM WHOLE GENOME DATA  WITH Hybpiper (Johnson et al. 2016)")
@@ -534,6 +538,8 @@ def main():
 				logging.info("Gzipping paired reads trimmed fastqs")
 				gzip_fastq = "parallel -j {} gzip ::: {}*_paired.fastq".format(args.cpu, args.whole_genome_data)
 				os.system(gzip_fastq)
+				gzip_fastq = "parallel -j {} gzip ::: {}*trimmed.fastq".format(args.cpu, args.whole_genome_data)
+				os.system(gzip_fastq)
 			else:
 				logging.info("*****************************************************************************************************************************")
 				logging.info("          ASSEMBLING WHOLE GENOME DATA WITH SPADES (***CITATION NEEDED***)          ")
@@ -541,12 +547,20 @@ def main():
 				with open(path_to_namelist) as namelistFile:
 					for name in namelistFile:
 						name = name.strip()
-						sample_R1_path = os.path.join(args.out, "whole_genome_data", name + "_R1.trimmed_paired.fastq.gz")
-						sample_R2_path = os.path.join(args.out, "whole_genome_data", name + "_R2.trimmed_paired.fastq.gz")
-						spades_out_path = os.path.join(args.out, "whole_genome_data", name + "_spades/")
-						spades_command = "spades.py -1 {} -2 {} -o {} -t {} --careful".format(sample_R1_path, sample_R2_path, spades_out_path, args.cpu)
-						logging.info("running spades with " + spades_command)
-						os.system(spades_command)
+						if len(glob(os.path.join(args.out, "whole_genome_data", name + "R*.gz"))) == 2:
+							sample_R1_path = os.path.join(args.out, "whole_genome_data", name + "_R1.trimmed_paired.fastq.gz")
+							sample_R2_path = os.path.join(args.out, "whole_genome_data", name + "_R2.trimmed_paired.fastq.gz")
+							spades_out_path = os.path.join(args.out, "whole_genome_data", name + "_spades/")
+							spades_command = "spades.py -1 {} -2 {} -o {} -t {} --careful".format(sample_R1_path, sample_R2_path, spades_out_path, args.cpu)
+							logging.info("running spades with " + spades_command)
+							os.system(spades_command)
+						else:
+							sample_path = os.path.join(args.out, "whole_genome_data", name + "_SE.trimmed.fastq.gz")
+							spades_out_path = os.path.join(args.out, "whole_genome_data", name + "_spades/")
+							spades_command = "spades.py -s {} -o {} -t {} --careful".format(sample_path, spades_out_path, args.cpu)
+							logging.info("running spades with " + spades_command)
+							os.system(spades_command)
+
 						os.rename(os.path.join(spades_out_path, "scaffolds.fasta"), os.path.join(args.whole_genome_data, name + ".fna"))
 
 				#we have assemblies now
@@ -566,7 +580,9 @@ def main():
 			path_to_namelist = os.path.join(args.target_enrichment_data,namelist)
 
 			logging.info("Gunzipping paired reads trimmed fastq archives")
-			gunzip_fastq =' parallel gunzip ::: {}*_paired.fastq.gz'.format(args.target_enrichment_data)
+			gunzip_fastq =' parallel -j {} gunzip ::: {}*_paired.fastq.gz'.format(args.cpu, args.target_enrichment_data)
+			os.system(gunzip_fastq)
+			gunzip_fastq = 'parallel -j {} gunzip ::: {}*trimmed.fastq.gz'.format(args.cpu, args.target_enrichment_data)
 			os.system(gunzip_fastq)
 
 			logging.info("******************************************************************************************************************************************")
@@ -577,7 +593,8 @@ def main():
 			logging.info("Gzipping paired reads trimmed fastqs")
 			gzip_fastq = "parallel -j {} gzip ::: {}*_paired.fastq".format(args.cpu, args.target_enrichment_data)
 			os.system(gzip_fastq)
-
+			gzip_fastq = "parallel -j {} gzip ::: {}*trimmed.fastq".format(args.cpu, args.target_enrichment_data)
+			os.system(gzip_fastq)
 
 		#user input: assemblies
 		#create exonerate output in assemblies/
@@ -675,12 +692,12 @@ def main():
 					sequence = str(seq.seq).upper()
 					# arrange sequence and id in a format that SeqIO can write to file
 					record = SeqRecord(Seq(sequence), seq.id, "","")
-					print(record)
+					#print(record)
 					SeqIO.write(record, output_file,"fasta")
 				else:
 					sequence = str(seq.seq).upper()
 					record = SeqRecord(Seq(sequence), seq.id, "","")
-					print(record)
+					#print(record)
 					SeqIO.write(record, output_file,"fasta")						
 			output_file.close()
 		

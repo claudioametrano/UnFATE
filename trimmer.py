@@ -21,7 +21,7 @@ def trimming(data_folder, cpus):
 		samplesR1.append(name)
 	for name in glob(os.path.join(data_folder, "*R2.fastq*")):
 		samplesR2.append(name)
-	for name in glob(os.path.join(data_folder, "SE.fastq*")):
+	for name in glob(os.path.join(data_folder, "*SE.fastq*")):
 		samplesSE.append(name)
 
 	#print(samplesR1)

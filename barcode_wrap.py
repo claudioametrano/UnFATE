@@ -47,7 +47,7 @@ def run_hybpiper(main_script_dir, data_dir):
       run_Hybpiper =  '{}/HybPiper/reads_first.py -b {} -r {}  --prefix {}/{} --cpu {} '.format(main_script_dir, args.target_markers, sample_path, data_dir, line.strip(), args.cpu)
       print("running HybPiper with: " + run_Hybpiper)
       os.system(run_Hybpiper)
-      clean_command = "{}/HybPiper/cleanup.py {}".format(main_script_dir, line.strip())
+      clean_command = "{}/HybPiper/cleanup.py {}".format(main_script_dir, os.path.join(args.out, "reads", line.strip()))
       os.system(clean_command)
       os.chdir(main_script_dir)
 

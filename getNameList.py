@@ -22,6 +22,11 @@ def sample_list(data_folder):
 		if regex != None:
 			namelist.append(regex.group(1))
 	#print(namelist)
+
+	for i in onlyfiles:
+		regex = re.search('(.+)_SE.trimmed.fastq.gz', i)
+		if regex != None:
+			namelist.append(regex.group(1))
 	# make a set from the list and then back to list to get rid of double names
 	nodouble_list = list(set(namelist))
 	sorted_namelist = sorted(nodouble_list)

@@ -72,7 +72,7 @@ Prerequisites/Dependencies:
 2. Read the help section of the script to set up the command line for your analysis:  
 `python3 main_wrap.py --help`
 
-3. Set up the file extensions: Sequencing data from target enrichment must be in files ending in .fastq or .fastq.gz. Assemblies must be in fasta files ending in .fna or .fna.gz. Rename your files as needed.
+3. Set up the file extensions: Sequencing data must be in files ending in _R(direction).fastq(.gz) or _SE.fastq(.gz). Assemblies must be in fasta files ending in .fna or .fna.gz. Rename your files as needed.
 
 4. Run UnFATE using the command line. For example:  
 `python3 main_wrap.py -b ~/path/to/protein/fasta/Target_markers_rep_seq_aa.fas -t ~/path/to/target_enrichment/ -a ~/path/to/assemblies/ --gblocks --cpu 8 -n Tuber Morchella --first_use -o ~/path/to/output/`
@@ -102,15 +102,16 @@ The UnFATE output will be placed in many folders within the location specified b
 * The "PhyParts" folder will be made if `pie_wrap.py` is run. The key output is pies.svg, but the full phyparts output will be present as well.
  
 ## `barcode_wrap.py`
-`barcode_wrap.py` is a spinoff of `main_wrap.py`. This script handles multilocus barcoding of target enrichment or WGS data. It assumes that each pair of input fastq files represents a single species.
-`barcode_wrap.py` finds the 20 most closely related samples to the input data in our pre-mined database from NCBI, then builds a tree of those 21 samples using as many genes as possible (up to 196).
+`barcode_wrap.py` is a spinoff of `main_wrap.py`. This script handles multilocus barcoding of target enrichment or WGS data. It assumes that the input fastq files represents a single species.
+`barcode_wrap.py` finds the 20 most closely related samples to the input data in our pre-mined database from NCBI (skipping samples if there are already 4 representatives from its species), then builds a tree of those 21 samples using as many genes as possible (up to 196).
 The specificity of the taxonomy inferred from the output trees will depend on the completeness of the pre-mined database. Species level identification could be possible in highly sequenced groups such as Aspergillaceae, but is less likely in groups with few sequenced genomes. 
 Specificity will increase as more genomes are added to NCBI and as more organisms are sequenced using our baits.
 
 `barcode_wrap.py` uses most of the same dependencies as `main_wrap.py` with the exception of MACSE and ASTRAL. If you wish to only run `barcode_wrap.py` on a certain machine, the only conda packages required are the HybPiper dependencies listed above.
 `barcode_wrap.py` is intended to be light enough to run on a desktop computer or laptop in less than 3 hours.
 
-A possible use case of `barcode_wrap.py` is to find a closely related group, then run `main_wrap.py` with all members of that group by using the `-n <taxon>` argument.
+A possible usage of `barcode_wrap.py` is to find a closely related group, then run `main_wrap.py` with all members of that group using the `-n <taxon>` argument.
+`barcode_wrap.py` does not allow running multiple samples in one run. If you have multiple samples, consider running each through the pipeline individually, then pooling them in `main_wrap.py` with a close group from the pre-mined database.
 
 The output directories of `barcode_wrap.py` generally mirror the output directories of `main_wrap.py`. The "reads" directory contains the raw and trimmed reads supplied, as well as the HybPiper output.
 The "fastas" directory contains various forms of the genes extracted from the input added to the pre-mined data. The "final_fastas" directory contains the genes extracted from the input aligned to the genes from the database, ran through Gblocks with relaxed parameters.
