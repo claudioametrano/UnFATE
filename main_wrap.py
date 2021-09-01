@@ -16,6 +16,37 @@ import csv
 import pandas
 from glob import glob
 
+def blast_individual_sample(sample, genes, assemblies_path):
+	fna = os.path.join(assemblies_path, sample + ".fna")
+	# Build a BLAST database for each of the assemblies
+	make_db = "makeblastdb -in {} -dbtype nucl -out {}".format(fna, os.path.join(assemblies_path, sample), os.path.join(assemblies_path, ))
+	os.system(make_db)
+	sample_best_path = os.path.join(assemblies_path, sample + "_best_blast_scoring_reference_Hybpiper_format_aa.fas")
+	for gene in genes:
+		ref_path = os.path.join(assemblies_path, gene + "_ref.fasta")
+		blastout_path = os.path.join(assemblies_path, gene + "_ref.fasta___" + sample + "_blastout.tsv")
+		tblastn_command = "tblastn -query {} -db {} -out {} -num_threads 1 -outfmt 6".format(ref_path, os.path.join(assemblies_path, sample), blastout_path)
+		os.system(tblastn_command)
+
+		#blast_columns isn't needed, but it's nice for reference.
+		#blast_columns = ['qaccver', 'saccver', 'pident', 'length', 'mismatch', 'gapopen', 'qstart', 'qend', 'sstart', 'send', 'evalue', 'bitscore']
+
+		with open(blastout_path) as blastFile, open(sample_best_path, "a+") as bestFile, open(ref_path) as refFile:
+			bestScoring = ""
+			bestScore = 0
+			for line in blastFile:
+				line = line.strip().split("\t")
+				if float(line[-1]) > bestScore:
+					bestScore = float(line[-1]) #bitscore
+					bestScoring = line[0] #qaccver
+			regex = re.search(r"(.+?)_ref\.fasta___(.+?)_blastout.tsv", blastout_path)
+			logging.info("For assembly:{} and gene:{}, the reference sequence will be: {}".format(regex.group(2), regex.group(1), bestScoring))
+			for record in SeqIO.parse(refFile, "fasta"):
+				if record.id in bestScoring:
+					SeqIO.write(record, bestFile, "fasta")
+		os.system("rm {}".format(blastout_path))
+
+
 def select_best_reference_seq(prot_file_path, assemblies_path, cpu):
 	"""in the assembly mode thase use exonerate_hits.py script from Hybpiper, there is no way to know what sequences from the protein file is the best for each markes,
 		as we do not have the BLAST or the BWA results mappig the reads from target enrichment to those sequences, so we just BLAST all the reference for each gene
@@ -32,7 +63,7 @@ def select_best_reference_seq(prot_file_path, assemblies_path, cpu):
 	ref_gene_list = list(set(ref_gene_list))
 	logging.info("Gene list: ")
 	logging.info(ref_gene_list)
-	# 	Generate a separate fasta for each gene in the reference sequnces file	
+	# 	Generate a separate fasta for each gene in the reference sequnces file
 	for gene in ref_gene_list:
 		with open(assemblies_path + gene+ "_ref.fasta", "a+") as gene_file:
 			for seq in SeqIO.parse(prot_file_path,"fasta"):
@@ -47,6 +78,14 @@ def select_best_reference_seq(prot_file_path, assemblies_path, cpu):
 					SeqIO.write(seq, gene_file, "fasta")
 				else:
 					pass
+	fnas = glob(os.path.join(assemblies_path, "*.fna"))
+	samples = [fna.split("/")[-1][:-4] for fna in fnas] #fna = "/gar/abc.fna", keep "abc"
+	list_of_lists = [[sample, ref_gene_list, assemblies_path] for sample in samples] #[["abc", ["1", "2"], "/gar/assemblies/"],...]
+
+	pool = multiprocessing.Pool(processes=int(args.cpu))
+	pool.starmap(blast_individual_sample, list_of_lists)
+
+	"""
 	# build BLAST databases for each alignment and then run every gene reference file against it usung tBLASTn									
 	for f in os.listdir(assemblies_path):
 		if f.endswith(".fna"): #can't include.fastas right now because alignment fastas have been moved into assemblies/
@@ -78,38 +117,41 @@ def select_best_reference_seq(prot_file_path, assemblies_path, cpu):
 				if rec.id in str(top1):
 					SeqIO.write(rec, output_file, 'fasta')				
 			output_file.close()
-			os.system("rm {}".format(assemblies_path + f))
+#			os.system("rm {}".format(assemblies_path + f))
 		else:
 			pass			
+
+	"""
+
 	# remove all the garbage needed to blast
 	# find is used in order to pass to the remove command one file at a time, otherwise if there are too many files the rm command throws the error:"-bash: /bin/rm: Argument list too long" 
 	extension = "*_ref.fasta"
 	remove_lot_of_files = "find %s -type f -name '%s' -exec rm {} \;" %(assemblies_path, extension)
-	os.system(remove_lot_of_files)
+#	os.system(remove_lot_of_files)
 	#extension = "*_blastout.tsv"
 	#remove_lot_of_files = "find %s -type f -name '%s' -exec rm {} \;" %(assemblies_path, extension)
 	#os.system(remove_lot_of_files)
 	extension = "*.nin"
 	remove_lot_of_files = "find %s -type f -name '%s' -exec rm {} \;" %(assemblies_path, extension)
-	os.system(remove_lot_of_files)
+#	os.system(remove_lot_of_files)
 	extension = "*.nsq"
 	remove_lot_of_files = "find %s -type f -name '%s' -exec rm {} \;" %(assemblies_path, extension)
-	os.system(remove_lot_of_files)
+#	os.system(remove_lot_of_files)
 	extension = "*.nhr"
 	remove_lot_of_files = "find %s -type f -name '%s' -exec rm {} \;" %(assemblies_path, extension)
-	os.system(remove_lot_of_files)
+#	os.system(remove_lot_of_files)
 	extension = "*.ndb"
 	remove_lot_of_files = "find %s -type f -name '%s' -exec rm {} \;" %(assemblies_path, extension)
-	os.system(remove_lot_of_files)
+#	os.system(remove_lot_of_files)
 	extension = "*.nto"
 	remove_lot_of_files = "find %s -type f -name '%s' -exec rm {} \;" %(assemblies_path, extension)
-	os.system(remove_lot_of_files)
+#	os.system(remove_lot_of_files)
 	extension = "*.not"
 	remove_lot_of_files = "find %s -type f -name '%s' -exec rm {} \;" %(assemblies_path, extension)
-	os.system(remove_lot_of_files)
+#	os.system(remove_lot_of_files)
 	extension = "*.ntf"
 	remove_lot_of_files = "find %s -type f -name '%s' -exec rm {} \;" %(assemblies_path, extension)
-	os.system(remove_lot_of_files)
+#	os.system(remove_lot_of_files)
 	return()
 
 def run_exonerate_hits(file_, ref_seq_file):
@@ -348,9 +390,69 @@ def run_exonerate(data_dir):
 	pool = multiprocessing.Pool(processes=args.cpu)
 	pool.starmap(run_exonerate_hits, list_of_list)
 
+def check_coverage(data_dir):
+	blastFiles = glob("*best_blast_scoring*")
+	samples = ["_".join(file.split("_")[:-7]) for file in blastFiles] #there might be _ in sample, :-7 removes consistent suffix
+	allGenes = {} #{geneName:len}
+	referenceRecords = SeqIO.parse(blastFiles[0], "fasta")
+	samplesToRerun = {} #{sample:[genes]} to be returned
+	overallThreshold = 0.70
+	geneThreshold = 0.70
+
+	for record in referenceRecords:
+		geneName = record.id.split("-")[1]
+		geneLength = len(record.seq)
+		allGenes[geneName] = geneLength
+
+	for sample in samples:
+		capturedGenes = {} #{name:len}
+		capturedGeneFiles = glob(os.path.join(data_dir, sample, "sequences", "FAA", "*.FAA"))
+		for file in caturedGeneFiles:
+			with open(file) as faa:
+				name = file.split("/")[-1][:-4]
+				faa.readline()
+				length = len(faa.readline().strip())
+				capturedGenes[name] = length
+
+		coverage = sum(capturedGenes.values()) / sum(allGenes.values())
+		if coverage < overallThreshold:
+			badSamples = list(set(allGenes.keys()) - set(capturedGenes.keys()))
+			for gene, length in capturedGenes.items():
+				if length / allGenes[gene] < geneThreshold:
+					badSamples.append(gene)
+
+			samplesToRerun[sample] = badSamples
+	return samplesToRerun
+
+def run_hybpiper_selectively(data_dir, toRerun, main_script_dir):
+	#toRerun is {sample, [genes]}
+	for sample, genes in toRerun.items():
+		with open(args.target_markers) as inFile, open(os.path.join(data_dir, "{}_filteredTargets.fas".format(sample)), "w") as outFile:
+			for line in inFile:
+				if line.strip().split("-")[1] in genes:
+					outFile.write(line)
+					outFile.write(inFile.readline())
+
+		pairedFiles = glob(os.path.join(data_dir, "{}*trimmed_paired.fastq.gz".format(sample)))
+		if len(pairedFiles) == 2:
+			os.system("parallel -j 2 gunzip {} ::: " + " ".join(pairedFiles))
+			sample_path = os.path.join(data_dir, sample + "_R*.trimmed_paired.fastq")
+		else:
+			singleFile = glob(os.path.join(data_dir, "{}*trimmed.fastq.gz".format(sample)))
+			os.system("gunzip {}".format(singleFile[0])) #There will only be one
+			sample_path = singleFile[0]
+
+		run_Hybpiper =  '{}HybPiper/reads_first.py -b {} -r {}  --prefix {} --cpu {} '.format(main_script_dir, os.path.join(data_dir, sample+"_filteredTargets.fas"), sample_path, os.path.join(data_dir, sample+"_HybPiper"), args.cpu)
+		logging.info("running HybPiper with: " + run_Hybpiper)
+		os.system(run_Hybpiper)
+		clean_command = "{}HybPiper/cleanup.py {}".format(main_script_dir, os.path.join(data_dir, sample+"_HybPiper"))
+		os.system(clean_command)
+
+
+
 def checkTestContinue(user_input):
-  if user_input == "c" or user_input == "C" or user_input == "Continue" or user_input == "continue":
-    return True
+	if user_input == "c" or user_input == "C" or user_input == "Continue" or user_input == "continue":
+		return True
 
 def check_arg():
 	parser = argparse.ArgumentParser(description='UnFATE: the wrapper script that brings YOU from target enrichment sequencing data straight to phylogenetic tree inference! BE CAREFUL: At least one argument between assemblies and target enrichment is mandatory! See the readme file for data structure and additional info.')
@@ -547,7 +649,7 @@ def main():
 				with open(path_to_namelist) as namelistFile:
 					for name in namelistFile:
 						name = name.strip()
-						if len(glob(os.path.join(args.out, "whole_genome_data", name + "R*.gz"))) == 2:
+						if len(glob(os.path.join(args.out, "whole_genome_data", name + "*R*trimmed_paired.fastq.gz"))) == 2:
 							sample_R1_path = os.path.join(args.out, "whole_genome_data", name + "_R1.trimmed_paired.fastq.gz")
 							sample_R2_path = os.path.join(args.out, "whole_genome_data", name + "_R2.trimmed_paired.fastq.gz")
 							spades_out_path = os.path.join(args.out, "whole_genome_data", name + "_spades/")
@@ -568,6 +670,8 @@ def main():
 				logging.info("          PERFORMING ASSEMBLED WGS DATA ANALYSIS WITH Exonerate (Slater & Birney 2005)       ")
 				logging.info("********************************************************************************************************************")
 				run_exonerate(args.whole_genome_data)
+				#toRerun = check_coverage(args.whole_genome_data) #returns {sample:[genes to rerun]}
+				#run_hybpiper_selectively(args.whole_genome_data, toRerun, main_script_dir)
 
 		#create hybpiper output in target_enrichment/
 		if args.target_enrichment_data:
@@ -581,9 +685,9 @@ def main():
 
 			logging.info("Gunzipping paired reads trimmed fastq archives")
 			gunzip_fastq =' parallel -j {} gunzip ::: {}*_paired.fastq.gz'.format(args.cpu, args.target_enrichment_data)
-			os.system(gunzip_fastq)
+			os.system(gunzip_fastq)  # We dont' care about the unpaired reads if paired end are used
 			gunzip_fastq = 'parallel -j {} gunzip ::: {}*trimmed.fastq.gz'.format(args.cpu, args.target_enrichment_data)
-			os.system(gunzip_fastq)
+			os.system(gunzip_fastq)  # This covers single end reads
 
 			logging.info("******************************************************************************************************************************************")
 			logging.info("           EXTRACTING GENES FROM TARGET ENRICHMENT DATA  WITH Hybpiper (Johnson et al. 2016)")
