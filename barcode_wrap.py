@@ -142,19 +142,19 @@ def find_similar_samples(query, taxes):
   aln = AlignIO.read(open(os.path.join(args.out, "fastas", "FcC_supermatrix.fas")), "fasta")
   for record in aln:
     record.seq = record.seq.upper()
-    record.seq = record.seq.replace("W", "N")
-    record.seq = record.seq.replace("S", "N")
-    record.seq = record.seq.replace("M", "N")
-    record.seq = record.seq.replace("K", "N")
-    record.seq = record.seq.replace("R", "N")
-    record.seq = record.seq.replace("Y", "N")
-    record.seq = record.seq.replace("B", "N")
-    record.seq = record.seq.replace("D", "N")
-    record.seq = record.seq.replace("H", "N")
-    record.seq = record.seq.replace("V", "N")
+    #record.seq = record.seq.replace("W", "N")
+    #record.seq = record.seq.replace("S", "N")
+    #record.seq = record.seq.replace("M", "N")
+    #record.seq = record.seq.replace("K", "N")
+    #record.seq = record.seq.replace("R", "N")
+    #record.seq = record.seq.replace("Y", "N")
+    #record.seq = record.seq.replace("B", "N")
+    #record.seq = record.seq.replace("D", "N")
+    #record.seq = record.seq.replace("H", "N")
+    #record.seq = record.seq.replace("V", "N")
 
   #distances will be calculated with a basic 2-parameter model
-  calc = DistanceCalculator("trans", skip_letters=["N", "-"])
+  calc = DistanceCalculator("trans", skip_letters=["N", "-", "W", "S", "M", "K", "R", "Y", "B", "D", "H", "V"])
 
   queryIndex = [record.id for record in aln].index(query)
   sequences = [record.seq for record in aln]

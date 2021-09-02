@@ -77,6 +77,15 @@ def seq_percentage(bait_file_aa_path, alignments_folder_path, plot_heatmap ):
 			#print(protein.id)
 			#print(protein.seq)
 
+	indeces = list(data_frame.index)
+	ref_index = indeces.pop()
+	indeces.sort()
+	indeces.append(ref_index)
+	data_frame = data_frame.reindex(indeces, axis=0)
+	data_frame.fillna(0, inplace=True)
+	data_frame = data_frame.reindex(sorted(data_frame.columns), axis=1)
+
+
 	#normalized data frame
 	ndf = data_frame.copy()
 
@@ -101,7 +110,7 @@ def seq_percentage(bait_file_aa_path, alignments_folder_path, plot_heatmap ):
 	if plot_heatmap:
 		logging.info("Plotting the heatmap...")
 		plt.show()
-	else:	
+	else:
 		logging.info("Exporting the length table as heatmap to 'gene_lengths_heatmap.pdf' in the 'fastas' folder")
 		plt.savefig(alignments_folder_path + 'gene_lengths_heatmap.pdf')"""
 

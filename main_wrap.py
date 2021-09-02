@@ -117,7 +117,7 @@ def select_best_reference_seq(prot_file_path, assemblies_path, cpu):
 				if rec.id in str(top1):
 					SeqIO.write(rec, output_file, 'fasta')				
 			output_file.close()
-#			os.system("rm {}".format(assemblies_path + f))
+			os.system("rm {}".format(assemblies_path + f))
 		else:
 			pass			
 
@@ -127,31 +127,31 @@ def select_best_reference_seq(prot_file_path, assemblies_path, cpu):
 	# find is used in order to pass to the remove command one file at a time, otherwise if there are too many files the rm command throws the error:"-bash: /bin/rm: Argument list too long" 
 	extension = "*_ref.fasta"
 	remove_lot_of_files = "find %s -type f -name '%s' -exec rm {} \;" %(assemblies_path, extension)
-#	os.system(remove_lot_of_files)
+	os.system(remove_lot_of_files)
 	#extension = "*_blastout.tsv"
 	#remove_lot_of_files = "find %s -type f -name '%s' -exec rm {} \;" %(assemblies_path, extension)
 	#os.system(remove_lot_of_files)
 	extension = "*.nin"
 	remove_lot_of_files = "find %s -type f -name '%s' -exec rm {} \;" %(assemblies_path, extension)
-#	os.system(remove_lot_of_files)
+	os.system(remove_lot_of_files)
 	extension = "*.nsq"
 	remove_lot_of_files = "find %s -type f -name '%s' -exec rm {} \;" %(assemblies_path, extension)
-#	os.system(remove_lot_of_files)
+	os.system(remove_lot_of_files)
 	extension = "*.nhr"
 	remove_lot_of_files = "find %s -type f -name '%s' -exec rm {} \;" %(assemblies_path, extension)
-#	os.system(remove_lot_of_files)
+	os.system(remove_lot_of_files)
 	extension = "*.ndb"
 	remove_lot_of_files = "find %s -type f -name '%s' -exec rm {} \;" %(assemblies_path, extension)
-#	os.system(remove_lot_of_files)
+	os.system(remove_lot_of_files)
 	extension = "*.nto"
 	remove_lot_of_files = "find %s -type f -name '%s' -exec rm {} \;" %(assemblies_path, extension)
-#	os.system(remove_lot_of_files)
+	os.system(remove_lot_of_files)
 	extension = "*.not"
 	remove_lot_of_files = "find %s -type f -name '%s' -exec rm {} \;" %(assemblies_path, extension)
-#	os.system(remove_lot_of_files)
+	os.system(remove_lot_of_files)
 	extension = "*.ntf"
 	remove_lot_of_files = "find %s -type f -name '%s' -exec rm {} \;" %(assemblies_path, extension)
-#	os.system(remove_lot_of_files)
+	os.system(remove_lot_of_files)
 	return()
 
 def run_exonerate_hits(file_, ref_seq_file):
