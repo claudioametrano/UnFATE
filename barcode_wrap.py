@@ -8,7 +8,7 @@
 #trim fastqs (trimmomatic)
 #HybPiper
 #mafft adds captured sequences to pre-aligned database sequences for captured loci
-#gblocks filters previous alignment
+#gblocks filters previous alignment (Do we actually want to gblock here?)
 #FASconCAT-G concatenates filtered alignments
 #2-parameter substitution pairwise scores are calculated between query and all other samples
 #20 closest samples (with a maximum of 4 per species) are selected from the database

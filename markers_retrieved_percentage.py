@@ -16,7 +16,7 @@ import logging
 def seq_percentage(bait_file_aa_path, alignments_folder_path, plot_heatmap ):
 	""" Takes the protein fasta (the reference sequences) and the alignment files.
 		 For each marker an average length values for the reference sequences is produced.
-		 The reference length is compared to the sequences retrieved for each sample.   
+		 The reference length is compared to the sequences retrieved for each sample.
 	"""
 	logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.INFO)
 	gene_names = []
@@ -43,21 +43,21 @@ def seq_percentage(bait_file_aa_path, alignments_folder_path, plot_heatmap ):
 	avg_ref_len_dict = dict(zip_iterator)
 	logging.info("Dictionary of genes and their reference sequences average length:")
 	logging.info(avg_ref_len_dict)
-	
+
 	# Makes a list of the samples: append all the header to a list that eliminate redundancy doing a set (not efficient but works)
 	sample_list = []
 	for f in os.listdir(alignments_folder_path):
 		if f.endswith("_protein_merged.fasta"):
 			for protein in SeqIO.parse(alignments_folder_path + f ,"fasta"):
 				sample_list.append(protein.id)
-	sample_list = set(sample_list)				
+	sample_list = set(sample_list)
 	#print(sample_list)
-	
+
 	## Makes a table that associate samples (Genome Accessions) to gene length (pandas dataframe??)
 	# a dataframe is created: columns are the gene names, rows (index) are the samples
 	data_frame = pandas.DataFrame(columns = unique_names, index = sample_list )
 	#print(data_frame)
-	
+
 	# iterate over the alignments
 	for f in os.listdir(alignments_folder_path):
 		if f.endswith("_protein_merged.fasta"):
@@ -84,7 +84,6 @@ def seq_percentage(bait_file_aa_path, alignments_folder_path, plot_heatmap ):
 	data_frame = data_frame.reindex(indeces, axis=0)
 	data_frame.fillna(0, inplace=True)
 	data_frame = data_frame.reindex(sorted(data_frame.columns), axis=1)
-
 
 	#normalized data frame
 	ndf = data_frame.copy()
@@ -122,8 +121,8 @@ def seq_percentage(bait_file_aa_path, alignments_folder_path, plot_heatmap ):
 	else:
 		logging.info("Exporting the normalized length table as heatmap to 'gene_lengths_normalized_heatmap.pdf' in the 'fastas' folder")
 		plt.savefig(alignments_folder_path + 'gene_lengths_normalized_heatmap.pdf')
-	
-		
-# starts the function					
+
+
+# starts the function
 if __name__ == '__main__':
-	seq_percentage()	
+	seq_percentage()

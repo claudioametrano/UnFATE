@@ -154,18 +154,6 @@ def select_best_reference_seq(prot_file_path, assemblies_path, cpu):
 	os.system(remove_lot_of_files)
 	return()
 
-def run_exonerate_hits(file_, ref_seq_file):
-	logging.info("Extracting genes from: " +file_)
-	fline=open(file_).readline()
-	regex_spades_header =re.search("^>NODE_[0-9]+_length_[0-9]+_cov_[0-9]+",fline)
-	#if spades assembly, run exonerate_hits from HybPiper
-	if regex_spades_header != None:
-		os.system("python3 {}exonerate_hits.py {} --prefix {} {} ".format(main_script_dir, ref_seq_file, os.path.splitext(file_)[0], file_))
-	# else use the script version not using coverage information
-	else:
-		os.system("python3 {}exonerate_alt.py {} --prefix {} {} ".format(main_script_dir, ref_seq_file, os.path.splitext(file_)[0], file_))
-	return(file_)
-
 def get_fastas_exonerate(path_to_data, isAssemblies):
 	for moleculeType in ["FNA", "FAA"]:
 		if isAssemblies:
@@ -349,6 +337,30 @@ def run_hybpiper(main_script_dir, data_dir, namelist):
 			os.system(clean_command)
 	os.chdir(main_script_dir)
 
+def run_exonerate_hits(file_, ref_seq_file, memory):
+	logging.info("Extracting genes from: " +file_)
+	fline=open(file_).readline()
+	regex_spades_header =re.search("^>NODE_[0-9]+_length_[0-9]+_cov_[0-9]+",fline)
+#	if args.exonerate_mem == 256:
+#		#if spades assembly, run exonerate_hits from HybPiper
+#		if regex_spades_header != None:
+#			os.system("python3 {}exonerate_hits.py {} --prefix {} {} ".format(main_script_dir, ref_seq_file, os.path.splitext(file_)[0], file_))
+#		# else use the script version not using coverage information
+#		else:
+#			os.system("python3 {}exonerate_alt.py {} --prefix {} {} ".format(main_script_dir, ref_seq_file, os.path.splitext(file_)[0], file_))
+#	else:
+	#memory = int(args.exonerate_mem / args.cpu)
+	print("EXONERATE MEMORY PER SAMPLE IS: {}GB".format(memory))
+	#if spades assembly, run exonerate_hits from HybPiper
+	if regex_spades_header != None:
+		print("python3 {}exonerate_hits_dev.py -m {} {} --prefix {} {} ".format(main_script_dir, memory, ref_seq_file, os.path.splitext(file_)[0], file_))
+		os.system("python3 {}exonerate_hits_dev.py -m {} {} --prefix {} {} ".format(main_script_dir, memory, ref_seq_file, os.path.splitext(file_)[0], file_))
+	# else use the script version not using coverage information
+	else:
+		print("python3 {}exonerate_alt_dev.py -m {} {} --prefix {} {} ".format(main_script_dir, memory, ref_seq_file, os.path.splitext(file_)[0], file_))
+		os.system("python3 {}exonerate_alt_dev.py -m {} {} --prefix {} {} ".format(main_script_dir, memory, ref_seq_file, os.path.splitext(file_)[0], file_))
+
+
 def run_exonerate(data_dir):
 	path_to_assemblies = data_dir
 	logging.info("... it can be time consuming, it depends on assembly dimension")
@@ -361,16 +373,24 @@ def run_exonerate(data_dir):
 
 	select_best_reference_seq(args.target_markers, path_to_assemblies, args.cpu)
 
+	assemblies_count = 0
 	pezizo_list = []        
 	for root, dirs, files in os.walk(path_to_assemblies, topdown=True):
 	        for name in files:
 	                if name.endswith(".fna"): #or name.endswith(".fasta"):
 	                        pezizo_list.append(root + name)
+							assemblies_count += 1
 	#print("Samples are: ", pezizo_list)
 	ref_list = []
 	for k in os.listdir(path_to_assemblies):
 	        if k.endswith("_best_blast_scoring_reference_Hybpiper_format_aa.fas"):
 	                ref_list.append(path_to_assemblies + k)
+
+	memory = 0
+	if assemblies_count < int(args.cpu):
+		memory = int(args.exonerate_mem / assemblies_count)
+	else:
+		memory = int(args.exonerate_mem / int(args.cpu))
 	#print(ref_list)
 	list_of_list = []
 	for z in pezizo_list:
@@ -383,6 +403,7 @@ def run_exonerate(data_dir):
 	                if basename == regex_ref.group(1):
 	                        empty_list.append(z)
 	                        empty_list.append(v)
+							empty_list.append(memory)
 	                        list_of_list.append(empty_list)
 	#print(list_of_list)
 	logging.info("Running exonerate using exonerate_hits.py script from Hybpiper..")        
@@ -456,7 +477,7 @@ def checkTestContinue(user_input):
 
 def check_arg():
 	parser = argparse.ArgumentParser(description='UnFATE: the wrapper script that brings YOU from target enrichment sequencing data straight to phylogenetic tree inference! BE CAREFUL: At least one argument between assemblies and target enrichment is mandatory! See the readme file for data structure and additional info.')
-	parser.add_argument('-c', '--cpu', default= '4',
+	parser.add_argument('-c', '--cpu', default= '4', type=int,
 						help='CPU number used by Hybpiper or parallel run of Exonerate, MACSE, RAxML etc.'
 						)
 	parser.add_argument('-b', '--target_markers', default= 'Target_markers_rep_seq_aa.fas',
@@ -489,6 +510,10 @@ def check_arg():
 	parser.add_argument('-l', '--low_memory', action= 'store_true',
 						help='Turns off automatic spades assembly of target enrichment data before running HybPiper. Probably not required unless running whole genome data on a low memory computer.'
 						)
+	parser.add_argument('-m', '--exonerate_mem',
+						help='Limits the memory usage of exonerate when running on an assembly (-a or -w without -l). This does not strictly cap memory usage. More information in the README.',
+						default=256,type=int
+						)
 	#parser.add_argument('-p', '--phypartspiecharts', action='store_true',
 	#					help='Runs phyparts on single locus gene trees and creates a plot describing the support for each node. Only uses AA data.'
 	#					)
@@ -503,8 +528,10 @@ def main():
 
 	#print(args)
 	global main_script_dir
-	main_script_dir = os.path.realpath(__file__)
-	main_script_dir = main_script_dir.rstrip("main_wrap.py")
+#	main_script_dir = os.path.realpath(__file__)
+#	main_script_dir = main_script_dir.rstrip("main_wrap.py")
+
+	main_script_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "")
 	print(main_script_dir)
 	#print(args.target_enrichment_data)
 	#print(args.assemblies)
