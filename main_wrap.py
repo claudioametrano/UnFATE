@@ -9,7 +9,8 @@ import multiprocessing
 import subprocess
 import logging
 from os import path
-from Bio import SeqIO
+from Bio import SeqIO, AlignIO
+from Bio.Phylo.TreeConstruction import DistanceCalculator
 from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
 import csv
@@ -28,7 +29,7 @@ def blast_individual_sample(sample, genes, assemblies_path):
 		tblastn_command = "tblastn -query {} -db {} -out {} -num_threads 1 -outfmt 6".format(ref_path, os.path.join(assemblies_path, sample), blastout_path)
 		os.system(tblastn_command)
 
-		#blast_columns isn't needed, but it's nice for reference.
+		#blast_columns isn't needed anymore, but it's nice for reference.
 		#blast_columns = ['qaccver', 'saccver', 'pident', 'length', 'mismatch', 'gapopen', 'qstart', 'qend', 'sstart', 'send', 'evalue', 'bitscore']
 
 		with open(blastout_path) as blastFile, open(sample_best_path, "a+") as bestFile, open(ref_path) as refFile:
@@ -39,7 +40,7 @@ def blast_individual_sample(sample, genes, assemblies_path):
 				if float(line[-1]) > bestScore:
 					bestScore = float(line[-1]) #bitscore
 					bestScoring = line[0] #qaccver
-			regex = re.search(r"(.+?)_ref\.fasta___(.+?)_blastout.tsv", blastout_path)
+			regex = re.search(r"(.+?)_ref\.fasta___(.+?)_blastout.tsv", blastout_path.split("/")[-1])
 			logging.info("For assembly:{} and gene:{}, the reference sequence will be: {}".format(regex.group(2), regex.group(1), bestScoring))
 			for record in SeqIO.parse(refFile, "fasta"):
 				if record.id in bestScoring:
@@ -67,13 +68,7 @@ def select_best_reference_seq(prot_file_path, assemblies_path, cpu):
 	for gene in ref_gene_list:
 		with open(assemblies_path + gene+ "_ref.fasta", "a+") as gene_file:
 			for seq in SeqIO.parse(prot_file_path,"fasta"):
-				#regex_id = re.search("^GCA_[0-9]+\.[0-9]-([0-9]+at4890)", seq.id)
 				geneName = seq.id.strip().split("-")[1]
-				#if regex_id != None:
-					#if regex_id.group(1) == gene:
-					#	SeqIO.write(seq, gene_file, "fasta")
-					#else:
-					#	pass	
 				if geneName == gene:
 					SeqIO.write(seq, gene_file, "fasta")
 				else:
@@ -84,44 +79,6 @@ def select_best_reference_seq(prot_file_path, assemblies_path, cpu):
 
 	pool = multiprocessing.Pool(processes=int(args.cpu))
 	pool.starmap(blast_individual_sample, list_of_lists)
-
-	"""
-	# build BLAST databases for each alignment and then run every gene reference file against it usung tBLASTn									
-	for f in os.listdir(assemblies_path):
-		if f.endswith(".fna"): #can't include.fastas right now because alignment fastas have been moved into assemblies/
-			# Build a BLAST database for each of the assemblies
-			# As assembly names ends in various characters os.pat.splitext is safer than .rstrip() that truncates some of the sample names
-			make_db = "makeblastdb -in {} -dbtype nucl -out {}".format(assemblies_path + f, assemblies_path + os.path.splitext(f)[0])
-			os.system(make_db)
-			parallel_tblastn = 'find %s -type f -name "*_ref.fasta" | parallel -j %s tblastn -query {} -db %s -out {}%s -num_threads 1 -outfmt 6'%(assemblies_path, cpu, assemblies_path + os.path.splitext(f)[0], "___" + os.path.splitext(f)[0] + "_blastout.tsv")
-			os.system(parallel_tblastn)
-	# from the BLAST output file in .tsv extract the reference sequence with the best bitscore (better than e-value as it does not depend on database sequence number, easier than filter by multiple things e.g. query length percentid e-value etc.)
-	for f in os.listdir(assemblies_path):
-		# check if is one of the blast file output and if not empty
-		if f.endswith("_blastout.tsv") and os.stat(assemblies_path + f).st_size != 0:
-			#create dataframe
-			df = pandas.read_table(assemblies_path + f , header=None)
-			# assign columns names
-			blast_columns = ['qaccver', 'saccver', 'pident', 'length', 'mismatch', 'gapopen', 'qstart', 'qend', 'sstart', 'send', 'evalue', 'bitscore']
-			df.columns = blast_columns
-			# sort by bitscore (descending)
-			df.sort_values(by='bitscore', ascending=False, inplace=True)
-			# only retain the best hit
-			top1 = df['qaccver'][0:1]
-			regex = re.search(r"(.+?)_ref\.fasta___(.+?)_blastout.tsv",f)
-			logging.info("For the assembly %s and gene %s reference sequence will be: "%(regex.group(2), regex.group(1)))
-			logging.info(top1)
-			# Write the best hit for every gene in an output file, taking the sequence from the original protein file
-			output_file = open(assemblies_path + regex.group(2) + "_best_blast_scoring_reference_Hybpiper_format_aa.fas","a+")
-			for rec in SeqIO.parse(prot_file_path, 'fasta'):
-				if rec.id in str(top1):
-					SeqIO.write(rec, output_file, 'fasta')				
-			output_file.close()
-			os.system("rm {}".format(assemblies_path + f))
-		else:
-			pass			
-
-	"""
 
 	# remove all the garbage needed to blast
 	# find is used in order to pass to the remove command one file at a time, otherwise if there are too many files the rm command throws the error:"-bash: /bin/rm: Argument list too long" 
@@ -154,6 +111,20 @@ def select_best_reference_seq(prot_file_path, assemblies_path, cpu):
 	os.system(remove_lot_of_files)
 	return()
 
+#add function to get sample names that mirrors get_fastas_exonerate()
+def get_names(path_to_data, isAssemblies):
+	if isAssemblies:
+		search_location = os.path.join(path_to_data, "*", "sequences")
+	else:
+		search_location = os.path.join(path_to_data, "*", "exonerate_genelist.txt")
+	found_samples = set()
+	for result in glob(search_location):
+		print(result)
+		found_samples.add(result.split("/")[-2])
+	print(found_samples)
+	return list(found_samples)
+
+
 def get_fastas_exonerate(path_to_data, isAssemblies):
 	for moleculeType in ["FNA", "FAA"]:
 		if isAssemblies:
@@ -169,7 +140,50 @@ def get_fastas_exonerate(path_to_data, isAssemblies):
 				with open(filename) as inFile, open(os.path.join(args.out, "fastas", "Alignment_" + geneName + "_protein_merged.fasta"), 'a') as outFile:
 					outFile.write(inFile.read())
 
-def run_gblocks(DNAextension, AAextension, path, path_to_gblocks): 
+def select_scores(scores, user_samples):
+	num_db_samples_to_add = 10 #per "cluster"
+	non_user_count = 0
+	close_samples = []
+	for pair in scores: #(sample, score)
+		if pair[0] in user_samples:
+			close_samples.append(pair[0])
+		else:
+			non_user_count += 1
+			close_samples.append(pair[0])
+		if non_user_count > num_db_samples_to_add:
+			return close_samples
+
+def get_score(seq1, seq2, index, calc, total):
+	score = calc._pairwise(seq1, seq2)
+	if index % 100 == 0:
+		print("Processed {} of {}".format(index, total))
+	return((index, score))
+
+def find_similar_samples(query, user_samples, data_dir, cpus):
+	logging.info("Finding similar samples to {}".format(query))
+	logging.info('Progress shown by "Processed <progress> of <number of sequences>", may not show progress linearly, especially when being logged')
+	aln = AlignIO.read(open(os.path.join(data_dir, "FcC_supermatrix.fas")), "fasta")
+	for record in aln:
+		record.seq = record.seq.upper()
+
+	#distances will be calculated with a basic 2-parameter model
+	calc = DistanceCalculator("trans", skip_letters=["N", "-", "W", "S", "M", "K", "R", "Y", "B", "D", "H", "V"])
+
+	queryIndex = [record.id for record in aln].index(query)
+	sequences = [record.seq for record in aln]
+	ids = [record.id for record in aln]
+	querySeq = sequences[queryIndex]
+
+	scores = [] #list of tuples to alllow sorting
+
+	with multiprocessing.Pool(cpus) as p:
+		scores=p.starmap(get_score, [(querySeq, seq, i, calc, len(sequences)) for i,seq in enumerate(sequences)])
+	scores.sort(key = lambda x: x[1])
+
+	idScores = [(ids[elements[0]], elements[1]) for elements in scores]
+	return select_scores(idScores, user_samples)
+
+def run_gblocks(DNAextension, AAextension, path, path_to_gblocks):
 	"""USE: Launch Gblocks getting the relaxed setting from the alignments characteristics (defaults are relaxed setting from Talavera & Castresana 2007)"""  
 	for gene_file in os.listdir(path):
 		if gene_file.endswith(DNAextension):
@@ -181,7 +195,7 @@ def run_gblocks(DNAextension, AAextension, path, path_to_gblocks):
 			count = 0
 			my_file = open(path +"/"+ gene_file, "r")
 			my_file_content = my_file.readlines()
-			for line in my_file_content:	
+			for line in my_file_content:
 				if line.startswith(">"):
 					count = count + 1
 			print("The alignment has: ",count," sequences")
@@ -253,8 +267,8 @@ def set_up_directories():
 			args.target_enrichment_data = os.path.abspath(args.target_enrichment_data) + "/"
 
 	if args.whole_genome_data:
-                if not args.whole_genome_data.startswith("/") or args.whole_genome_data.startswith("~"):
-                        args.whole_genome_data = os.path.abspath(args.whole_genome_data) + "/"
+		if not args.whole_genome_data.startswith("/") or args.whole_genome_data.startswith("~"):
+			args.whole_genome_data = os.path.abspath(args.whole_genome_data) + "/"
 
 	if args.target_markers:
 		if not args.target_markers.startswith("/") or args.target_markers.startswith("~"):
@@ -275,7 +289,7 @@ def set_up_directories():
 			if args.target_enrichment_data:
 				os.mkdir(os.path.join(args.out, "target_enrichment_data"))
 			if args.whole_genome_data:
-                                os.mkdir(os.path.join(args.out, "whole_genome_data"))
+				os.mkdir(os.path.join(args.out, "whole_genome_data"))
 		else:
 			if args.target_enrichment_data:
 				if not os.path.isdir(os.path.join(args.out, "target_enrichment_data")):
@@ -284,8 +298,8 @@ def set_up_directories():
 				if not os.path.isdir(os.path.join(args.out, "assemblies")):
 					os.mkdir(os.path.join(args.out, "assemblies"))
 			if args.whole_genome_data:
-                                if not os.path.isdir(os.path.join(args.out, "whole_genome_data")):
-                                        os.mkdir(os.path.join(args.out, "whole_genome_data"))
+				if not os.path.isdir(os.path.join(args.out, "whole_genome_data")):
+					os.mkdir(os.path.join(args.out, "whole_genome_data"))
 
 		if args.target_enrichment_data:
 			for file in os.listdir(args.target_enrichment_data):
@@ -306,13 +320,13 @@ def set_up_directories():
 			args.assemblies = os.path.join(args.out, "assemblies", "")
 
 		if args.whole_genome_data:
-                        for file in os.listdir(args.whole_genome_data):
-                                if os.path.exists(os.path.join(args.out, "whole_genome_data", file)):
-                                        print("Path already exists")
-                                        continue #symlink already exists
-                                if file.lower().endswith(".fastq") or file.lower().endswith(".fastq.gz"):
-                                        os.symlink(os.path.join(args.whole_genome_data, file), os.path.join(args.out, "whole_genome_data", file))
-                        args.whole_genome_data = os.path.join(args.out, "whole_genome_data", "") #the empty one causes a trailing /
+			for file in os.listdir(args.whole_genome_data):
+				if os.path.exists(os.path.join(args.out, "whole_genome_data", file)):
+					print("Path already exists")
+					continue #symlink already exists
+				if file.lower().endswith(".fastq") or file.lower().endswith(".fastq.gz"):
+					os.symlink(os.path.join(args.whole_genome_data, file), os.path.join(args.out, "whole_genome_data", file))
+			args.whole_genome_data = os.path.join(args.out, "whole_genome_data", "") #the empty one causes a trailing /
 
 def trim_and_get_namelist(main_script_dir, data_dir):
 	trimming_cmd = "python3 {}/trimmer.py -f {} -c {}".format(main_script_dir, data_dir, args.cpu)
@@ -337,28 +351,22 @@ def run_hybpiper(main_script_dir, data_dir, namelist):
 			os.system(clean_command)
 	os.chdir(main_script_dir)
 
-def run_exonerate_hits(file_, ref_seq_file, memory):
+def run_exonerate_hits(file_, ref_seq_file, memory, threshold):
 	logging.info("Extracting genes from: " +file_)
 	fline=open(file_).readline()
 	regex_spades_header =re.search("^>NODE_[0-9]+_length_[0-9]+_cov_[0-9]+",fline)
-#	if args.exonerate_mem == 256:
-#		#if spades assembly, run exonerate_hits from HybPiper
-#		if regex_spades_header != None:
-#			os.system("python3 {}exonerate_hits.py {} --prefix {} {} ".format(main_script_dir, ref_seq_file, os.path.splitext(file_)[0], file_))
-#		# else use the script version not using coverage information
-#		else:
-#			os.system("python3 {}exonerate_alt.py {} --prefix {} {} ".format(main_script_dir, ref_seq_file, os.path.splitext(file_)[0], file_))
-#	else:
-	#memory = int(args.exonerate_mem / args.cpu)
+
 	print("EXONERATE MEMORY PER SAMPLE IS: {}GB".format(memory))
 	#if spades assembly, run exonerate_hits from HybPiper
 	if regex_spades_header != None:
-		print("python3 {}exonerate_hits_dev.py -m {} {} --prefix {} {} ".format(main_script_dir, memory, ref_seq_file, os.path.splitext(file_)[0], file_))
-		os.system("python3 {}exonerate_hits_dev.py -m {} {} --prefix {} {} ".format(main_script_dir, memory, ref_seq_file, os.path.splitext(file_)[0], file_))
+		exonerate_command = "python3 {}exonerate_hits.py -m {} -t {} {} --prefix {} {} ".format(main_script_dir, memory, threshold, ref_seq_file, os.path.splitext(file_)[0], file_)
+		print(exonerate_command)
+		os.system(exonerate_command)
 	# else use the script version not using coverage information
 	else:
-		print("python3 {}exonerate_alt_dev.py -m {} {} --prefix {} {} ".format(main_script_dir, memory, ref_seq_file, os.path.splitext(file_)[0], file_))
-		os.system("python3 {}exonerate_alt_dev.py -m {} {} --prefix {} {} ".format(main_script_dir, memory, ref_seq_file, os.path.splitext(file_)[0], file_))
+		exonerate_command = "python3 {}exonerate_alt.py -m {} -t {} {} --prefix {} {} ".format(main_script_dir, memory, threshold, ref_seq_file, os.path.splitext(file_)[0], file_)
+		print(exonerate_command)
+		os.system(exonerate_command)
 
 
 def run_exonerate(data_dir):
@@ -374,17 +382,17 @@ def run_exonerate(data_dir):
 	select_best_reference_seq(args.target_markers, path_to_assemblies, args.cpu)
 
 	assemblies_count = 0
-	pezizo_list = []        
+	pezizo_list = []
 	for root, dirs, files in os.walk(path_to_assemblies, topdown=True):
-	        for name in files:
-	                if name.endswith(".fna"): #or name.endswith(".fasta"):
-	                        pezizo_list.append(root + name)
-							assemblies_count += 1
+		for name in files:
+			if name.endswith(".fna"): #or name.endswith(".fasta"):
+				pezizo_list.append(root + name)
+				assemblies_count += 1
 	#print("Samples are: ", pezizo_list)
 	ref_list = []
 	for k in os.listdir(path_to_assemblies):
-	        if k.endswith("_best_blast_scoring_reference_Hybpiper_format_aa.fas"):
-	                ref_list.append(path_to_assemblies + k)
+		if k.endswith("_best_blast_scoring_reference_Hybpiper_format_aa.fas"):
+			ref_list.append(path_to_assemblies + k)
 
 	memory = 0
 	if assemblies_count < int(args.cpu):
@@ -394,19 +402,20 @@ def run_exonerate(data_dir):
 	#print(ref_list)
 	list_of_list = []
 	for z in pezizo_list:
-	        #regex_fna = re.search("(.+?)\.fna", z)
-	        basename = ".".join(z.split(".")[:-1])
-	        empty_list = []
-	        for v in ref_list:
-	                regex_ref = re.search("(.+?)_best_blast_scoring_reference_Hybpiper_format_aa\.fas", v)
-	                #if regex_fna.group(1) == regex_ref.group(1):
-	                if basename == regex_ref.group(1):
-	                        empty_list.append(z)
-	                        empty_list.append(v)
-							empty_list.append(memory)
-	                        list_of_list.append(empty_list)
+		#regex_fna = re.search("(.+?)\.fna", z)
+		basename = ".".join(z.split(".")[:-1])
+		empty_list = []
+		for v in ref_list:
+			regex_ref = re.search("(.+?)_best_blast_scoring_reference_Hybpiper_format_aa\.fas", v)
+			#if regex_fna.group(1) == regex_ref.group(1):
+			if basename == regex_ref.group(1):
+				empty_list.append(z)
+				empty_list.append(v)
+				empty_list.append(memory)
+				empty_list.append(int(args.threshold))
+				list_of_list.append(empty_list)
 	#print(list_of_list)
-	logging.info("Running exonerate using exonerate_hits.py script from Hybpiper..")        
+	logging.info("Running exonerate using exonerate_hits.py script from Hybpiper..")
 	args.cpu = int(args.cpu)
 	pool = multiprocessing.Pool(processes=args.cpu)
 	pool.starmap(run_exonerate_hits, list_of_list)
@@ -476,60 +485,64 @@ def checkTestContinue(user_input):
 		return True
 
 def check_arg():
-	parser = argparse.ArgumentParser(description='UnFATE: the wrapper script that brings YOU from target enrichment sequencing data straight to phylogenetic tree inference! BE CAREFUL: At least one argument between assemblies and target enrichment is mandatory! See the readme file for data structure and additional info.')
-	parser.add_argument('-c', '--cpu', default= '4', type=int,
+	parser = argparse.ArgumentParser(description='UnFATE: the wrapper script that brings YOU from target enrichment sequencing data straight to phylogenetic tree inference! See the readme file for data structure and additional info.')
+	mandatory_args = parser.add_argument_group("Mandatory or Suggested", "Arguments which are either required for the proper function of main_wrap.py, or should be used.")
+	mandatory_args.add_argument('-c', '--cpu', default= '4', type=int,
 						help='CPU number used by Hybpiper or parallel run of Exonerate, MACSE, RAxML etc.'
 						)
-	parser.add_argument('-b', '--target_markers', default= 'Target_markers_rep_seq_aa.fas',
-						help=' Path to fasta files containg all the sequences used to design the bait set, IT MUST BE A PROTEIN FASTA, USE  AN ABSOLUTE PATH!'
-						)
-	parser.add_argument('-t', '--target_enrichment_data', default= '',
-						help='Path to target enriched data. Files must end with "R1.fastq.gz", "R2.fastq.gz" or "SE.fastq.gz". Each sample can either consist of paired end reads or single end reads.',
-						)
-	parser.add_argument('-w', '--whole_genome_data', default= '',
-						help='Input path of de novo whole genome sequence data.'
-						)
-	parser.add_argument('-a', '--assemblies', default= '',
-						help='Path to assemblies. Files must end with ".fna.gz" or ".fna"',
-						)
-	parser.add_argument('-f', '--first_use', action= 'store_true',
-						help='Modifies some path in MACSE pipeline folder, use this argument only if is the first time you run the pipeline, then do not move the UnFATE folder.',
-						)
-	parser.add_argument('-g', '--gblocks_relaxed', action= 'store_true',
-						help='Applies Gblocks with relaxed parameters (Talavera & Castresana, 2007)',
-						)
-	parser.add_argument('-n', '--ncbi_assemblies', nargs = '+',
-	#						help='Extracts the requested pre-mined NCBI assemblies genes from the database, Can take a list of taxononomic ranks (e.g. Morchella Tuber Fuffaria)'
-						)
-	parser.add_argument('-o', '--out', required=True,
+	mandatory_args.add_argument('-o', '--out', required=True,
 						help='The directory where output will be placed upon completion. MANDATORY ARGUMENT!'
 						)
-	parser.add_argument('-x', '--test', action= 'store_true',
+	mandatory_args.add_argument('-b', '--target_markers', default= 'Target_markers_rep_seq_aa.fas',
+						help=' Path to fasta files containing all the sequences used to design the bait set, IT MUST BE A PROTEIN FASTA, USE  AN ABSOLUTE PATH!'
+						)
+	data_args = parser.add_argument_group("Data related", "Arguments relating to input data, at least one is required.")
+
+	data_args.add_argument('-t', '--target_enrichment_data', default= '',
+						help='Path to target enriched data. Files must end with "R1.fastq.gz", "R2.fastq.gz" or "SE.fastq.gz". Each sample can either consist of paired end reads or single end reads.',
+						)
+	data_args.add_argument('-w', '--whole_genome_data', default= '',
+						help='Input path of de novo whole genome sequence data.'
+						)
+	data_args.add_argument('-a', '--assemblies', default= '',
+						help='Path to assemblies. Files must end with ".fna.gz" or ".fna"',
+						)
+	optional_args = parser.add_argument_group("Optional", "Arguments which might be useful depending on your circumstances.")
+	optional_args.add_argument('-f', '--first_use', action= 'store_true',
+						help='Modifies some paths in MACSE pipeline folder, use this argument only if is the first time you run the pipeline, then do not move the UnFATE folder.',
+						)
+	optional_args.add_argument('-g', '--gblocks_relaxed', action= 'store_true',
+						help='Applies Gblocks with relaxed parameters (Talavera & Castresana, 2007)',
+						)
+	optional_args.add_argument('-n', '--ncbi_assemblies', nargs = '+',
+						help='Extracts the requested pre-mined NCBI assemblies genes from the database, takes a list of taxonomic ranks (e.g. Morchella Tuber Fuffaria). Include AUTO to have main_wrap choose which samples to add (increases run time much more than specifying a group with few samples). More info on AUTO can be found in the README.'
+						)
+	optional_args.add_argument('-x', '--test', action= 'store_true',
 						help='Allows the user to exit early. Each step needs to be started by the user explicitly.'
 						)
-	parser.add_argument('-l', '--low_memory', action= 'store_true',
-						help='Turns off automatic spades assembly of target enrichment data before running HybPiper. Probably not required unless running whole genome data on a low memory computer.'
+	optional_args.add_argument('-l', '--low_memory', action= 'store_true',
+						help='Turns off SPAdes assembling of whole genome data before extracting sequences and uses HybPiper instead. Probably not required except on a desktop/laptop.'
 						)
-	parser.add_argument('-m', '--exonerate_mem',
+	optional_args.add_argument('-y', '--targ_hybpiper', action='store_true',
+						help='Turns off metaSPAdes assembling of target enrichment data before extracting sequences and uses HybPiper instead. Not particularly recommended, as the metaSPAdes and exonerate_hits path has led to better results in our testing.'
+						)
+	optional_args.add_argument('-m', '--exonerate_mem',
 						help='Limits the memory usage of exonerate when running on an assembly (-a or -w without -l). This does not strictly cap memory usage. More information in the README.',
 						default=256,type=int
 						)
-	#parser.add_argument('-p', '--phypartspiecharts', action='store_true',
-	#					help='Runs phyparts on single locus gene trees and creates a plot describing the support for each node. Only uses AA data.'
-	#					)
-	#parser.add_argument('--nargs', nargs='+')
+	optional_args.add_argument('-e', '--threshold', default=55, type=int,
+						help='Threshold for percent identity between contigs and proteins in exonerate_hits. default=55%%'
+						)
 
 	return parser.parse_args()
 
 args = check_arg()
 def main():
-	print("Arguments are: ", args)
+	logging.info("Arguments are: {}".format(args))
 	testPrompt = "Finished {}, next step is {}: (C)ontinue or (Q)uit?"
 
 	#print(args)
 	global main_script_dir
-#	main_script_dir = os.path.realpath(__file__)
-#	main_script_dir = main_script_dir.rstrip("main_wrap.py")
 
 	main_script_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "")
 	print(main_script_dir)
@@ -620,9 +633,10 @@ def main():
 			open(fastas_directory + fasta_file.format(gene, "protein"), "w").close()
 			open(fastas_directory + fasta_file.format(gene, "nucleotide"), "w").close()
 
-
+		ncbi_accessions = set()
+		#we might want to change this to store accessions, instead of writing to a file
 		if args.ncbi_assemblies:
-			logging.info("Obtaining target genes from pre-extracted assembly database ")
+			logging.info("Finding accessions for samples with specified taxonomy from database ")
 			path_to_premined = main_script_dir + "combined_pre_mined_assemblies.tar.xz"
 
 			if not os.path.isdir(main_script_dir + "combined_pre_mined_assemblies/"):
@@ -632,18 +646,17 @@ def main():
 			path_to_premined = main_script_dir + "combined_pre_mined_assemblies/"
 			path_to_taxonomy = main_script_dir + "Accession_plus_taxonomy_Pezizomycotina.txt"
 			for item in args.ncbi_assemblies:
+				if item == "AUTO":
+					continue
 				# using the commas that are present in the csv file containing the taxonomy prevents to include ranks with similar name to the one requested in the command line (e.g. Fuffaria and Fuffarialongis)
 				item1 = "," + item + ","
-				with open(path_to_taxonomy.replace('Accession_plus_taxonomy_Pezizomycotina.txt','Accession_plus_taxonomy_reduced.txt'), 'a') as requested_rank:
-					with open(path_to_taxonomy, 'r') as taxonomy:
-						for line in taxonomy:
-							if item1 in line:
-								requested_rank.write(line)
-								
-		"""if argument is whole genome input data:
-				# SAME AS TARGET ENRICHMENT DATA OR MAYBE ASSEMBLY WITH SPADES THEN EXONERATE?? 
-				TEST THIS!!"""	
-				
+				with open(path_to_taxonomy, 'r') as taxonomy:
+					for line in taxonomy:
+						if item1 in line:
+							ncbi_accessions.add(line.split(",")[0])
+							#don't break because there are probably multiple with each
+			print(ncbi_accessions)
+
 		if args.whole_genome_data:
 			logging.info("*****************************************************************************************************************************")
 			logging.info("          TRIMMING WHOLE GENOME DATA FASTQ FILES  WITH TRIMMOMATC (Bolger et al. 2014)          ")
@@ -710,22 +723,57 @@ def main():
 			namelist = 'namelist.txt'
 			path_to_namelist = os.path.join(args.target_enrichment_data,namelist)
 
-			logging.info("Gunzipping paired reads trimmed fastq archives")
-			gunzip_fastq =' parallel -j {} gunzip ::: {}*_paired.fastq.gz'.format(args.cpu, args.target_enrichment_data)
-			os.system(gunzip_fastq)  # We dont' care about the unpaired reads if paired end are used
-			gunzip_fastq = 'parallel -j {} gunzip ::: {}*trimmed.fastq.gz'.format(args.cpu, args.target_enrichment_data)
-			os.system(gunzip_fastq)  # This covers single end reads
+			if args.targ_hybpiper:
+				#we only need to unzip if using HybPiper
+				logging.info("Gunzipping paired reads trimmed fastq archives")
+				gunzip_fastq =' parallel -j {} gunzip ::: {}*_paired.fastq.gz'.format(args.cpu, args.target_enrichment_data)
+				os.system(gunzip_fastq)  # We dont' care about the unpaired reads if paired end are used
+				gunzip_fastq = 'parallel -j {} gunzip ::: {}*trimmed.fastq.gz'.format(args.cpu, args.target_enrichment_data)
+				os.system(gunzip_fastq)  # This covers single end reads
 
-			logging.info("******************************************************************************************************************************************")
-			logging.info("           EXTRACTING GENES FROM TARGET ENRICHMENT DATA  WITH Hybpiper (Johnson et al. 2016)")
-			logging.info("******************************************************************************************************************************************")
-			run_hybpiper(main_script_dir, args.target_enrichment_data, path_to_namelist)
+				#hybpiper
+				logging.info("******************************************************************************************************************************************")
+				logging.info("           EXTRACTING GENES FROM TARGET ENRICHMENT DATA  WITH Hybpiper (Johnson et al. 2016)")
+				logging.info("******************************************************************************************************************************************")
+				run_hybpiper(main_script_dir, args.target_enrichment_data, path_to_namelist)
 
-			logging.info("Gzipping paired reads trimmed fastqs")
-			gzip_fastq = "parallel -j {} gzip ::: {}*_paired.fastq".format(args.cpu, args.target_enrichment_data)
-			os.system(gzip_fastq)
-			gzip_fastq = "parallel -j {} gzip ::: {}*trimmed.fastq".format(args.cpu, args.target_enrichment_data)
-			os.system(gzip_fastq)
+				logging.info("Gzipping paired reads trimmed fastqs")
+				gzip_fastq = "parallel -j {} gzip ::: {}*_paired.fastq".format(args.cpu, args.target_enrichment_data)
+				os.system(gzip_fastq)
+				gzip_fastq = "parallel -j {} gzip ::: {}*trimmed.fastq".format(args.cpu, args.target_enrichment_data)
+				os.system(gzip_fastq)
+
+			else:
+				logging.info("*****************************************************************************************************************************")
+				logging.info("          ASSEMBLING TARGET ENRICHMENT DATA WITH METASPADES (***CITATION NEEDED***)          ")
+				logging.info("*****************************************************************************************************************************")
+				with open(path_to_namelist) as namelistFile:
+					for name in namelistFile:
+						name = name.strip()
+						if len(glob(os.path.join(args.out, "target_enrichment_data", name + "*R*trimmed_paired.fastq.gz"))) == 2:
+							sample_R1_path = os.path.join(args.out, "target_enrichment_data", name + "_R1.trimmed_paired.fastq.gz")
+							sample_R2_path = os.path.join(args.out, "target_enrichment_data", name + "_R2.trimmed_paired.fastq.gz")
+							spades_out_path = os.path.join(args.out, "target_enrichment_data", name + "_spades/")
+							spades_command = "spades.py -1 {} -2 {} -o {} -t {} --meta".format(sample_R1_path, sample_R2_path, spades_out_path, args.cpu)
+							logging.info("running spades with " + spades_command)
+							os.system(spades_command)
+						else:
+							sys.exit("metaspades does not work with single end reads yet. Please re-run with the -l (--low_memory) flag to use HybPiper instead of metaSPAdes for target enrichment data.")
+							#metaspades does not accept single end reads yet
+							#sample_path = os.path.join(args.out, "target_enrichment_data", name + "_SE.trimmed.fastq.gz")
+							#spades_out_path = os.path.join(args.out, "target_enrichment_data", name + "_spades/")
+							#spades_command = "spades.py -s {} -o {} -t {} --meta".format(sample_path, spades_out_path, args.cpu)
+							#logging.info("running spades with " + spades_command)
+							#os.system(spades_command)
+
+						os.rename(os.path.join(spades_out_path, "scaffolds.fasta"), os.path.join(args.target_enrichment_data, name + ".fna"))
+
+				#we have assemblies now
+				logging.info("********************************************************************************************************************")
+				logging.info("          PERFORMING ASSEMBLED TARGET ENRICHMENT DATA ANALYSIS WITH Exonerate (Slater & Birney 2005)       ")
+				logging.info("********************************************************************************************************************")
+				run_exonerate(args.target_enrichment_data)
+
 
 		#user input: assemblies
 		#create exonerate output in assemblies/
@@ -739,73 +787,112 @@ def main():
 		logging.info("*********************************************")
 		logging.info("          BUILDING FASTA FILES          ")
 		logging.info("*********************************************")
+
+		user_samples = []
+
 		if args.assemblies:
-			logging.info("Building alignments from assemblies data")
+			logging.info("Adding sequences from assemblies data")
 			#get_alignment(args.assemblies)
 			get_fastas_exonerate(args.assemblies, True)
+			user_samples.extend(get_names(args.assemblies, True))
 		if args.target_enrichment_data:
-			logging.info("Building alignments from target enrichment data")
-			#get_alignment(args.target_enrichment_data)
-			get_fastas_exonerate(args.target_enrichment_data, False)
+			logging.info("Adding sequences from target enrichment data")
+			if args.targ_hybpiper:	#done with HybPiper
+				get_fastas_exonerate(args.target_enrichment_data, False)
+				user_samples.extend(get_names(args.target_enrichment_data, False))
+			else:			#done with metaspades then exonerate
+				get_fastas_exonerate(args.target_enrichment_data, True)
+				user_samples.extend(get_names(args.target_enrichment_data, True))
 		if args.whole_genome_data:
+			logging.info("Adding sequences from whole genome data")
 			if args.low_memory:	#done with hybpiper
 				get_fastas_exonerate(args.whole_genome_data, False)
+				user_samples.extend(get_names(args.whole_genome_data, False))
 
 			else:			#done with spades then exonerate
 				get_fastas_exonerate(args.whole_genome_data, True)
+				user_samples.extend(get_names(args.whole_genome_data, True))
 
 		if args.ncbi_assemblies:
 			logging.info("****************************************************************************************************************************")
 			logging.info("           ADDING SELECTED TAXONOMIC RANKS GENES FROM PRE-MINED ASSEMBLY DATABASE           ")
 			logging.info("****************************************************************************************************************************")
-			path_to_ranks = path_to_taxonomy.replace('Accession_plus_taxonomy_Pezizomycotina.txt','Accession_plus_taxonomy_reduced.txt')
-			#print(path_to_ranks)
-			# make the folder for the selected sample from NCBI database
-			#path_to_premined = main_script_dir + "pre_mined_assemblies/"
-			path_to_premined_combined = main_script_dir + "combined_pre_mined_assemblies/"
-			#path_to_premined_selected = path_to_merged_alignments.replace('alignments_merged/', 'ncbi_selected_genes/')
-			#mkdir_ncbi_data ="mkdir {}".format(path_to_premined_selected)
-			#os.system(mkdir_ncbi_data)
-			# make a list of the accessions selected according to the taxonomic rank chosen
-			accession_from_ncbi_list = []
-			with open(path_to_ranks, 'r') as ranks:
-				for line in ranks:
-					regex_accession = re.search('(GCA_[0-9]+.[0-9]),\w+',line)
-					if regex_accession != None:
-						accession_from_ncbi_list.append(regex_accession.group(1))
 
-			#do same stuff as above, but with fastas/
-			for fasta in glob(os.path.join(args.out, "fastas", "*.fasta")):
-				#logging.info("NCBI to fasta FASTA: " + fasta)
-				baseName = fasta.split("/")[-1].split("_")[1]
-				moleculeType = fasta.split("/")[-1].split("_")[2]
-				#logging.info("NCBI to fasta MOLECULETYPE: " + moleculeType)
-				if moleculeType == "protein":
-					with open(os.path.join(path_to_premined_combined, "combined_" + baseName + ".FAA")) as proteinIn, open(fasta, 'a') as proteinOut:
-						for line in proteinIn:
-							if line.startswith(">"):
-								for accession in accession_from_ncbi_list:
-									if accession in line:
-										proteinOut.write(line)
-										sequenceLine = proteinIn.readline()
-										proteinOut.write(sequenceLine)
+			#remove requirement for AUTO to be exclusive: add other stuff anyway, but make sure there aren't duplicates
+			if "AUTO" in args.ncbi_assemblies:
+				logging.info("Using mafft to align your sequences with sequences from the database")
+				#align new stuff in fastas/ with pre-aligned stuff
+				#make supermatrix
+				#find scores (discussion on this elsewhere)
+				#add stuff we want to fastas (if they can have the same name as if nothing happened, we don't need to change anything below)
+				auto_dir = os.path.join(args.out, "auto_selection")
+				if not os.path.isdir(auto_dir):
+					os.mkdir(auto_dir)
+				for file in glob(os.path.join(args.out, "fastas", "*nucleotide*.fasta")):
+					geneName = file.split("/")[-1].split("_")[1] #fastas/abc_123at4980_protein_merged.fasta
+					mafft_command = "mafft --retree 1 --thread {} --add {} {} > {}"
+					prealignedFile = os.path.join(main_script_dir, "msa_test", "truncatedIDs_{}.fasta".format(geneName))
+					newFile = os.path.join(auto_dir, "added_{}.fasta".format(geneName))
+					os.system(mafft_command.format(args.cpu, file, prealignedFile, newFile))
 
-				if moleculeType == "nucleotide":
-					with open(os.path.join(path_to_premined_combined, "combined_" + baseName + ".FNA")) as nucIn, open(fasta, 'a') as nucOut:
-						for line in nucIn:
-							if line.startswith(">"):
-								for accession in accession_from_ncbi_list:
-									if accession in line:
-										nucOut.write(line)
-										sequenceLine = nucIn.readline()
-										nucOut.write(sequenceLine)
+				os.chdir(auto_dir)
+				logging.info("Concatenating alignments of user samples and db samples")
+				os.system("perl {}/FASconCAT-G_v1.04.pl -i -s".format(main_script_dir))
+				os.chdir(main_script_dir)
 
-			# remove the temporary text file storing the selected taxa taxonomy and assembly, from the pre-calculated database folder		
-			remove_taxonomy_file = "rm {}".format(path_to_ranks)
-			os.system(remove_taxonomy_file)
+				print(user_samples)
+				found_user_samples = set()
+				#for id that isn't in found_user_samples, find closest things
+				#if id in user_samples is close, add to found_user_samples
+				#get ids from stuff in db to add, then add with SeqIO
+				for id in user_samples:
+					if id in found_user_samples:
+						continue
+					similar_samples = find_similar_samples(id, user_samples, auto_dir, args.cpu)
+					for sample in similar_samples:
+						if sample in user_samples:
+							found_user_samples.add(sample)
+						else:
+							ncbi_accessions.add(sample)
+				print(ncbi_accessions)
 
-		# Get rid of the trash strings after the accession number to be able to replace with speciens name later	
-		# As OMM_MACSE will use soft masking to align and trim better get rig of all small case letters in the alignments before running MACSE pipeline								
+				#JACOB
+				#sys.exit("What more would you want?")
+
+
+				#Add sequences from database to sequences from supplied data
+				path_to_premined_combined = os.path.join(main_script_dir, "combined_pre_mined_assemblies")
+				for fasta in glob(os.path.join(args.out, "fastas", "*.fasta")):
+					#logging.info("NCBI to fasta FASTA: " + fasta)
+					baseName = fasta.split("/")[-1].split("_")[1]
+					moleculeType = fasta.split("/")[-1].split("_")[2]
+					#logging.info("NCBI to fasta MOLECULETYPE: " + moleculeType)
+					if moleculeType == "protein":
+						with open(os.path.join(path_to_premined_combined, "combined_" + baseName + ".FAA")) as proteinIn, open(fasta, 'a') as proteinOut:
+							for line in proteinIn:
+								if line.startswith(">"):
+									for accession in ncbi_accessions:
+										if accession in line:
+											proteinOut.write(line)
+											sequenceLine = proteinIn.readline()
+											proteinOut.write(sequenceLine)
+
+					if moleculeType == "nucleotide":
+						with open(os.path.join(path_to_premined_combined, "combined_" + baseName + ".FNA")) as nucIn, open(fasta, 'a') as nucOut:
+							for line in nucIn:
+								if line.startswith(">"):
+									for accession in ncbi_accessions:
+										if accession in line:
+											nucOut.write(line)
+											sequenceLine = nucIn.readline()
+											nucOut.write(sequenceLine)
+
+
+		# Remove empty fastas, just in case there are no sequences for a specific gene
+		os.system("find {} -type f -empty -delete".format(os.path.join(fastas_directory, "*_merged.fasta")))
+
+		# Get rid of the trash strings after the accession number to be able to replace with speciens name later
+		# As OMM_MACSE will use soft masking to align and trim better get rig of all small case letters in the alignments before running MACSE pipeline
 		logging.info("Cleaning sequences names to only retain accession numbers...")
 		logging.info("Converting all nucleotides to uppercase...")
 
@@ -829,9 +916,9 @@ def main():
 					sequence = str(seq.seq).upper()
 					record = SeqRecord(Seq(sequence), seq.id, "","")
 					#print(record)
-					SeqIO.write(record, output_file,"fasta")						
+					SeqIO.write(record, output_file,"fasta")
 			output_file.close()
-		
+
 		logging.info("**********************************************************************************************************")
 		logging.info("          COMPARING RETRIEVED GENES TO REFERENCE SEQUENCES LENGTH          ")
 		logging.info("**********************************************************************************************************")
@@ -866,51 +953,47 @@ def main():
 					regex1 =re.search("Alignment_(\S+)_nucleotide_merged_headmod.fas_out",root)
 					#os.rename both renames and moves files
 					os.rename(file_path,  path_to_macsed_align + regex1.group(1) + f + ".fas")
-			
+
 		gblocks_path= main_script_dir + "Gblocks"
 		if args.gblocks_relaxed:
 			logging.info("***********************************************************************************************************")
 			logging.info("          PERFORMING ALIGNMENT FILTERING WITH Gblocks (Castresana, 2000)            ")
 			logging.info("***********************************************************************************************************")
 			#print(path_to_macsed_align)
-			run_gblocks("_final_align_NT.aln.fas","_final_align_AA.aln.fas", path_to_macsed_align, gblocks_path)	
-		
-		logging.info("Deleting spaces and sequences with > 70% gaps from alignments") 
+			run_gblocks("_final_align_NT.aln.fas","_final_align_AA.aln.fas", path_to_macsed_align, gblocks_path)
+
+		logging.info("Deleting spaces and sequences with > 70% gaps from alignments")
 		for f in os.listdir(path_to_macsed_align):
 			if f.endswith("-gb") or f.endswith(".fas"):
 				logging.info("Processing %s" % f)
 				alignment_file = open(path_to_macsed_align + f,'rt')
 				alignment_file_content = alignment_file.read()
-				#delete spaces created by Gblocks in the alignemtns, if it is not a Gblocked alignment it does the same just to be safe (so there will be no spaces at all in the alignment file)
+				#delete spaces created by Gblocks in the alignments, if it is not a Gblocked alignment it does the same just to be safe (so there will be no spaces at all in the alignment file)
 				alignment_file_content = alignment_file_content.replace(' ','')
 				alignment_file.close()
 				alignment_file = open(path_to_macsed_align + f,'wt')
 				alignment_file.write(alignment_file_content)
 				alignment_file.close()
-		
-		# get rid of the sequences with > 75% of gaps (sequence which remained empty o almost empty after filtering, i.e. not well alignable and/or already short before filtering)		
+
+		# get rid of the sequences with > 75% of gaps (sequence which remained empty o almost empty after filtering, i.e. not well alignable and/or already short before filtering)
 		for f in os.listdir(path_to_macsed_align):
 			if f.endswith("-gb") or f.endswith(".fas"):
 				logging.info("Processing %s" % f)
 				input_file = path_to_macsed_align + f
 				with open(path_to_macsed_align + f +"_cleaned.fasta", "a+") as output_file:
-					for seqs in SeqIO.parse(input_file, 'fasta'):
+					for record in SeqIO.parse(input_file, 'fasta'):
 						drop_cutoff = 0.75
-						name = seqs.id
-						seq = seqs.seq
-						seqLen = len(seqs)
-						gap_count = 0
-						for z in range(seqLen):
-							if seq[z]=='-':
-								gap_count += 1
+						name = record.id
+						seq = record.seq
+						seqLen = len(seq)
+						gap_count = seq.count("-")
 						#print(seqLen)
-						#print(gap_count)		
-						#print(gap_count/(seqLen))		
-						if (gap_count/seqLen) >= drop_cutoff:
+						#print(gap_count)
+						#print(gap_count/(seqLen))
+						if seqLen == 0 or (gap_count/seqLen) >= drop_cutoff:
 							logging.info(" %s was removed." % name)
 						else:
-							SeqIO.write(seqs, output_file , 'fasta')
-					output_file.close()
+							SeqIO.write(record, output_file , 'fasta')
 
 		logging.info("************************************************************************************************************************")
 		logging.info("          PERFORMING ALIGNMENTS CONCATENATION WITH Fasconcat (Kück & Longo, 2014)          ")
@@ -918,78 +1001,60 @@ def main():
 		#path_to_supermatrix= path_to_macsed_align.replace('macsed_alignments/', 'supermatrix/')
 		make_supermatrix_folder="mkdir {} ".format(path_to_supermatrix)
 		os.system(make_supermatrix_folder)
+
 		if args.gblocks_relaxed:
-			make_supermatrix_dna= "mkdir {} ".format(path_to_supermatrix+ "supermatrix_gblocked_dna/")
-			make_supermatrix_aa="mkdir {} ".format(path_to_supermatrix + "supermatrix_gblocked_aa/")
-			os.system(make_supermatrix_dna)
-			os.system(make_supermatrix_aa)
+			os.system("mkdir {}".format(path_to_supermatrix_gblocked_dna))
+			os.system("mkdir {}".format(path_to_supermatrix_gblocked_aa))
 		else:
-			make_supermatrix_dna= "mkdir {} ".format(path_to_supermatrix+ "supermatrix_dna/")
-			make_supermatrix_aa="mkdir {} ".format(path_to_supermatrix + "supermatrix_aa/")	
-			os.system(make_supermatrix_dna)
-			os.system(make_supermatrix_aa)
-				
+			os.system("mkdir {}".format(path_to_supermatrix_dna))
+			os.system("mkdir {}".format(path_to_supermatrix_aa))
+
 		if args.gblocks_relaxed:
-			#path_to_supermatrix_gblocked_dna = path_to_supermatrix +"supermatrix_gblocked_dna/"
-			#path_to_supermatrix_gblocked_aa = path_to_supermatrix + "supermatrix_gblocked_aa/"
-			copy_fasconcat = "cp {} {}".format(main_script_dir + "FASconCAT-G_v1.04.pl", path_to_supermatrix_gblocked_dna)
-			os.system(copy_fasconcat)
-			copy_fasconcat = "cp {} {}".format(main_script_dir + "FASconCAT-G_v1.04.pl", path_to_supermatrix_gblocked_aa)
-			os.system(copy_fasconcat)
-			copy_alignments_dna= "cp -r {}*macsed_final_align_NT.aln.fas-gb_cleaned.fasta {}".format(path_to_macsed_align, path_to_supermatrix_gblocked_dna)
-			os.system(copy_alignments_dna)
-			copy_alignments_aa= "cp -r {}*macsed_final_align_AA.aln.fas-gb_cleaned.fasta {}".format(path_to_macsed_align, path_to_supermatrix_gblocked_aa)
-			os.system(copy_alignments_aa)
+			os.system("cp -r {}*macsed_final_align_NT.aln.fas-gb_cleaned.fasta {}".format(path_to_macsed_align, path_to_supermatrix_gblocked_dna))
+			os.system("cp -r {}*macsed_final_align_AA.aln.fas-gb_cleaned.fasta {}".format(path_to_macsed_align, path_to_supermatrix_gblocked_aa))
 		else:
-			#path_to_supermatrix_dna = path_to_supermatrix +"supermatrix_dna/"
-			#path_to_supermatrix_aa = path_to_supermatrix + "supermatrix_aa/"
-			copy_fasconcat = "cp {} {}".format(main_script_dir + "FASconCAT-G_v1.04.pl", path_to_supermatrix_dna)
-			os.system(copy_fasconcat)
-			copy_fasconcat = "cp {} {}".format(main_script_dir + "FASconCAT-G_v1.04.pl", path_to_supermatrix_aa)
-			os.system(copy_fasconcat)
-			copy_alignments_dna= "cp -r {}*macsed_final_align_NT.aln.fas_cleaned.fasta {}".format(path_to_macsed_align, path_to_supermatrix_dna)
-			os.system(copy_alignments_dna)
-			copy_alignments_aa= "cp -r {}*macsed_final_align_AA.aln.fas_cleaned.fasta {}".format(path_to_macsed_align, path_to_supermatrix_aa)
-			os.system(copy_alignments_aa)
-		if args.gblocks_relaxed:				
-			run_fasconcat = 'perl {}FASconCAT-G_v1.04.pl -l -s'.format(path_to_supermatrix_gblocked_dna) 
-			os.chdir(path_to_supermatrix_gblocked_dna)
-			os.system(run_fasconcat)
-			os.rename('FcC_supermatrix.fas','FcC_supermatrix_gblocked_NT.fasta')
-			os.rename('FcC_supermatrix_partition.txt','FcC_supermatrix_partition_gblocked_NT.txt')
-			os.rename('FcC_info.xls','FcC_info_gblocked_NT.xls')
-			os.system("rm *_cleaned.fasta")
-			
-			run_fasconcat = 'perl {}FASconCAT-G_v1.04.pl -l -s'.format(path_to_supermatrix_gblocked_aa) 
-			os.chdir(path_to_supermatrix_gblocked_aa)
-			os.system(run_fasconcat)
-			os.rename('FcC_supermatrix.fas','FcC_supermatrix_gblocked_AA.fasta')
-			os.rename('FcC_supermatrix_partition.txt','FcC_supermatrix_partition_gblocked_AA.txt')
-			os.rename('FcC_info.xls','FcC_info_gblocked_AA.xls')
-			os.system("rm *_cleaned.fasta")
-		else:
-			run_fasconcat = 'perl {}FASconCAT-G_v1.04.pl -l -s'.format(path_to_supermatrix_dna) 
-			os.chdir(path_to_supermatrix_dna)
-			os.system(run_fasconcat)
-			os.rename('FcC_supermatrix.fas','FcC_supermatrix_NT.fasta')
-			os.rename('FcC_supermatrix_partition.txt','FcC_supermatrix_partition_NT.txt')
-			os.rename('FcC_info.xls','FcC_info_NT.xls')
-			os.system("rm *_cleaned.fasta")
-			run_fasconcat = 'perl {}FASconCAT-G_v1.04.pl -l -s'.format(path_to_supermatrix_aa) 
-			os.chdir(path_to_supermatrix_aa)
-			os.system(run_fasconcat)
-			os.rename('FcC_supermatrix.fas','FcC_supermatrix_AA.fasta')
-			os.rename('FcC_supermatrix_partition.txt','FcC_supermatrix_partition_AA.txt')
-			os.rename('FcC_info.xls','FcC_info_AA.xls')
-			os.system("rm *_cleaned.fasta")	
+			os.system("cp -r {}*macsed_final_align_NT.aln.fas_cleaned.fasta {}".format(path_to_macsed_align, path_to_supermatrix_dna))
+			os.system("cp -r {}*macsed_final_align_AA.aln.fas_cleaned.fasta {}".format(path_to_macsed_align, path_to_supermatrix_aa))
+
+		FASconCAT_command = 'perl {}FASconCAT-G_v1.04.pl -l -s'.format(main_script_dir)
+		for moleculeType in ["NT", "AA"]:
+			if args.gblocks_relaxed:
+				if moleculeType == "NT":
+					os.chdir(path_to_supermatrix_gblocked_dna)
+				else:
+					os.chdir(path_to_supermatrix_gblocked_aa)
+
+				# Remove empty fastas, just in case there are no sequences for a specific gene
+				os.system("find *.fasta -type f -empty -delete")
+
+				os.system(FASconCAT_command)
+				os.rename('FcC_supermatrix.fas','FcC_supermatrix_gblocked_{}.fasta'.format(moleculeType))
+				os.rename('FcC_supermatrix_partition.txt','FcC_supermatrix_partition_gblocked_{}.txt'.format(moleculeType))
+				os.rename('FcC_info.xls','FcC_info_gblocked_{}.xls'.format(moleculeType))
+				os.system("rm *_cleaned.fasta")
+			else:
+				if moleculeType == "NT":
+					os.chdir(path_to_supermatrix_dna)
+				else:
+					os.chdir(path_to_supermatrix_aa)
+
+				# Remove empty fastas, just in case there are no sequences for a specific gene
+				os.system("find *.fasta -type f -empty -delete")
+
+				os.system(FASconCAT_command)
+				os.rename('FcC_supermatrix.fas','FcC_supermatrix_{}.fasta'.format(moleculeType))
+				os.rename('FcC_supermatrix_partition.txt','FcC_supermatrix_partition_{}.txt'.format(moleculeType))
+				os.rename('FcC_info.xls','FcC_info_{}.xls'.format(moleculeType))
+				os.system("rm *_cleaned.fasta")
+
 		os.chdir(main_script_dir)
-		
-	if args.test: 
+
+	if args.test:
 		test_input = input(testPrompt.format("alignment and concatenation", "single tree reconstruction"))
 		if not checkTestContinue(test_input):
 			sys.exit("exited after concatenating alignments")
 
-		
+
 	logging.info("******************************************************************************************************************")
 	logging.info("          RECONSTRUCTING SINGLE MARKER TREES WITH IQTREE2 (Minh et al. 2020)           ")
 	logging.info("******************************************************************************************************************")
@@ -1009,9 +1074,9 @@ def main():
 	else:
 		iqtree_parallel2 = "find %s -type f  -name '*_final_align_AA.aln.fas_cleaned.fasta' | parallel -j %s %s  -s {} -m MFP -B 1000 -T 1" %(path_to_macsed_align, args.cpu, iqtree_script)
 		os.system(iqtree_parallel2)
-	# move trees and other iqtree files to the dedicated folder		
+	# move trees and other iqtree files to the dedicated folder
 	path_to_single_trees = os.path.join(args.out, 'single_locus_trees/')
-	mkdir_raxml_out = "mkdir {}".format(path_to_single_trees) 
+	mkdir_raxml_out = "mkdir {}".format(path_to_single_trees)
 	os.system(mkdir_raxml_out)
 	for root, dirs, files in os.walk(path_to_macsed_align, topdown=True):
 		for f in files:
@@ -1030,20 +1095,15 @@ def main():
 	logging.info("*************************************************************************************************************")
 	iqtree_script=main_script_dir + "iqtree2"
 	if args.gblocks_relaxed:
-		#path_to_supermatrix_gblocked_dna = path_to_supermatrix +"supermatrix_gblocked_dna/"
-		#path_to_supermatrix_gblocked_aa = path_to_supermatrix + "supermatrix_gblocked_aa/"
 		iqtree_on_supermatrix =  "%s -s %s -Q %s -m MFP -B 1000 -T %s --threads-max %s" %(iqtree_script, path_to_supermatrix_gblocked_dna + 'FcC_supermatrix_gblocked_NT.fasta' , path_to_supermatrix_gblocked_dna + 'FcC_supermatrix_partition_gblocked_NT.txt', "AUTO", args.cpu)
 		os.system(iqtree_on_supermatrix)
 		iqtree_on_supermatrix =  "%s -s %s -Q %s -m MFP -B 1000 -T %s --threads-max %s" %(iqtree_script, path_to_supermatrix_gblocked_aa + 'FcC_supermatrix_gblocked_AA.fasta' , path_to_supermatrix_gblocked_aa + 'FcC_supermatrix_partition_gblocked_AA.txt', "AUTO", args.cpu)
 		os.system(iqtree_on_supermatrix)
 	else:
-		#path_to_supermatrix_dna = path_to_supermatrix +"supermatrix_dna/"
-		#path_to_supermatrix_aa = path_to_supermatrix + "supermatrix_aa/"
 		iqtree_on_supermatrix =  "%s -s %s -Q %s -m MFP -B 1000 -T %s --threads-max %s" %(iqtree_script, path_to_supermatrix_dna + 'FcC_supermatrix_NT.fasta' , path_to_supermatrix_dna + 'FcC_supermatrix_partition_NT.txt', "AUTO", args.cpu)
 		os.system(iqtree_on_supermatrix)
 		iqtree_on_supermatrix =  "%s -s %s -Q %s -m MFP -B 1000 -T %s --threads-max %s" %(iqtree_script, path_to_supermatrix_aa + 'FcC_supermatrix_AA.fasta' , path_to_supermatrix_aa + 'FcC_supermatrix_partition_AA.txt', "AUTO", args.cpu)
 		os.system(iqtree_on_supermatrix)
-
 
 	if args.test: 
 		test_input = input(testPrompt.format("supermatrix iqtree2", "astral tree"))
@@ -1056,53 +1116,31 @@ def main():
 	logging.info("            RECONSTRUCTING SUPERTREE WITH ASTRAL (Zhang et al. 2018)")
 	logging.info("******************************************************************************************************")
 	path_to_supertree = os.path.join(args.out,'supertree/')
-	make_supertree_folder ="mkdir {}".format(path_to_supertree)
-	os.system(make_supertree_folder)
+	os.system("mkdir {}".format(path_to_supertree))
+
 	if args.gblocks_relaxed:
-		make_supertree_gblocked_dna = "mkdir {}".format(path_to_supertree + "supertree_gblocked_dna")
-		make_supertree_gblocked_aa = "mkdir {}".format(path_to_supertree + "supertree_gblocked_aa")
-		os.system(make_supertree_gblocked_dna)
-		os.system(make_supertree_gblocked_aa)
-		copy_trees_gblocked_dna= "cp -r {}*macsed_final_align_NT.aln.fas-gb_cleaned.fasta.treefile {}".format(path_to_single_trees, path_to_supertree + "supertree_gblocked_dna")
-		copy_trees_gblocked_aa= "cp -r {}*macsed_final_align_AA.aln.fas-gb_cleaned.fasta.treefile {}".format(path_to_single_trees, path_to_supertree + "supertree_gblocked_aa")
-		os.system(copy_trees_gblocked_dna)
-		os.system(copy_trees_gblocked_aa)
-		os.chdir(path_to_supertree + "supertree_gblocked_dna")
-		cat_trees = "cat *.treefile > cat_trees_gblocked_dna.tre"
-		os.system(cat_trees)
-		os.system("rm -r *.treefile")
-		os.chdir(path_to_supertree + "supertree_gblocked_aa")
-		cat_trees = "cat *.treefile > cat_trees_gblocked_aa.tre"
-		os.system(cat_trees)
-		os.system("rm -r *.treefile")
-		os.chdir(main_script_dir)
-		path_to_astral = main_script_dir + "ASTRAL/astral.5.7.7.jar"
-		run_astral = "java -jar %s -i %s -o %s" %(path_to_astral, path_to_supertree + "supertree_gblocked_dna/cat_trees_gblocked_dna.tre", path_to_supertree + "supertree_gblocked_dna/astral_species_tree_gblocked_dna.tree")
-		os.system(run_astral)
-		run_astral = "java -jar %s -i %s -o %s" %(path_to_astral, path_to_supertree + "supertree_gblocked_aa/cat_trees_gblocked_aa.tre", path_to_supertree + "supertree_gblocked_aa/astral_species_tree_gblocked_aa.tree")
-		os.system(run_astral)
+		gblocked_text = "gblocked_"
 	else:
-		make_supertree_dna = "mkdir {}".format(path_to_supertree + "supertree_dna")
-		make_supertree_aa = "mkdir {}".format(path_to_supertree + "supertree_aa")
-		os.system(make_supertree_dna)
-		os.system(make_supertree_aa)
-		copy_trees_dna= "cp -r {}*macsed_final_align_NT.aln.fas_cleaned.fasta.treefile {}".format(path_to_single_trees, path_to_supertree + "supertree_dna")
-		copy_trees_aa= "cp -r {}*macsed_final_align_AA.aln.fas_cleaned.fasta.treefile {}".format(path_to_single_trees, path_to_supertree + "supertree_aa")
-		os.system(copy_trees_dna)
-		os.system(copy_trees_aa)
-		os.chdir(path_to_supertree + "supertree_dna")
-		cat_trees = "cat *.treefile > cat_trees_dna.tre"
-		os.system(cat_trees)
-		os.system("rm -r *.treefile")
-		os.chdir(path_to_supertree + "supertree_aa")
-		cat_trees = "cat *.treefile > cat_trees_aa.tre"
-		os.system(cat_trees)
-		os.system("rm -r *.treefile")
-		path_to_astral = main_script_dir + "ASTRAL/astral.5.7.7.jar"
-		run_astral = "java -jar %s -i %s -o %s" %(path_to_astral, path_to_supertree + "supertree_dna/cat_trees_dna.tre", path_to_supertree + "supertree_dna/astral_species_tree_dna.tree")
-		os.system(run_astral)
-		run_astral = "java -jar %s -i %s -o %s" %(path_to_astral, path_to_supertree + "supertree_aa/cat_trees_aa.tre", path_to_supertree + "supertree_aa/astral_species_tree_aa.tree")
-		os.system(run_astral)
+		gblocked_text = "" #don't add "gblocked_" to output files or directories
+	
+	dna_dir = path_to_supertree + "supertree_{}dna/".format(gblocked_text)
+	aa_dir = path_to_supertree + "supertree_{}aa/".format(gblocked_text)
+	os.system("mkdir {}".format(dna_dir))
+	os.system("mkdir {}".format(aa_dir))
+	os.system("cp {}*NT*.treefile {}".format(path_to_single_trees, dna_dir))
+	os.system("cp {}*AA*.treefile {}".format(path_to_single_trees, aa_dir))
+	os.chdir(dna_dir)
+	os.system("cat *.treefile > cat_trees_{}dna.tre".format(gblocked_text))
+	os.system("rm *.treefile")
+	os.chdir(aa_dir)
+	os.system("cat *.treefile > cat_trees_{}aa.tre".format(gblocked_text))
+	os.system("rm *.treefile")
+	os.chdir(main_script_dir)
+	path_to_astral = main_script_dir + "ASTRAL/astral.5.7.7.jar"
+	run_astral = "java -jar %s -i %s -o %s" %(path_to_astral, dna_dir + "cat_trees_{}dna.tre".format(gblocked_text), dna_dir + "astral_species_tree_{}dna.tree".format(gblocked_text))
+	os.system(run_astral)
+	run_astral = "java -jar %s -i %s -o %s" %(path_to_astral, aa_dir + "cat_trees_{}aa.tre".format(gblocked_text), aa_dir + "astral_species_tree_{}aa.tree".format(gblocked_text))
+	os.system(run_astral)
 			
 	logging.info("****************************************************************")
 	logging.info("          COPYING TREES TO final_trees FOLDER           ")
@@ -1179,22 +1217,8 @@ def main():
 		if treefile.endswith("treefile") or treefile.endswith("tree"):		
 			from_accession_to_species(accession_species_file, path_to_finaltrees + treefile)
 
-	"""if args.phypartspiecharts:
-		pie_wrap_path = os.path.join(main_script_dir, "pie_wrap.py")
-		tree_path = os.path.join(args.out, "single_locus_trees")
-		species_path = ""
-		if args.gblocks_relaxed:
-			species_path = os.path.join(args.out, "final_trees", "astral_species_tree_gblocked_aa.tree")
-		else:
-			species_path = os.path.join(args.out, "final_trees", "astral_species_tree_aa.tree")
-		pppc_command = "python {} -t {} -p {}".format(pie_wrap_path, tree_path, species_path)
-		logging.info("Running phypartspiecharts wrapper (pie_wrap.py)")
-		print("running pppc with: " + pppc_command)
-		os.system(pppc_command)"""
-
 	logging.info("PIPELINE COMPLETED!")
+
 if __name__=='__main__':
 	logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.DEBUG)
 	main()
-
-

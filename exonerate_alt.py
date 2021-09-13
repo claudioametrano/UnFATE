@@ -20,14 +20,15 @@ from Bio.SeqRecord import SeqRecord
 #id_threshold = 55 #Percent identity between protein and contig hit.
 first_search_filename = "exonerate_results.fasta"
 
-def initial_exonerate(proteinfilename, assemblyfilename,prefix):
+def initial_exonerate(proteinfilename, assemblyfilename,prefix,mem): #mem added for UnFATE
     """Conduct exonerate search, returns a dictionary of results.
     Using the ryo option in exonerate, the header should contain all the useful information."""
     logger = logging.getLogger("pipeline")
 
     outputfilename = "%s/exonerate_results.fasta" %prefix
     exonerate_ryo = '">%ti,%qi,%qab,%qae,%pi,(%tS),%tab,%tae\\n%tcs\\n"'
-    exonerate_command = "exonerate -m protein2genome --showalignment no --showvulgar no -V 0 --ryo %s %s %s >%s" % (exonerate_ryo,proteinfilename,assemblyfilename,outputfilename)
+    exonerate_command = "exonerate -m protein2genome --fsmmemory %i --showalignment no --showvulgar no -V 0 --ryo %s %s %s >%s" % (mem,exonerate_ryo,proteinfilename,assemblyfilename,outputfilename)
+    #--fsmmemory % added for UnFATE
 
     logger.debug(exonerate_command)
     #print exonerate_ryo
@@ -470,7 +471,7 @@ def paralog_test(exonerate_hits,prot,prefix):
     longhits = [x > 0.75*protlength for x in hitlengths]
     if sum(longhits) > 1:
         sys.stderr.write("WARNING: Multiple long-length exonerate hits for {}. Check for paralogs!\n".format(prot.id))
-        with open("{}/paralog_warning.txt".format(prefix),'w') as pw:
+        with open("{}/paralog_warning.txt".format(prefix),'a') as pw:
             for hit in range(len(exonerate_hits["assemblyHits"])):
                 if longhits[hit]:
                     pw.write(prot.id+ "\t"+exonerate_hits["assemblyHits"][hit] + "\n")
@@ -509,7 +510,7 @@ def main():
     parser.add_argument("-t","--threshold",help="Threshold for Percent Identity between contigs and proteins. default = 55%%",default=55,type=int)
     parser.add_argument("--length_pct",help="Include an exonerate hit if it is at least as long as X percentage of the reference protein length. Default = 100%%",default=90,type=int)
     parser.add_argument("--depth_multiplier",help="Accept any full-length hit if it has a coverage depth X times the next best hit. Set to zero to not use dept, default is set to zero, for assembly without coverage info in the scaffold headers. Default = 0",default=0,type=int)
-
+    parser.add_argument("-m","--exonerate_mem",help="Added for UnFATE pipeline, uses the --fsmmemory flag of exonerate to limit memory usage. Unit=GB, default=256",default=256,type=int)
 
     args = parser.parse_args()
 
@@ -556,7 +557,7 @@ def main():
         sequence_dict = SeqIO.to_dict(SeqIO.parse(first_search_filename,'fasta'))
     else:
         #logger.info("Starting exonerate search, please wait.")
-        sequence_dict = initial_exonerate(proteinfilename,assemblyfilename,prefix)
+        sequence_dict = initial_exonerate(proteinfilename,assemblyfilename,prefix,args.exonerate_mem) #args.exonerate_mem added for UnFATE
     proteinHits = protein_sort(sequence_dict)
 
     sys.stderr.write("There were {} exonerate hits for {}.\n".format(len(sequence_dict),proteinfilename))

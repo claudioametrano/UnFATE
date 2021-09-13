@@ -15,7 +15,11 @@ The wrapper script relies on many great software developed by other people. If y
 9. Ranwez, V., Douzery, E. J., Cambon, C., Chantret, N., & Delsuc, F. (2018). MACSE v2: toolkit for the alignment of coding sequences accounting for frameshifts and stop codons. Molecular biology and evolution, 35(10), 2582-2584.
 10. Slater, G. S. C., & Birney, E. (2005). Automated generation of heuristics for biological sequence comparison. BMC bioinformatics, 6(1), 1-11. 
 11. Zhang, Chao, Maryam Rabiee, Erfan Sayyari, and Siavash Mirarab. 2018. “ASTRAL-III: Polynomial Time Species Tree Reconstruction from Partially Resolved Gene Trees.” BMC Bioinformatics 19 (S6): 153.
- 
+
+### You might need to cite:
+
+12. Nurk, S., Meleshko, D., Korobeynikov, A., & Pevzner, P. A. (2017). metaSPAdes: a new versatile metagenomic assembler. Genome research 27(5), 824-834.
+13. Smith, S. A., Moore, M. J., Brown, J. W., Yang, Y. (2015). Analysis of phylogenomic datasets reveals conflict, concordance, and gene duplications with examples from animals and plants. BMC evolutionary biology 15(1), 1-15
 
 ## Workflow
 The wrapper is designed to be easy to use and to provide a fast way from target enrichment data (assemblies and whole genome sequence) to phylogenetic tree.
@@ -81,6 +85,10 @@ Prerequisites/Dependencies:
   * Analyses with hundreds of samples should be run on server-grade hardware!  
   * Consider logging the script output with `python3 main_wrap.py {params} |& tee <logfile>`. This saves the stdout and stderr from running main_wrap.py into \<logfile\> as well as printing it to the console.
   * Although the script was written with our bait set in mind, it should work with any amino acid target file in the format required by HybPiper. If using an external baitfile, the pre-mined NCBI data will not be usable or helpful.
+  * The pre-mined NCBI database is accessed with the `-n` argument. If you add AUTO to the list of groups you want, main_wrap.py will use a similar method to barcode_wrap to find the closest samples in the database. With the most dissimilar inputs, main_wrap will add 10 samples from the database per user sample. More closely related samples could have closer to 10 samples added overall.
+  * There are two ways to reduce the memory requirements of UnFATE depending on your input data. If you are supplying whole genome data, you can use the `-l` flag to run HybPiper instead of spades then exonerate. This greatly reduces memory requirements. If you are supplying assemblies, or can assemble whole genome data but have trouble running exonerate (look for "Killed" in the output), use `-m <memory in GB>` to reduce the memory used by exonerate. Memory usage can't be strictly limited to the specified value unfortunately, so you will want to set the value below your actual limit.
+  * If you wish to use HybPiper to capture sequences from your target enrichment reads, use the `-y` flag. This is kept seperate from the low memory flag which causes HybPiper to be used for WGS data as assembly of reads from target enrichment is not nearly as memory intensive as assembling a whole genome.
+
 
 5.  Cross your fingers and wait, good luck!  ...Take into account that the script parallelizes using the `--cpu n` you specify as an argument, HybPiper and Exonerate will process n samples at a time. The same number of cpu is then used to parallelize IQTREE runs for single locus trees and for concatenated supermatrices.  
 
@@ -92,13 +100,14 @@ Prerequisites/Dependencies:
 The UnFATE output will be placed in many folders within the location specified by -o, several output folders will be created corresponding to the pipeline steps:  
 * Within the "target_enrichment" folder there will be the HybPiper runs folders, one per sample. Your data will also be symlinked into this directory.
 * Within the "whole_genome_data" folder will be symlinks to your supplied WGS data, trimmed read files, and either spades or HybPiper output depending on whether -l was used.
-* Within the "assemblies" folder there will be the "Exonerate_hits.py" runs folder, one per sample. Your data will aslo be symlinked into this directory 
+* Within the "assemblies" folder there will be the "Exonerate_hits.py" runs folder, one per sample. Your data will aslo be symlinked into this directory.
 * The "fastas" folder will contain DNA and AA fasta files, one per marker of interest, and the MACSE runs folders.
 * The "macsed_alignments" folder will contain DNA and AA alignments, aligned and filtered with OMM_MACSE pipeline and (optionally) filtered with Gblocks.
-* The "single_locus_trees" folder will contain the IQTREE phylogenetic analyses on single markers (from both DNA and AA alignments)
-* The "supermatrix" folder will contain both the concatenation of the single marker alignments and the IQTREE2 phylogenetic inference (from both DNA and AA alignments)  
-* The "supertree" folder will contain both the file with the best tree for each marker and the ASTRAL species tree (from both DNA and AA alignments)
-* The "final_trees" folder will contain the trees generate from concatenation (IQTREE) and coalescence-based approach (ASTRAL) and their version renamed to species name (where NCBI accession numbers were used; e.g. when samples from the precalculated database or assemblies downloaded from NCBI are used)
+* The "auto_selection" folder will exist if you ran main_wrap with `-n AUTO` and will contain DNA alignments of sequences from your data and the pre-mined database.
+* The "single_locus_trees" folder will contain the IQTREE phylogenetic analyses on single markers (from both DNA and AA alignments).
+* The "supermatrix" folder will contain both the concatenation of the single marker alignments and the IQTREE2 phylogenetic inference (from both DNA and AA alignments).
+* The "supertree" folder will contain both the file with the best tree for each marker and the ASTRAL species tree (from both DNA and AA alignments).
+* The "final_trees" folder will contain the trees generate from concatenation (IQTREE) and coalescence-based approach (ASTRAL) and their version renamed to species name (where NCBI accession numbers were used; e.g. when samples from the precalculated database or assemblies downloaded from NCBI are used).
 * The "PhyParts" folder will be made if `pie_wrap.py` is run. The key output is pies.svg, but the full phyparts output will be present as well.
  
 ## `barcode_wrap.py`
@@ -108,7 +117,7 @@ The specificity of the taxonomy inferred from the output trees will depend on th
 Specificity will increase as more genomes are added to NCBI and as more organisms are sequenced using our baits.
 
 `barcode_wrap.py` uses most of the same dependencies as `main_wrap.py` with the exception of MACSE and ASTRAL. If you wish to only run `barcode_wrap.py` on a certain machine, the only conda packages required are the HybPiper dependencies listed above.
-`barcode_wrap.py` is intended to be light enough to run on a desktop computer or laptop in less than 3 hours.
+`barcode_wrap.py` is intended to be light enough to run on a desktop computer or laptop.
 
 A possible usage of `barcode_wrap.py` is to find a closely related group, then run `main_wrap.py` with all members of that group using the `-n <taxon>` argument.
 `barcode_wrap.py` does not allow running multiple samples in one run. If you have multiple samples, consider running each through the pipeline individually, then pooling them in `main_wrap.py` with a close group from the pre-mined database.

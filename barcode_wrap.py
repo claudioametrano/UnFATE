@@ -4,7 +4,7 @@
 #Using multiple loci most likely results in higher resolution phylogenies than just ITS (for example)
 #
 
-#pipeline:
+#workflow:
 #trim fastqs (trimmomatic)
 #HybPiper
 #mafft adds captured sequences to pre-aligned database sequences for captured loci
