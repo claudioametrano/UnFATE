@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 import shutil
 import re
 import os
@@ -243,7 +245,6 @@ def from_accession_to_species(csv_file, treefile):
 		print("Substitutions done: ",count)		
 		return(tree_content)
 
-	"""main script"""			
 	path=os.getcwd()
 	# read the csv file, you get as many list as the rows in the .csv file
 	table = open(csv_file) 
@@ -328,11 +329,11 @@ def set_up_directories():
 					os.symlink(os.path.join(args.whole_genome_data, file), os.path.join(args.out, "whole_genome_data", file))
 			args.whole_genome_data = os.path.join(args.out, "whole_genome_data", "") #the empty one causes a trailing /
 
-def trim_and_get_namelist(main_script_dir, data_dir):
-	trimming_cmd = "python3 {}/trimmer.py -f {} -c {}".format(main_script_dir, data_dir, args.cpu)
+def trim_and_get_namelist(exec_dir, data_dir):
+	trimming_cmd = "python3 {}/trimmer.py -f {} -c {}".format(exec_dir, data_dir, args.cpu)
 	os.system(trimming_cmd)
 	#Get namelist.txt from dataset directory
-	namelist_cmd = 'python3 {}/getNameList.py -f {}'.format(main_script_dir, data_dir)
+	namelist_cmd = 'python3 {}/getNameList.py -f {}'.format(exec_dir, data_dir)
 	os.system(namelist_cmd)
 
 def run_hybpiper(main_script_dir, data_dir, namelist):
@@ -359,12 +360,12 @@ def run_exonerate_hits(file_, ref_seq_file, memory, threshold):
 	print("EXONERATE MEMORY PER SAMPLE IS: {}GB".format(memory))
 	#if spades assembly, run exonerate_hits from HybPiper
 	if regex_spades_header != None:
-		exonerate_command = "python3 {}exonerate_hits.py -m {} -t {} {} --prefix {} {} ".format(main_script_dir, memory, threshold, ref_seq_file, os.path.splitext(file_)[0], file_)
+		exonerate_command = "python3 {}exonerate_hits.py -m {} -t {} {} --prefix {} {} ".format(dependencies_dir, memory, threshold, ref_seq_file, os.path.splitext(file_)[0], file_)
 		print(exonerate_command)
 		os.system(exonerate_command)
 	# else use the script version not using coverage information
 	else:
-		exonerate_command = "python3 {}exonerate_alt.py -m {} -t {} {} --prefix {} {} ".format(main_script_dir, memory, threshold, ref_seq_file, os.path.splitext(file_)[0], file_)
+		exonerate_command = "python3 {}exonerate_alt.py -m {} -t {} {} --prefix {} {} ".format(dependencies_dir, memory, threshold, ref_seq_file, os.path.splitext(file_)[0], file_)
 		print(exonerate_command)
 		os.system(exonerate_command)
 
@@ -488,52 +489,51 @@ def check_arg():
 	parser = argparse.ArgumentParser(description='UnFATE: the wrapper script that brings YOU from target enrichment sequencing data straight to phylogenetic tree inference! See the readme file for data structure and additional info.')
 	mandatory_args = parser.add_argument_group("Mandatory or Suggested", "Arguments which are either required for the proper function of main_wrap.py, or should be used.")
 	mandatory_args.add_argument('-c', '--cpu', default= '4', type=int,
-						help='CPU number used by Hybpiper or parallel run of Exonerate, MACSE, RAxML etc.'
-						)
+				    help='CPU number used by Hybpiper or parallel run of Exonerate, MACSE, etc. Defaults to 4.'
+				    )
 	mandatory_args.add_argument('-o', '--out', required=True,
-						help='The directory where output will be placed upon completion. MANDATORY ARGUMENT!'
-						)
-	mandatory_args.add_argument('-b', '--target_markers', default= 'Target_markers_rep_seq_aa.fas',
-						help=' Path to fasta files containing all the sequences used to design the bait set, IT MUST BE A PROTEIN FASTA, USE  AN ABSOLUTE PATH!'
-						)
+				    help='The directory where output will be placed upon completion.'
+				    )
 	data_args = parser.add_argument_group("Data related", "Arguments relating to input data, at least one is required.")
 
 	data_args.add_argument('-t', '--target_enrichment_data', default= '',
-						help='Path to target enriched data. Files must end with "R1.fastq.gz", "R2.fastq.gz" or "SE.fastq.gz". Each sample can either consist of paired end reads or single end reads.',
-						)
+			       help='Path to target enriched data directory. Files must end with "R1.fastq[.gz]", "R2.fastq[.gz]" or "SE.fastq[.gz]".',
+			       )
 	data_args.add_argument('-w', '--whole_genome_data', default= '',
-						help='Input path of de novo whole genome sequence data.'
-						)
+			       help='Path to de novo whole genome sequence data directory. The same naming restrictions apply as with target enrichment data.'
+			       )
 	data_args.add_argument('-a', '--assemblies', default= '',
-						help='Path to assemblies. Files must end with ".fna.gz" or ".fna"',
-						)
+			       help='Path to assemblies directory. Files must end with ".fna[.gz]"',
+			       )
+	data_args.add_argument('-n', '--ncbi_assemblies', nargs = '+',
+			       help='Adds samples from the NCBI assembly database, takes a space-delimited list of taxonomic ranks (e.g. Morchella Tuber Fuffaria). Include AUTO to have main_wrap choose which samples to add (increases run time much more than specifying a group with few samples).'
+			       )
 	optional_args = parser.add_argument_group("Optional", "Arguments which might be useful depending on your circumstances.")
 	optional_args.add_argument('-f', '--first_use', action= 'store_true',
-						help='Modifies some paths in MACSE pipeline folder, use this argument only if is the first time you run the pipeline, then do not move the UnFATE folder.',
-						)
+				   help='Modifies some paths in MACSE pipeline folder, use this argument only if is the first time you run the pipeline, then do not move the UnFATE folder.',
+				   )
+	optional_args.add_argument('-b', '--target_markers', default= 'Target_markers_rep_seq_aa.fas',
+				   help='Path to a protein reference file, must be in the format required by HybPiper. Defaults to our reference file.'
+				   )
 	optional_args.add_argument('-g', '--gblocks_relaxed', action= 'store_true',
-						help='Applies Gblocks with relaxed parameters (Talavera & Castresana, 2007)',
-						)
-	optional_args.add_argument('-n', '--ncbi_assemblies', nargs = '+',
-						help='Extracts the requested pre-mined NCBI assemblies genes from the database, takes a list of taxonomic ranks (e.g. Morchella Tuber Fuffaria). Include AUTO to have main_wrap choose which samples to add (increases run time much more than specifying a group with few samples). More info on AUTO can be found in the README.'
-						)
-	optional_args.add_argument('-x', '--test', action= 'store_true',
-						help='Allows the user to exit early. Each step needs to be started by the user explicitly.'
-						)
+				   help='Applies Gblocks with relaxed parameters (Talavera & Castresana, 2007)',
+				   )
 	optional_args.add_argument('-l', '--low_memory', action= 'store_true',
-						help='Turns off SPAdes assembling of whole genome data before extracting sequences and uses HybPiper instead. Probably not required except on a desktop/laptop.'
-						)
+				   help='Turns off SPAdes assembling of whole genome data before extracting sequences and uses HybPiper instead. Probably not required except on a desktop/laptop.'
+				   )
 	optional_args.add_argument('-y', '--targ_hybpiper', action='store_true',
-						help='Turns off metaSPAdes assembling of target enrichment data before extracting sequences and uses HybPiper instead. Not particularly recommended, as the metaSPAdes and exonerate_hits path has led to better results in our testing.'
-						)
+				   help='Turns off metaSPAdes assembling of target enrichment data before extracting sequences and uses HybPiper instead. Not particularly recommended, as the metaSPAdes and exonerate_hits path has led to better results in our testing.'
+				   )
 	optional_args.add_argument('-m', '--exonerate_mem',
-						help='Limits the memory usage of exonerate when running on an assembly (-a or -w without -l). This does not strictly cap memory usage. More information in the README.',
-						default=256,type=int
-						)
+				   help='Limits the memory usage of exonerate when running on an assembly (-a or -w without -l or -t without -y). This does not strictly cap memory usage. More information in the README.',
+				   default=256,type=int
+				   )
 	optional_args.add_argument('-e', '--threshold', default=55, type=int,
-						help='Threshold for percent identity between contigs and proteins in exonerate_hits. default=55%%'
-						)
-
+				   help='Threshold for percent identity between contigs and proteins in exonerate_hits. default=55%%'
+				   )
+	optional_args.add_argument('-x', '--test', action= 'store_true',
+				   help='Allows the user to exit early. Each step needs to be started by the user explicitly.'
+				   )
 	return parser.parse_args()
 
 args = check_arg()
@@ -546,6 +546,9 @@ def main():
 
 	main_script_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "")
 	print(main_script_dir)
+
+	global dependencies_dir
+	dependencies_dir = os.path.join(main_script_dir, "dependencies/")
 	#print(args.target_enrichment_data)
 	#print(args.assemblies)
 	os.system('ulimit -n 1024000')
@@ -661,7 +664,7 @@ def main():
 			logging.info("*****************************************************************************************************************************")
 			logging.info("          TRIMMING WHOLE GENOME DATA FASTQ FILES  WITH TRIMMOMATC (Bolger et al. 2014)          ")
 			logging.info("*****************************************************************************************************************************")
-			trim_and_get_namelist(main_script_dir, args.whole_genome_data)
+			trim_and_get_namelist(dependencies_dir, args.whole_genome_data)
 			namelist = 'namelist.txt'
 			path_to_namelist = os.path.join(args.whole_genome_data, namelist)
 
@@ -719,7 +722,7 @@ def main():
 			logging.info("          TRIMMING TARGET ENRICHMENT FASTQ FILES  WITH TRIMMOMATC (Bolger et al. 2014)          ")
 			logging.info("*****************************************************************************************************************************")
 			logging.info('Path to TE data: '+args.target_enrichment_data)
-			trim_and_get_namelist(main_script_dir, args.target_enrichment_data)
+			trim_and_get_namelist(dependencies_dir, args.target_enrichment_data) #JACOB
 			namelist = 'namelist.txt'
 			path_to_namelist = os.path.join(args.target_enrichment_data,namelist)
 
@@ -837,7 +840,7 @@ def main():
 
 				os.chdir(auto_dir)
 				logging.info("Concatenating alignments of user samples and db samples")
-				os.system("perl {}/FASconCAT-G_v1.04.pl -i -s".format(main_script_dir))
+				os.system("perl {}/FASconCAT-G_v1.04.pl -i -s".format(dependencies_dir))
 				os.chdir(main_script_dir)
 
 				print(user_samples)
@@ -855,10 +858,6 @@ def main():
 						else:
 							ncbi_accessions.add(sample)
 				print(ncbi_accessions)
-
-				#JACOB
-				#sys.exit("What more would you want?")
-
 
 				#Add sequences from database to sequences from supplied data
 				path_to_premined_combined = os.path.join(main_script_dir, "combined_pre_mined_assemblies")
@@ -922,11 +921,9 @@ def main():
 		logging.info("**********************************************************************************************************")
 		logging.info("          COMPARING RETRIEVED GENES TO REFERENCE SEQUENCES LENGTH          ")
 		logging.info("**********************************************************************************************************")
-		markers_retrieved_percentage_script=main_script_dir + "markers_retrieved_percentage.py"
+		markers_retrieved_percentage_script = os.path.join(dependencies_dir, "markers_retrieved_percentage.py")
 		run_markers_retrieved_percentage = "python3 {} -b {} -f {} ".format(markers_retrieved_percentage_script, args.target_markers, fastas_directory)	
 		os.system(run_markers_retrieved_percentage)
-
-		#end commented out if
 
 		logging.info("*************************************************************************************************************************************")
 		logging.info("          PERFORMING ALIGNMENT WITH OMM_MACSE (Ranwez et al. 2018; Di Franco et al. 2019)           ")
@@ -954,7 +951,7 @@ def main():
 					#os.rename both renames and moves files
 					os.rename(file_path,  path_to_macsed_align + regex1.group(1) + f + ".fas")
 
-		gblocks_path= main_script_dir + "Gblocks"
+		gblocks_path = os.path.join(dependencies_dir, "Gblocks")
 		if args.gblocks_relaxed:
 			logging.info("***********************************************************************************************************")
 			logging.info("          PERFORMING ALIGNMENT FILTERING WITH Gblocks (Castresana, 2000)            ")
@@ -1016,7 +1013,7 @@ def main():
 			os.system("cp -r {}*macsed_final_align_NT.aln.fas_cleaned.fasta {}".format(path_to_macsed_align, path_to_supermatrix_dna))
 			os.system("cp -r {}*macsed_final_align_AA.aln.fas_cleaned.fasta {}".format(path_to_macsed_align, path_to_supermatrix_aa))
 
-		FASconCAT_command = 'perl {}FASconCAT-G_v1.04.pl -l -s'.format(main_script_dir)
+		FASconCAT_command = 'perl {}FASconCAT-G_v1.04.pl -l -s'.format(dependencies_dir)
 		for moleculeType in ["NT", "AA"]:
 			if args.gblocks_relaxed:
 				if moleculeType == "NT":
@@ -1058,7 +1055,7 @@ def main():
 	logging.info("******************************************************************************************************************")
 	logging.info("          RECONSTRUCTING SINGLE MARKER TREES WITH IQTREE2 (Minh et al. 2020)           ")
 	logging.info("******************************************************************************************************************")
-	iqtree_script = main_script_dir + "iqtree2"
+	iqtree_script = os.path.join(dependencies_dir, "iqtree2")
 	#print(path_to_macsed_align)
 	# DNA alignments
 	if args.gblocks_relaxed:
@@ -1076,8 +1073,8 @@ def main():
 		os.system(iqtree_parallel2)
 	# move trees and other iqtree files to the dedicated folder
 	path_to_single_trees = os.path.join(args.out, 'single_locus_trees/')
-	mkdir_raxml_out = "mkdir {}".format(path_to_single_trees)
-	os.system(mkdir_raxml_out)
+	mkdir_single_trees = "mkdir {}".format(path_to_single_trees)
+	os.system(mkdir_single_trees)
 	for root, dirs, files in os.walk(path_to_macsed_align, topdown=True):
 		for f in files:
 			if  f.endswith("treefile") or f.endswith("nex") or f.endswith("parttrees") or f.endswith("gz") or f.endswith("mldist") or f.endswith("log") or f.endswith("iqtree") or f.endswith("contree") or f.endswith("bionj") or f.endswith("best_scheme"):
@@ -1093,7 +1090,7 @@ def main():
 	logging.info("*************************************************************************************************************")
 	logging.info("          RECONSTRUCTING SUPERMATRIX TREE WITH IQTREE2  (Minh et al. 2020)          ")
 	logging.info("*************************************************************************************************************")
-	iqtree_script=main_script_dir + "iqtree2"
+	iqtree_script = os.path.join(dependencies_dir, "iqtree2")
 	if args.gblocks_relaxed:
 		iqtree_on_supermatrix =  "%s -s %s -Q %s -m MFP -B 1000 -T %s --threads-max %s" %(iqtree_script, path_to_supermatrix_gblocked_dna + 'FcC_supermatrix_gblocked_NT.fasta' , path_to_supermatrix_gblocked_dna + 'FcC_supermatrix_partition_gblocked_NT.txt', "AUTO", args.cpu)
 		os.system(iqtree_on_supermatrix)
@@ -1195,7 +1192,7 @@ def main():
 		accessions.write("\n".join(all_accessions))
 
 	# Add taxonomy to the accessions retrieved (get_taxonomy_with edirect script), select species name  and format the .csv file 
-	get_taxonomy_script = main_script_dir + "get_taxonomy_with_edirect.py" 
+	get_taxonomy_script = os.path.join(dependencies_dir, "get_taxonomy_with_edirect.py")
 	get_taxonomy = "python3 {} --accession_file {} --out_file {}".format(get_taxonomy_script, supermatrix_accession_file,  accessions_plus_taxonomy_file)
 	os.system(get_taxonomy)
 	# Clean the taxonomy file to get only "Accession,speciesname"

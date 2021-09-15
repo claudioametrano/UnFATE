@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 import argparse
 from ete3 import Tree
 from glob import glob
@@ -90,11 +92,11 @@ def main():
   script_directory = "/".join(os.path.realpath(__file__).split("/")[:-1])
 #  print(script_directory)
 
-  phyparts_location = os.path.join(script_directory, "phyparts-0.0.1-SNAPSHOT-jar-with-dependencies.jar")
+  phyparts_location = os.path.join(script_directory, "dependencies", "phyparts-0.0.1-SNAPSHOT-jar-with-dependencies.jar")
   phyparts_command = "java -jar {} -a 1 -v -d {} -m {} -o {}".format(phyparts_location, os.path.join(new_path, "testd", ""), new_spTree, out_path)
   os.system(phyparts_command)
   #print(phyparts_command)
-  phypartspiecharts_location = os.path.join(script_directory, "phypartspiecharts.py")
+  phypartspiecharts_location = os.path.join(script_directory, "dependencies", "phypartspiecharts.py")
   phypartspiecharts_command = "python {} {} {} {} --svg_name {}".format(phypartspiecharts_location, new_spTree, out_path, num_trees, os.path.join(new_path, "pies.svg"))
   os.system(phypartspiecharts_command)
   #print(phypartspiecharts_command)

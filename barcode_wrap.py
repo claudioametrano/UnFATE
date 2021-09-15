@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 #reasons this exists:
 #Using multiple loci most likely results in higher resolution phylogenies than just ITS (for example)
@@ -33,11 +33,11 @@ parser.add_argument("-c", "--cpu", default=1, help="number of threads to use")
 parser.add_argument("-b", "--target_markers", help="file with baits for HybPiper")
 args = parser.parse_args()
 
-def trim_and_get_namelist(main_script_dir, data_dir):
-  trimming_cmd = "python3 {}/trimmer.py -f {} -c {}".format(main_script_dir, data_dir, args.cpu)
+def trim_and_get_namelist(exec_dir, data_dir):
+  trimming_cmd = "python3 {}/trimmer.py -f {} -c {}".format(exec_dir, data_dir, args.cpu)
   os.system(trimming_cmd)
   #Get namelist.txt from dataset directory
-  namelist_cmd = 'python3 {}/getNameList.py -f {}'.format(main_script_dir, data_dir + "/")
+  namelist_cmd = 'python3 {}/getNameList.py -f {}'.format(exec_dir, data_dir + "/")
   os.system(namelist_cmd)
 
 def run_hybpiper(main_script_dir, data_dir):
@@ -52,7 +52,7 @@ def run_hybpiper(main_script_dir, data_dir):
       run_Hybpiper = '{}/HybPiper/reads_first.py -b {} -r {}  --prefix {}/{} --cpu {} '.format(main_script_dir, args.target_markers, sample_path, data_dir, line.strip(), args.cpu)
       print("running HybPiper with: " + run_Hybpiper)
       os.system(run_Hybpiper)
-      clean_command = "{}/HybPiper/cleanup.py {}".format(main_script_dir, line.strip())
+      clean_command = "{}/HybPiper/cleanup.py {}".format(main_script_dir, os.path.join(data_dir, line.strip(), ""))
       os.system(clean_command)
       os.chdir(main_script_dir)
 
@@ -142,16 +142,6 @@ def find_similar_samples(query, taxes):
   aln = AlignIO.read(open(os.path.join(args.out, "fastas", "FcC_supermatrix.fas")), "fasta")
   for record in aln:
     record.seq = record.seq.upper()
-    #record.seq = record.seq.replace("W", "N")
-    #record.seq = record.seq.replace("S", "N")
-    #record.seq = record.seq.replace("M", "N")
-    #record.seq = record.seq.replace("K", "N")
-    #record.seq = record.seq.replace("R", "N")
-    #record.seq = record.seq.replace("Y", "N")
-    #record.seq = record.seq.replace("B", "N")
-    #record.seq = record.seq.replace("D", "N")
-    #record.seq = record.seq.replace("H", "N")
-    #record.seq = record.seq.replace("V", "N")
 
   #distances will be calculated with a basic 2-parameter model
   calc = DistanceCalculator("trans", skip_letters=["N", "-", "W", "S", "M", "K", "R", "Y", "B", "D", "H", "V"])
@@ -204,7 +194,7 @@ def align_similar_samples():
     baseName = file.split("/")[-1]
     os.system(mafft_command.format(args.cpu, file, os.path.join(args.out, "fastas", "aligned_" + baseName)))
 
-def run_gblocks(isFew, main_script_dir):
+def run_gblocks(isFew, exec_dir):
   files = []
   if isFew:
     files = glob(os.path.join(args.out, "fastas", "aligned_few*.fasta"))
@@ -224,7 +214,7 @@ def run_gblocks(isFew, main_script_dir):
     b1 = str(round(count * fraction1))
     b2 = str(round(count * fraction2))
     print("Number of char in a column of the alignment to be considered conserved and flanking regions, respectively: ", b1, b2)
-    start_Gblocks = "{} {} -t=d -b1={} -b2={} -b3=10 -b4=5 -b5=h -e=-gb".format(os.path.join(main_script_dir, "Gblocks"), file, b1, b2)
+    start_Gblocks = "{} {} -t=d -b1={} -b2={} -b3=10 -b4=5 -b5=h -e=-gb".format(os.path.join(exec_dir, "Gblocks"), file, b1, b2)
     print(start_Gblocks)
 
     #*.fasta -> *.fasta-gb
@@ -248,9 +238,9 @@ def run_gblocks(isFew, main_script_dir):
       #we want to remove *.fasta-gb.htm
       os.remove(file)
 
-def make_trees(main_script_dir):
+def make_trees(exec_dir):
   iqtree_command = "{}/iqtree2 -m TEST -s {} -T AUTO --threads-max {} --prefix {}/final_fastas"
-  os.system(iqtree_command.format(main_script_dir, os.path.join(args.out, "final_fastas"), args.cpu, os.path.join(args.out, "trees")))
+  os.system(iqtree_command.format(exec_dir, os.path.join(args.out, "final_fastas"), args.cpu, os.path.join(args.out, "trees")))
 
 def rename_terminals(main_script_dir):
   with open(os.path.join(main_script_dir, "combined_pre_mined_assemblies", "Accession_plus_taxonomy_Pezizomycotina.txt")) as tax_file, \
@@ -272,6 +262,8 @@ def rename_terminals(main_script_dir):
 def main():
   main_script_dir = os.path.realpath(__file__)
   main_script_dir = "/".join(main_script_dir.split("/")[:-1])
+  dependencies_dir = os.path.join(main_script_dir, "dependencies")
+
   args.out = os.path.realpath(args.out)
   args.target_markers = os.path.realpath(args.target_markers)
   args.reads = [os.path.realpath(read) for read in args.reads]
@@ -292,7 +284,7 @@ def main():
   reads_dir = os.path.join(args.out, "reads")
 
   print("\n***  Trimming  ***\n")
-  trim_and_get_namelist(main_script_dir, reads_dir)
+  trim_and_get_namelist(dependencies_dir, reads_dir)
   if len(args.reads) == 2:
     gunzip_fastq = 'parallel -j {} gunzip ::: {}*_paired.fastq.gz'.format(args.cpu, reads_dir + "/")
     os.system(gunzip_fastq)
@@ -313,10 +305,10 @@ def main():
 
 
   add_fastas(reads_dir, False, main_script_dir)
-  run_gblocks(False, main_script_dir)
+  run_gblocks(False, dependencies_dir)
   os.chdir(os.path.join(args.out, "fastas"))
   fasconcat_command = "perl {}/FASconCAT-G_v1.04.pl -i -s"
-  os.system(fasconcat_command.format(main_script_dir))
+  os.system(fasconcat_command.format(dependencies_dir))
   os.chdir(main_script_dir)
 
   #TESTING test_samples = ['Trypethelium_eluteriae_NAN5_GGAGCTAC-CTCCTTAC_L008', 'GCA_005059845.1_ASM505984v1_genomic', 'GCA_001692895.1_Cenococcum_geophilum_1.58_v2.0_genomic', 'GCA_001455585.1_Dip_scr_CMW30223_v1.0_genomic', 'GCA_001307955.1_ASM130795v1_genomic', 'GCA_001307945.1_ASM130794v1_genomic', 'GCA_015295685.1_ASM1529568v1_genomic', 'GCA_000281105.1_Coni_apol_CBS100218_V1_genomic', 'GCA_000504465.1_CryAan1.0_genomic', 'GCA_001692915.1_Glonium_stellatum_CBS_207.34_v1.0_genomic', 'GCA_002111425.1_ASM211142v1_genomic', 'GCA_010015785.1_Sacpr1_genomic', 'GCA_010093885.1_Aplpr1_genomic', 'GCA_009829795.1_ASM982979v1_genomic', 'GCA_008931885.1_ASM893188v1_genomic', 'GCA_009829455.1_ASM982945v1_genomic', 'GCA_009829845.1_ASM982984v1_genomic', 'GCA_001307885.1_ASM130788v1_genomic', 'GCA_009829855.1_ASM982985v1_genomic', 'GCA_001307935.1_ASM130793v1_genomic', 'GCA_011057605.1_IIL_Mf_1.0_genomic']
@@ -333,7 +325,7 @@ def main():
   align_similar_samples()
   run_gblocks(True, main_script_dir)
   print("\n*** Making a tree ***\n")
-  make_trees(main_script_dir)
+  make_trees(dependencies_dir)
   rename_terminals(main_script_dir)
 
 if __name__=="__main__":
