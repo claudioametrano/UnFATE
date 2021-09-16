@@ -2,9 +2,10 @@
 
 #### Universal Filamentous Ascomycetes Target Enrichment bait set and wrapper script for phylogenetics and genome-based barcoding
 
-## Workflow
 The wrapper is designed to be easy to use and to provide a fast way from target enrichment data, assemblies, and/or whole genome sequence to phylogenetic tree.
 In order to avoid the installation of dependencies and external software, that often lead to problems for inexperienced users (...well, not only for them), most of the software needed by UnFATE is already included in this repository, therefore, acknowledge their work by citing them!!.
+
+## Workflow
                                                                                                                                                                            
 1. Data from:  **Target enrichment** sequencing (Also Whole Genome Sequencing data are accepted), **Assemblies** (At least one between target enrichment and assembly data must be provided).  
 **Representative sequences** used to build the bait set (included in the repository: Target_markers_rep_seq_aa.fas)  
@@ -17,7 +18,7 @@ In order to avoid the installation of dependencies and external software, that o
 
 5. Fasta files are built from retrieved markers, eventually adding the markers from the pre-mined database of NCBI assemblies included in UnFATE repository (if you plan to use it, make sure you download the repository from the browser interface, or install the Github large file storage system before you git clone UnFATE)
 
-6. **MACSE2.03** pipline **OMM_MACSE10.02**  to perform codon-aware alignment and segment-based filtering **(HMMcleaner 1.8)**
+6. **MACSE2.03** pipeline **OMM_MACSE10.02** to perform codon-aware alignment and segment-based filtering **(HMMcleaner 1.8)**
 
 7. **Gblocks 0.91b** to add an optional second block-based filtering step
 

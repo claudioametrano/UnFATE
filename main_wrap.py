@@ -113,7 +113,6 @@ def select_best_reference_seq(prot_file_path, assemblies_path, cpu):
 	os.system(remove_lot_of_files)
 	return()
 
-#add function to get sample names that mirrors get_fastas_exonerate()
 def get_names(path_to_data, isAssemblies):
 	if isAssemblies:
 		search_location = os.path.join(path_to_data, "*", "sequences")
@@ -125,7 +124,6 @@ def get_names(path_to_data, isAssemblies):
 		found_samples.add(result.split("/")[-2])
 	print(found_samples)
 	return list(found_samples)
-
 
 def get_fastas_exonerate(path_to_data, isAssemblies):
 	for moleculeType in ["FNA", "FAA"]:
@@ -176,7 +174,7 @@ def find_similar_samples(query, user_samples, data_dir, cpus):
 	ids = [record.id for record in aln]
 	querySeq = sequences[queryIndex]
 
-	scores = [] #list of tuples to alllow sorting
+	scores = [] # will be in form of: [(index, score), ...]
 
 	with multiprocessing.Pool(cpus) as p:
 		scores=p.starmap(get_score, [(querySeq, seq, i, calc, len(sequences)) for i,seq in enumerate(sequences)])
@@ -369,7 +367,6 @@ def run_exonerate_hits(file_, ref_seq_file, memory, threshold):
 		print(exonerate_command)
 		os.system(exonerate_command)
 
-
 def run_exonerate(data_dir):
 	path_to_assemblies = data_dir
 	logging.info("... it can be time consuming, it depends on assembly dimension")
@@ -421,6 +418,10 @@ def run_exonerate(data_dir):
 	pool = multiprocessing.Pool(processes=args.cpu)
 	pool.starmap(run_exonerate_hits, list_of_list)
 
+""" Leaving these in because they might be interesting in the future, but they might have large issues
+These would allow a "hybrid" method of capturing sequences where both assembly/exonerate and Hybpiper are used
+This would be useful in cases where assembly/exonerate performs poorly on some genes, but decently on others
+Our testing so far has suggested that this problem is quite rare, so we stopped working on this path
 def check_coverage(data_dir):
 	blastFiles = glob("*best_blast_scoring*")
 	samples = ["_".join(file.split("_")[:-7]) for file in blastFiles] #there might be _ in sample, :-7 removes consistent suffix
@@ -478,7 +479,7 @@ def run_hybpiper_selectively(data_dir, toRerun, main_script_dir):
 		os.system(run_Hybpiper)
 		clean_command = "{}HybPiper/cleanup.py {}".format(main_script_dir, os.path.join(data_dir, sample+"_HybPiper"))
 		os.system(clean_command)
-
+"""
 
 
 def checkTestContinue(user_input):
@@ -646,7 +647,7 @@ def main():
 				unzip_premined_assemblies = "tar -C {} -Jxf {}".format(main_script_dir, path_to_premined)
 				os.system(unzip_premined_assemblies)
 
-			path_to_premined = main_script_dir + "combined_pre_mined_assemblies/"
+			#path_to_premined = main_script_dir + "combined_pre_mined_assemblies/"
 			path_to_taxonomy = main_script_dir + "Accession_plus_taxonomy_Pezizomycotina.txt"
 			for item in args.ncbi_assemblies:
 				if item == "AUTO":
@@ -687,7 +688,7 @@ def main():
 				os.system(gzip_fastq)
 			else:
 				logging.info("*****************************************************************************************************************************")
-				logging.info("          ASSEMBLING WHOLE GENOME DATA WITH SPADES (***CITATION NEEDED***)          ")
+				logging.info("          ASSEMBLING WHOLE GENOME DATA WITH SPAdes (Prjibelski et al., 2020)          ")
 				logging.info("*****************************************************************************************************************************")
 				with open(path_to_namelist) as namelistFile:
 					for name in namelistFile:
@@ -713,8 +714,8 @@ def main():
 				logging.info("          PERFORMING ASSEMBLED WGS DATA ANALYSIS WITH Exonerate (Slater & Birney 2005)       ")
 				logging.info("********************************************************************************************************************")
 				run_exonerate(args.whole_genome_data)
-				#toRerun = check_coverage(args.whole_genome_data) #returns {sample:[genes to rerun]}
-				#run_hybpiper_selectively(args.whole_genome_data, toRerun, main_script_dir)
+				#toRerun = check_coverage(args.whole_genome_data) #returns {sample:[genes to rerun]} #function definition commented
+				#run_hybpiper_selectively(args.whole_genome_data, toRerun, main_script_dir)	#function definition commented
 
 		#create hybpiper output in target_enrichment/
 		if args.target_enrichment_data:
@@ -730,7 +731,7 @@ def main():
 				#we only need to unzip if using HybPiper
 				logging.info("Gunzipping paired reads trimmed fastq archives")
 				gunzip_fastq =' parallel -j {} gunzip ::: {}*_paired.fastq.gz'.format(args.cpu, args.target_enrichment_data)
-				os.system(gunzip_fastq)  # We dont' care about the unpaired reads if paired end are used
+				os.system(gunzip_fastq)  # We don't care about the unpaired reads if paired end are used
 				gunzip_fastq = 'parallel -j {} gunzip ::: {}*trimmed.fastq.gz'.format(args.cpu, args.target_enrichment_data)
 				os.system(gunzip_fastq)  # This covers single end reads
 
@@ -748,7 +749,7 @@ def main():
 
 			else:
 				logging.info("*****************************************************************************************************************************")
-				logging.info("          ASSEMBLING TARGET ENRICHMENT DATA WITH METASPADES (***CITATION NEEDED***)          ")
+				logging.info("          ASSEMBLING TARGET ENRICHMENT DATA WITH METASPADES (Nurk et al., 2017)          ")
 				logging.info("*****************************************************************************************************************************")
 				with open(path_to_namelist) as namelistFile:
 					for name in namelistFile:
@@ -821,13 +822,13 @@ def main():
 			logging.info("           ADDING SELECTED TAXONOMIC RANKS GENES FROM PRE-MINED ASSEMBLY DATABASE           ")
 			logging.info("****************************************************************************************************************************")
 
-			#remove requirement for AUTO to be exclusive: add other stuff anyway, but make sure there aren't duplicates
 			if "AUTO" in args.ncbi_assemblies:
 				logging.info("Using mafft to align your sequences with sequences from the database")
 				#align new stuff in fastas/ with pre-aligned stuff
 				#make supermatrix
 				#find scores (discussion on this elsewhere)
-				#add stuff we want to fastas (if they can have the same name as if nothing happened, we don't need to change anything below)
+				#add samples we want to ncbi_accessions
+
 				auto_dir = os.path.join(args.out, "auto_selection")
 				if not os.path.isdir(auto_dir):
 					os.mkdir(auto_dir)
@@ -857,34 +858,34 @@ def main():
 							found_user_samples.add(sample)
 						else:
 							ncbi_accessions.add(sample)
-				print(ncbi_accessions)
+			print(ncbi_accessions)
 
-				#Add sequences from database to sequences from supplied data
-				path_to_premined_combined = os.path.join(main_script_dir, "combined_pre_mined_assemblies")
-				for fasta in glob(os.path.join(args.out, "fastas", "*.fasta")):
-					#logging.info("NCBI to fasta FASTA: " + fasta)
-					baseName = fasta.split("/")[-1].split("_")[1]
-					moleculeType = fasta.split("/")[-1].split("_")[2]
-					#logging.info("NCBI to fasta MOLECULETYPE: " + moleculeType)
-					if moleculeType == "protein":
-						with open(os.path.join(path_to_premined_combined, "combined_" + baseName + ".FAA")) as proteinIn, open(fasta, 'a') as proteinOut:
-							for line in proteinIn:
-								if line.startswith(">"):
-									for accession in ncbi_accessions:
-										if accession in line:
-											proteinOut.write(line)
-											sequenceLine = proteinIn.readline()
-											proteinOut.write(sequenceLine)
+			#Add sequences from database to sequences from supplied data
+			path_to_premined_combined = os.path.join(main_script_dir, "combined_pre_mined_assemblies")
+			for fasta in glob(os.path.join(args.out, "fastas", "*.fasta")):
+				#logging.info("NCBI to fasta FASTA: " + fasta)
+				baseName = fasta.split("/")[-1].split("_")[1]
+				moleculeType = fasta.split("/")[-1].split("_")[2]
+				#logging.info("NCBI to fasta MOLECULETYPE: " + moleculeType)
+				if moleculeType == "protein":
+					with open(os.path.join(path_to_premined_combined, "combined_" + baseName + ".FAA")) as proteinIn, open(fasta, 'a') as proteinOut:
+						for line in proteinIn:
+							if line.startswith(">"):
+								for accession in ncbi_accessions:
+									if accession in line:
+										proteinOut.write(line)
+										sequenceLine = proteinIn.readline()
+										proteinOut.write(sequenceLine)
 
-					if moleculeType == "nucleotide":
-						with open(os.path.join(path_to_premined_combined, "combined_" + baseName + ".FNA")) as nucIn, open(fasta, 'a') as nucOut:
-							for line in nucIn:
-								if line.startswith(">"):
-									for accession in ncbi_accessions:
-										if accession in line:
-											nucOut.write(line)
-											sequenceLine = nucIn.readline()
-											nucOut.write(sequenceLine)
+				if moleculeType == "nucleotide":
+					with open(os.path.join(path_to_premined_combined, "combined_" + baseName + ".FNA")) as nucIn, open(fasta, 'a') as nucOut:
+						for line in nucIn:
+							if line.startswith(">"):
+								for accession in ncbi_accessions:
+									if accession in line:
+										nucOut.write(line)
+										sequenceLine = nucIn.readline()
+										nucOut.write(sequenceLine)
 
 
 		# Remove empty fastas, just in case there are no sequences for a specific gene

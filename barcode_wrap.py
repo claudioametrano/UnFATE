@@ -1,9 +1,5 @@
 #!/usr/bin/env python3
 
-#reasons this exists:
-#Using multiple loci most likely results in higher resolution phylogenies than just ITS (for example)
-#
-
 #workflow:
 #trim fastqs (trimmomatic)
 #HybPiper
@@ -68,7 +64,6 @@ def get_taxes(main_script_dir):
   return taxes
 
 def add_fastas(path_to_data, isAssemblies, main_script_dir):
-#  for moleculeType in ["FNA"]:
   if isAssemblies:
     search_location = os.path.join(path_to_data, "*", "sequences", "FNA", "*")
   else:
@@ -79,13 +74,6 @@ def add_fastas(path_to_data, isAssemblies, main_script_dir):
     inFasta = os.path.join(main_script_dir, "msa_test", "truncatedIDs_" + geneName + ".fasta")
     outFasta = os.path.join(args.out, "fastas", "added_" + geneName + ".fasta")
     os.system(mafft_command.format(args.cpu, filename, inFasta, outFasta))
-
-#    if moleculeType == "FNA":
-#    with open(filename) as inFile, open(os.path.join(args.out, "fastas", "Alignment_" + geneName + "_nucleotide_merged.fasta"), 'a') as outFile:
-#      outFile.write(inFile.read())
-#  if moleculeType == "FAA":
-#    with open(filename) as inFile, open(os.path.join(args.out, "fastas", "Alignment_" + geneName + "_protein_merged.fasta"), 'a') as outFile:
-#      outFile.write(inFile.read())
 
 def set_up_dirs():
   if not os.path.isdir(args.out):
@@ -151,7 +139,7 @@ def find_similar_samples(query, taxes):
   ids = [record.id for record in aln]
   querySeq = sequences[queryIndex]
 
-  scores = [] #list of tuples to allow sorting
+  scores = [] #list of tuples with index and score
 
   with multiprocessing.Pool(int(args.cpu)) as p:
     scores=p.starmap(get_score, [(querySeq, seq, i, calc, len(sequences)) for i,seq in enumerate(sequences)])
@@ -297,13 +285,12 @@ def main():
   query_sample = run_hybpiper(main_script_dir, reads_dir)
 
   #unpackage ncbi assemblies if not already done
-  #extracted sequences from query reads will be added to the pre mined assemblies
   if not os.path.isdir(os.path.join(main_script_dir, "combined_pre_mined_assemblies/")):
     unzip_premined_assemblies = "tar -C {} -Jxf {}".format(main_script_dir, os.path.join(main_script_dir, "combined_pre_mined_assemblies.tar.xz"))
     os.system(unzip_premined_assemblies)
   taxes = get_taxes(main_script_dir)
 
-
+  #extracted sequences from query reads will be added to the pre mined assemblies
   add_fastas(reads_dir, False, main_script_dir)
   run_gblocks(False, dependencies_dir)
   os.chdir(os.path.join(args.out, "fastas"))
@@ -311,15 +298,10 @@ def main():
   os.system(fasconcat_command.format(dependencies_dir))
   os.chdir(main_script_dir)
 
-  #TESTING test_samples = ['Trypethelium_eluteriae_NAN5_GGAGCTAC-CTCCTTAC_L008', 'GCA_005059845.1_ASM505984v1_genomic', 'GCA_001692895.1_Cenococcum_geophilum_1.58_v2.0_genomic', 'GCA_001455585.1_Dip_scr_CMW30223_v1.0_genomic', 'GCA_001307955.1_ASM130795v1_genomic', 'GCA_001307945.1_ASM130794v1_genomic', 'GCA_015295685.1_ASM1529568v1_genomic', 'GCA_000281105.1_Coni_apol_CBS100218_V1_genomic', 'GCA_000504465.1_CryAan1.0_genomic', 'GCA_001692915.1_Glonium_stellatum_CBS_207.34_v1.0_genomic', 'GCA_002111425.1_ASM211142v1_genomic', 'GCA_010015785.1_Sacpr1_genomic', 'GCA_010093885.1_Aplpr1_genomic', 'GCA_009829795.1_ASM982979v1_genomic', 'GCA_008931885.1_ASM893188v1_genomic', 'GCA_009829455.1_ASM982945v1_genomic', 'GCA_009829845.1_ASM982984v1_genomic', 'GCA_001307885.1_ASM130788v1_genomic', 'GCA_009829855.1_ASM982985v1_genomic', 'GCA_001307935.1_ASM130793v1_genomic', 'GCA_011057605.1_IIL_Mf_1.0_genomic']
-  #TESTING query_sample = "DRR234452"
-
-
   print("\n*** Finding most similar sequences in database ***\n")
   similar_samples = find_similar_samples(query_sample, taxes)
   print("\n*** Adding genes from HybPiper to genes in database  ***\n")
   extract_similar_samples(similar_samples)
-  #TESTING extract_similar_samples(test_samples)
 
   print("\n*** Aligning sequences ***\n")
   align_similar_samples()
