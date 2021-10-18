@@ -21,7 +21,7 @@ def seq_percentage(bait_file_aa_path, alignments_folder_path, plot_heatmap ):
 	logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.INFO)
 	gene_names = []
 	reference_lengths = {}
-	## Generate a dictionary whit gene names associated with average length of the reference sequences
+	## Generate a dictionary with gene names associated with average length of the reference sequences
 	# read fasta, split the header (.id in SeqIO) using "-" as delimiter and take the last element [-1]
 	for prot in SeqIO.parse(bait_file_aa_path,"fasta"):
 		protname = prot.id.split("-")[-1]
@@ -113,14 +113,21 @@ def seq_percentage(bait_file_aa_path, alignments_folder_path, plot_heatmap ):
 		logging.info("Exporting the length table as heatmap to 'gene_lengths_heatmap.pdf' in the 'fastas' folder")
 		plt.savefig(alignments_folder_path + 'gene_lengths_heatmap.pdf')"""
 
-	fig, ax = plt.subplots(figsize=(11,8.5))
-	seaborn.heatmap(ndf, cmap="Greens", vmin=0, xticklabels=1, yticklabels=1)
+	seaborn.set(font_scale=.4)
+	fig, ax = plt.subplots(figsize=(10.5,7))
+	seaborn.heatmap(ndf,
+			cmap="Greens",
+			vmin=0,
+			vmax=1,
+			xticklabels=1,
+			yticklabels=1,
+		       )
 	if plot_heatmap:
 		logging.info("Plotting the heatmap...")
 		plt.show()
 	else:
 		logging.info("Exporting the normalized length table as heatmap to 'gene_lengths_normalized_heatmap.pdf' in the 'fastas' folder")
-		plt.savefig(alignments_folder_path + 'gene_lengths_normalized_heatmap.pdf')
+		plt.savefig(alignments_folder_path + 'gene_lengths_normalized_heatmap.pdf', bbox_inches="tight")
 
 
 # starts the function

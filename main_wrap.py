@@ -1,5 +1,9 @@
 #!/usr/bin/env python3
 
+#pre-mined stuff should eventually be:
+#xzed dir of aligned dna
+#xzed dir of unaligned aa
+
 import shutil
 import re
 import os
@@ -84,33 +88,39 @@ def select_best_reference_seq(prot_file_path, assemblies_path, cpu):
 
 	# remove all the garbage needed to blast
 	# find is used in order to pass to the remove command one file at a time, otherwise if there are too many files the rm command throws the error:"-bash: /bin/rm: Argument list too long" 
-	extension = "*_ref.fasta"
-	remove_lot_of_files = "find %s -type f -name '%s' -exec rm {} \;" %(assemblies_path, extension)
-	os.system(remove_lot_of_files)
+	extensions = ["*_ref.fasta", "*.nin", "*.nsq", "*.nhr", "*.ndb", "*.nto", "*.not", "*.ntf"]
+	for extension in extensions:
+		remove_lot_of_files = "find %s -type f -name '%s' -exec rm {} \;" %(assemblies_path, extension)
+		os.system(remove_lot_of_files)
+
+
+#	extension = "*_ref.fasta"
+#	remove_lot_of_files = "find %s -type f -name '%s' -exec rm {} \;" %(assemblies_path, extension)
+#	os.system(remove_lot_of_files)
 	#extension = "*_blastout.tsv"
 	#remove_lot_of_files = "find %s -type f -name '%s' -exec rm {} \;" %(assemblies_path, extension)
 	#os.system(remove_lot_of_files)
-	extension = "*.nin"
-	remove_lot_of_files = "find %s -type f -name '%s' -exec rm {} \;" %(assemblies_path, extension)
-	os.system(remove_lot_of_files)
-	extension = "*.nsq"
-	remove_lot_of_files = "find %s -type f -name '%s' -exec rm {} \;" %(assemblies_path, extension)
-	os.system(remove_lot_of_files)
-	extension = "*.nhr"
-	remove_lot_of_files = "find %s -type f -name '%s' -exec rm {} \;" %(assemblies_path, extension)
-	os.system(remove_lot_of_files)
-	extension = "*.ndb"
-	remove_lot_of_files = "find %s -type f -name '%s' -exec rm {} \;" %(assemblies_path, extension)
-	os.system(remove_lot_of_files)
-	extension = "*.nto"
-	remove_lot_of_files = "find %s -type f -name '%s' -exec rm {} \;" %(assemblies_path, extension)
-	os.system(remove_lot_of_files)
-	extension = "*.not"
-	remove_lot_of_files = "find %s -type f -name '%s' -exec rm {} \;" %(assemblies_path, extension)
-	os.system(remove_lot_of_files)
-	extension = "*.ntf"
-	remove_lot_of_files = "find %s -type f -name '%s' -exec rm {} \;" %(assemblies_path, extension)
-	os.system(remove_lot_of_files)
+#	extension = "*.nin"
+#	remove_lot_of_files = "find %s -type f -name '%s' -exec rm {} \;" %(assemblies_path, extension)
+#	os.system(remove_lot_of_files)
+#	extension = "*.nsq"
+#	remove_lot_of_files = "find %s -type f -name '%s' -exec rm {} \;" %(assemblies_path, extension)
+#	os.system(remove_lot_of_files)
+#	extension = "*.nhr"
+#	remove_lot_of_files = "find %s -type f -name '%s' -exec rm {} \;" %(assemblies_path, extension)
+#	os.system(remove_lot_of_files)
+#	extension = "*.ndb"
+#	remove_lot_of_files = "find %s -type f -name '%s' -exec rm {} \;" %(assemblies_path, extension)
+#	os.system(remove_lot_of_files)
+#	extension = "*.nto"
+#	remove_lot_of_files = "find %s -type f -name '%s' -exec rm {} \;" %(assemblies_path, extension)
+#	os.system(remove_lot_of_files)
+#	extension = "*.not"
+#	remove_lot_of_files = "find %s -type f -name '%s' -exec rm {} \;" %(assemblies_path, extension)
+#	os.system(remove_lot_of_files)
+#	extension = "*.ntf"
+#	remove_lot_of_files = "find %s -type f -name '%s' -exec rm {} \;" %(assemblies_path, extension)
+#	os.system(remove_lot_of_files)
 	return()
 
 def get_names(path_to_data, isAssemblies):
@@ -120,9 +130,9 @@ def get_names(path_to_data, isAssemblies):
 		search_location = os.path.join(path_to_data, "*", "exonerate_genelist.txt")
 	found_samples = set()
 	for result in glob(search_location):
-		print(result)
+		#print(result)
 		found_samples.add(result.split("/")[-2])
-	print(found_samples)
+	#print(found_samples)
 	return list(found_samples)
 
 def get_fastas_exonerate(path_to_data, isAssemblies):
@@ -397,6 +407,8 @@ def run_exonerate(data_dir):
 		memory = int(args.exonerate_mem / assemblies_count)
 	else:
 		memory = int(args.exonerate_mem / int(args.cpu))
+	if memory == 0:
+		memory = 1
 	#print(ref_list)
 	list_of_list = []
 	for z in pezizo_list:
@@ -489,19 +501,19 @@ def checkTestContinue(user_input):
 def check_arg():
 	parser = argparse.ArgumentParser(description='UnFATE: the wrapper script that brings YOU from target enrichment sequencing data straight to phylogenetic tree inference! See the readme file for data structure and additional info.')
 	mandatory_args = parser.add_argument_group("Mandatory or Suggested", "Arguments which are either required for the proper function of main_wrap.py, or should be used.")
-	mandatory_args.add_argument('-c', '--cpu', default= '4', type=int,
-				    help='CPU number used by Hybpiper or parallel run of Exonerate, MACSE, etc. Defaults to 4.'
-				    )
 	mandatory_args.add_argument('-o', '--out', required=True,
-				    help='The directory where output will be placed upon completion.'
+				    help='The directory where output will be placed upon completion. Required.'
 				    )
-	data_args = parser.add_argument_group("Data related", "Arguments relating to input data, at least one is required.")
+	mandatory_args.add_argument('-c', '--cpu', default= '4', type=int,
+				    help='CPU number used by Hybpiper or parallel run of Exonerate, MACSE, etc. Defaults to 4. Recommended.'
+				    )
 
+	data_args = parser.add_argument_group("Data related", "Arguments relating to input data, at least one is required.")
 	data_args.add_argument('-t', '--target_enrichment_data', default= '',
-			       help='Path to target enriched data directory. Files must end with "R1.fastq[.gz]", "R2.fastq[.gz]" or "SE.fastq[.gz]".',
+			       help='Path to target enriched data directory. Run metagenomic reads with this flag to avoid errors with SPAdes. Files must end with "_R1.fastq[.gz]", "_R2.fastq[.gz]" or "_SE.fastq[.gz]".',
 			       )
 	data_args.add_argument('-w', '--whole_genome_data', default= '',
-			       help='Path to de novo whole genome sequence data directory. The same naming restrictions apply as with target enrichment data.'
+			       help='Path to de novo whole genome sequence data directory. Reads are assumed to be from isolates. The same naming restrictions apply as with target enrichment data.'
 			       )
 	data_args.add_argument('-a', '--assemblies', default= '',
 			       help='Path to assemblies directory. Files must end with ".fna[.gz]"',
@@ -509,15 +521,16 @@ def check_arg():
 	data_args.add_argument('-n', '--ncbi_assemblies', nargs = '+',
 			       help='Adds samples from the NCBI assembly database, takes a space-delimited list of taxonomic ranks (e.g. Morchella Tuber Fuffaria). Include AUTO to have main_wrap choose which samples to add (increases run time much more than specifying a group with few samples).'
 			       )
+
 	optional_args = parser.add_argument_group("Optional", "Arguments which might be useful depending on your circumstances.")
 	optional_args.add_argument('-f', '--first_use', action= 'store_true',
 				   help='Modifies some paths in MACSE pipeline folder, use this argument only if is the first time you run the pipeline, then do not move the UnFATE folder.',
 				   )
-	optional_args.add_argument('-b', '--target_markers', default= 'Target_markers_rep_seq_aa.fas',
+	optional_args.add_argument('-b', '--target_markers', default= 'UnFATE_markers_195.fas',
 				   help='Path to a protein reference file, must be in the format required by HybPiper. Defaults to our reference file.'
 				   )
-	optional_args.add_argument('-g', '--gblocks_relaxed', action= 'store_true',
-				   help='Applies Gblocks with relaxed parameters (Talavera & Castresana, 2007)',
+	optional_args.add_argument('-g', '--no_gblocks', action= 'store_true',
+				   help='Disables Gblocks with relaxed parameters (Talavera & Castresana, 2007)',
 				   )
 	optional_args.add_argument('-l', '--low_memory', action= 'store_true',
 				   help='Turns off SPAdes assembling of whole genome data before extracting sequences and uses HybPiper instead. Probably not required except on a desktop/laptop.'
@@ -540,7 +553,7 @@ def check_arg():
 args = check_arg()
 def main():
 	logging.info("Arguments are: {}".format(args))
-	testPrompt = "Finished {}, next step is {}: (C)ontinue or (Q)uit?"
+	testPrompt = "Finished {}, next step is {}: (C)ontinue or (Q)uit? "
 
 	#print(args)
 	global main_script_dir
@@ -566,24 +579,24 @@ def main():
 		#os.system(clone_MACSE)
 		#logging.info("MACSE alignment pipeline cloned")
 		
-		# commands to modity OMM_MACSE main script and utilities with the right path to them instead of installing Singularity to use it
+		# commands to modify OMM_MACSE main script and utilities with the right path to them instead of installing Singularity to use it
 		MACSE_dir = main_script_dir + "MACSE_V2_PIPELINES/OMM_MACSE/"
 		MACSE_script = MACSE_dir + "S_OMM_MACSE_V10.02.sh"
 		MACSE_utils_dir = main_script_dir + "MACSE_V2_PIPELINES/UTILS"
 		for filename in (os.listdir(MACSE_dir)):
 			if filename == "S_OMM_MACSE_V10.02.sh":
-					fin = open(MACSE_dir + "/" + filename, "rt")
-					data = fin.read()
-					data = data.replace('LG_UTILS=${LG_UTILS_PATH}','LG_UTILS=' + MACSE_utils_dir)
-					data = data.replace('mafft="${LG_MAFFT} --quiet $ALIGNER_EXTRA_OPTION"', 'mafft="mafft --quiet $ALIGNER_EXTRA_OPTION"')
-					data = data.replace('muscle="${LG_MUSCLE} $ALIGNER_EXTRA_OPTION"', 'muscle="muscle $ALIGNER_EXTRA_OPTION"')
-					data = data.replace('prank="${LG_PRANK} $ALIGNER_EXTRA_OPTION"', 'prank="prank $ALIGNER_EXTRA_OPTION"')
-					data = data.replace('hmmcleaner="perl ${LG_HMMCLEANER}"', 'hmmcleaner="perl ' + MACSE_utils_dir + '/HMMcleanerV1_8_VR2/HMMcleanAA_VR.pl"')
-					data = data.replace('macse="java -jar -Xmx${JAVA_MEM} ${LG_MACSE}"', 'macse="java -jar -Xms1g -Xmx2g ' + MACSE_utils_dir + '/macse_v2.03.jar"')
-					fin.close()
-					fin = open(MACSE_dir + "/" + filename, "wt")
-					fin.write(data)
-					fin.close()
+				fin = open(MACSE_dir + "/" + filename, "rt")
+				data = fin.read()
+				data = data.replace('LG_UTILS=${LG_UTILS_PATH}','LG_UTILS=' + MACSE_utils_dir)
+				data = data.replace('mafft="${LG_MAFFT} --quiet $ALIGNER_EXTRA_OPTION"', 'mafft="mafft --quiet $ALIGNER_EXTRA_OPTION"')
+				data = data.replace('muscle="${LG_MUSCLE} $ALIGNER_EXTRA_OPTION"', 'muscle="muscle $ALIGNER_EXTRA_OPTION"')
+				data = data.replace('prank="${LG_PRANK} $ALIGNER_EXTRA_OPTION"', 'prank="prank $ALIGNER_EXTRA_OPTION"')
+				data = data.replace('hmmcleaner="perl ${LG_HMMCLEANER}"', 'hmmcleaner="perl ' + MACSE_utils_dir + '/HMMcleanerV1_8_VR2/HMMcleanAA_VR.pl"')
+				data = data.replace('macse="java -jar -Xmx${JAVA_MEM} ${LG_MACSE}"', 'macse="java -jar -Xms1g -Xmx2g ' + MACSE_utils_dir + '/macse_v2.03.jar"')
+				fin.close()
+				fin = open(MACSE_dir + "/" + filename, "wt")
+				fin.write(data)
+				fin.close()
 		for filename in (os.listdir(MACSE_utils_dir + "/LGS_Fasta")):
 			if filename == "S_fasta1L.sh":
 				fin1 = open(MACSE_utils_dir + "/LGS_Fasta" + "/" + filename, "rt")
@@ -604,7 +617,7 @@ def main():
 	#path_to_merged_alignments = os.path.join(args.out, "alignments_merged/")
 	path_to_macsed_align = os.path.join(args.out, 'macsed_alignments/')
 	path_to_supermatrix= os.path.join(args.out, 'supermatrix/')
-	if args.gblocks_relaxed:
+	if not args.no_gblocks:
 		path_to_supermatrix_gblocked_dna = path_to_supermatrix +"supermatrix_gblocked_dna/"
 		path_to_supermatrix_gblocked_aa = path_to_supermatrix + "supermatrix_gblocked_aa/"
 	else:
@@ -641,10 +654,16 @@ def main():
 		#we might want to change this to store accessions, instead of writing to a file
 		if args.ncbi_assemblies:
 			logging.info("Finding accessions for samples with specified taxonomy from database ")
-			path_to_premined = main_script_dir + "combined_pre_mined_assemblies.tar.xz"
 
-			if not os.path.isdir(main_script_dir + "combined_pre_mined_assemblies/"):
-				unzip_premined_assemblies = "tar -C {} -Jxf {}".format(main_script_dir, path_to_premined)
+			#unzip pre-mined database if still zipped
+			path_to_premined_dna = main_script_dir + "pre_mined_dna.tar.xz"
+			if not os.path.isdir(main_script_dir + "pre_mined_dna/"):
+				unzip_premined_assemblies = "tar -C {} -Jxf {}".format(main_script_dir, path_to_premined_dna)
+				os.system(unzip_premined_assemblies)
+
+			path_to_premined_aa = main_script_dir + "pre_mined_aa.tar.xz"
+			if not os.path.isdir(main_script_dir + "pre_mined_aa/"):
+				unzip_premined_assemblies = "tar -C {} -Jxf {}".format(main_script_dir, path_to_premined_aa)
 				os.system(unzip_premined_assemblies)
 
 			#path_to_premined = main_script_dir + "combined_pre_mined_assemblies/"
@@ -754,7 +773,7 @@ def main():
 				with open(path_to_namelist) as namelistFile:
 					for name in namelistFile:
 						name = name.strip()
-						if len(glob(os.path.join(args.out, "target_enrichment_data", name + "*R*trimmed_paired.fastq.gz"))) == 2:
+						if len(glob(os.path.join(args.out, "target_enrichment_data", name + "_R*trimmed_paired.fastq.gz"))) == 2:
 							sample_R1_path = os.path.join(args.out, "target_enrichment_data", name + "_R1.trimmed_paired.fastq.gz")
 							sample_R2_path = os.path.join(args.out, "target_enrichment_data", name + "_R2.trimmed_paired.fastq.gz")
 							spades_out_path = os.path.join(args.out, "target_enrichment_data", name + "_spades/")
@@ -835,7 +854,7 @@ def main():
 				for file in glob(os.path.join(args.out, "fastas", "*nucleotide*.fasta")):
 					geneName = file.split("/")[-1].split("_")[1] #fastas/abc_123at4980_protein_merged.fasta
 					mafft_command = "mafft --retree 1 --thread {} --add {} {} > {}"
-					prealignedFile = os.path.join(main_script_dir, "msa_test", "truncatedIDs_{}.fasta".format(geneName))
+					prealignedFile = os.path.join(main_script_dir, "pre_mined_dna", "combined_{}.FNA".format(geneName))
 					newFile = os.path.join(auto_dir, "added_{}.fasta".format(geneName))
 					os.system(mafft_command.format(args.cpu, file, prealignedFile, newFile))
 
@@ -861,14 +880,15 @@ def main():
 			print(ncbi_accessions)
 
 			#Add sequences from database to sequences from supplied data
-			path_to_premined_combined = os.path.join(main_script_dir, "combined_pre_mined_assemblies")
+			path_to_premined_aa = os.path.join(main_script_dir, "pre_mined_aa")
+			path_to_premined_dna = os.path.join(main_script_dir, "pre_mined_dna")
 			for fasta in glob(os.path.join(args.out, "fastas", "*.fasta")):
 				#logging.info("NCBI to fasta FASTA: " + fasta)
 				baseName = fasta.split("/")[-1].split("_")[1]
 				moleculeType = fasta.split("/")[-1].split("_")[2]
 				#logging.info("NCBI to fasta MOLECULETYPE: " + moleculeType)
 				if moleculeType == "protein":
-					with open(os.path.join(path_to_premined_combined, "combined_" + baseName + ".FAA")) as proteinIn, open(fasta, 'a') as proteinOut:
+					with open(os.path.join(path_to_premined_aa, "combined_" + baseName + ".FAA")) as proteinIn, open(fasta, 'a') as proteinOut:
 						for line in proteinIn:
 							if line.startswith(">"):
 								for accession in ncbi_accessions:
@@ -878,7 +898,7 @@ def main():
 										proteinOut.write(sequenceLine)
 
 				if moleculeType == "nucleotide":
-					with open(os.path.join(path_to_premined_combined, "combined_" + baseName + ".FNA")) as nucIn, open(fasta, 'a') as nucOut:
+					with open(os.path.join(path_to_premined_dna, "combined_" + baseName + ".FNA")) as nucIn, open(fasta, 'a') as nucOut:
 						for line in nucIn:
 							if line.startswith(">"):
 								for accession in ncbi_accessions:
@@ -923,7 +943,7 @@ def main():
 		logging.info("          COMPARING RETRIEVED GENES TO REFERENCE SEQUENCES LENGTH          ")
 		logging.info("**********************************************************************************************************")
 		markers_retrieved_percentage_script = os.path.join(dependencies_dir, "markers_retrieved_percentage.py")
-		run_markers_retrieved_percentage = "python3 {} -b {} -f {} ".format(markers_retrieved_percentage_script, args.target_markers, fastas_directory)	
+		run_markers_retrieved_percentage = "python3 {} -b {} -f {} ".format(markers_retrieved_percentage_script, args.target_markers, fastas_directory)
 		os.system(run_markers_retrieved_percentage)
 
 		logging.info("*************************************************************************************************************************************")
@@ -934,7 +954,7 @@ def main():
 
 		MACSE_dir = main_script_dir + "MACSE_V2_PIPELINES/OMM_MACSE/"
 		MACSE_script = MACSE_dir + "S_OMM_MACSE_V10.02.sh"
-		# As OMM_MACSE uses soft masking put all the sequences in upper case before alignment and filtering 
+		# As OMM_MACSE uses soft masking put all the sequences in upper case before alignment and filtering
 		run_OMM_MACSE = 'find %s -type f -name "*_nucleotide_merged_headmod.fas" | parallel -j %s %s --out_dir {}_out --out_file_prefix macsed --in_seq_file {} --no_prefiltering --no_postfiltering --alignAA_soft MAFFT  --min_percent_NT_at_ends 0.01 ' %(fastas_directory, args.cpu, MACSE_script)
 		os.system(run_OMM_MACSE)
 		logging.info(run_OMM_MACSE)
@@ -947,13 +967,13 @@ def main():
 				if f.endswith("_final_align_NT.aln") or f.endswith("_final_align_AA.aln"):
 					#print(root)
 					#print(f)
-					file_path = root +"/"+ f   
+					file_path = root +"/"+ f
 					regex1 =re.search("Alignment_(\S+)_nucleotide_merged_headmod.fas_out",root)
 					#os.rename both renames and moves files
 					os.rename(file_path,  path_to_macsed_align + regex1.group(1) + f + ".fas")
 
 		gblocks_path = os.path.join(dependencies_dir, "Gblocks")
-		if args.gblocks_relaxed:
+		if not args.no_gblocks:
 			logging.info("***********************************************************************************************************")
 			logging.info("          PERFORMING ALIGNMENT FILTERING WITH Gblocks (Castresana, 2000)            ")
 			logging.info("***********************************************************************************************************")
@@ -1000,14 +1020,14 @@ def main():
 		make_supermatrix_folder="mkdir {} ".format(path_to_supermatrix)
 		os.system(make_supermatrix_folder)
 
-		if args.gblocks_relaxed:
+		if not args.no_gblocks:
 			os.system("mkdir {}".format(path_to_supermatrix_gblocked_dna))
 			os.system("mkdir {}".format(path_to_supermatrix_gblocked_aa))
 		else:
 			os.system("mkdir {}".format(path_to_supermatrix_dna))
 			os.system("mkdir {}".format(path_to_supermatrix_aa))
 
-		if args.gblocks_relaxed:
+		if not args.no_gblocks:
 			os.system("cp -r {}*macsed_final_align_NT.aln.fas-gb_cleaned.fasta {}".format(path_to_macsed_align, path_to_supermatrix_gblocked_dna))
 			os.system("cp -r {}*macsed_final_align_AA.aln.fas-gb_cleaned.fasta {}".format(path_to_macsed_align, path_to_supermatrix_gblocked_aa))
 		else:
@@ -1016,7 +1036,7 @@ def main():
 
 		FASconCAT_command = 'perl {}FASconCAT-G_v1.04.pl -l -s'.format(dependencies_dir)
 		for moleculeType in ["NT", "AA"]:
-			if args.gblocks_relaxed:
+			if not args.no_gblocks:
 				if moleculeType == "NT":
 					os.chdir(path_to_supermatrix_gblocked_dna)
 				else:
@@ -1047,11 +1067,10 @@ def main():
 
 		os.chdir(main_script_dir)
 
-	if args.test:
-		test_input = input(testPrompt.format("alignment and concatenation", "single tree reconstruction"))
-		if not checkTestContinue(test_input):
-			sys.exit("exited after concatenating alignments")
-
+		if args.test:
+			test_input = input(testPrompt.format("alignment and concatenation", "single tree reconstruction"))
+			if not checkTestContinue(test_input):
+				sys.exit("exited after concatenating alignments")
 
 	logging.info("******************************************************************************************************************")
 	logging.info("          RECONSTRUCTING SINGLE MARKER TREES WITH IQTREE2 (Minh et al. 2020)           ")
@@ -1059,14 +1078,14 @@ def main():
 	iqtree_script = os.path.join(dependencies_dir, "iqtree2")
 	#print(path_to_macsed_align)
 	# DNA alignments
-	if args.gblocks_relaxed:
+	if not args.no_gblocks:
 		iqtree_parallel1 = "find %s -type f  -name '*_final_align_NT.aln.fas-gb_cleaned.fasta' | parallel -j %s %s  -s {} -m MFP -B 1000 -T 1" %(path_to_macsed_align, args.cpu, iqtree_script)
 		os.system(iqtree_parallel1)
 	else:
 		iqtree_parallel = "find %s -type f  -name '*_final_align_NT.aln.fas_cleaned.fasta' | parallel -j %s %s -s {} -m MFP -B 1000 -T 1" %(path_to_macsed_align, args.cpu, iqtree_script)
 		os.system(iqtree_parallel)
 	# Amino acid alignments
-	if args.gblocks_relaxed:
+	if not args.no_gblocks:
 		iqtree_parallel3 = "find %s -type f  -name '*_final_align_AA.aln.fas-gb_cleaned.fasta' | parallel -j %s %s  -s {} -m MFP -B 1000 -T 1" %(path_to_macsed_align, args.cpu, iqtree_script)
 		os.system(iqtree_parallel3)
 	else:
@@ -1092,7 +1111,7 @@ def main():
 	logging.info("          RECONSTRUCTING SUPERMATRIX TREE WITH IQTREE2  (Minh et al. 2020)          ")
 	logging.info("*************************************************************************************************************")
 	iqtree_script = os.path.join(dependencies_dir, "iqtree2")
-	if args.gblocks_relaxed:
+	if not args.no_gblocks:
 		iqtree_on_supermatrix =  "%s -s %s -Q %s -m MFP -B 1000 -T %s --threads-max %s" %(iqtree_script, path_to_supermatrix_gblocked_dna + 'FcC_supermatrix_gblocked_NT.fasta' , path_to_supermatrix_gblocked_dna + 'FcC_supermatrix_partition_gblocked_NT.txt', "AUTO", args.cpu)
 		os.system(iqtree_on_supermatrix)
 		iqtree_on_supermatrix =  "%s -s %s -Q %s -m MFP -B 1000 -T %s --threads-max %s" %(iqtree_script, path_to_supermatrix_gblocked_aa + 'FcC_supermatrix_gblocked_AA.fasta' , path_to_supermatrix_gblocked_aa + 'FcC_supermatrix_partition_gblocked_AA.txt', "AUTO", args.cpu)
@@ -1116,7 +1135,7 @@ def main():
 	path_to_supertree = os.path.join(args.out,'supertree/')
 	os.system("mkdir {}".format(path_to_supertree))
 
-	if args.gblocks_relaxed:
+	if not args.no_gblocks:
 		gblocked_text = "gblocked_"
 	else:
 		gblocked_text = "" #don't add "gblocked_" to output files or directories
@@ -1163,7 +1182,7 @@ def main():
 	logging.info("          CONVERTING ACCESSIONS IN THE TREES, if any, TO SPECIES NAME")
 	logging.info("*************************************************************************************************")
 	# Open one of the suprematrices, making a list of accession sample name
-	if args.gblocks_relaxed:
+	if not args.no_gblocks:
 		supermatrix_file = path_to_supermatrix_gblocked_dna + 'FcC_supermatrix_gblocked_NT.fasta'
 	else:
 		supermatrix_file = path_to_supermatrix_dna + 'FcC_supermatrix_NT.fasta'
