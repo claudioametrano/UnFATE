@@ -141,7 +141,7 @@ def subsume_supercontigs(supercontigs):
 
 def write_exonerate_stats(contig_id_list,prefix):
     '''Given a list of IDs from initial exonerate search, write info to a standard file'''
-    with open("{}/exonerate_stats.csv".format(prefix),'w') as exonerate_statsfile:
+    with open("{}/exonerate_stats.csv".format(prefix),'a') as exonerate_statsfile: #changed to 'a' for UnFATE
         exonerate_statsfile.write("\n".join(contig_id_list)+'\n')
 
 

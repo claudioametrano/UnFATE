@@ -7,10 +7,10 @@ In order to avoid the installation of dependencies and external software, that o
 
 ## Workflow
                                                                                                                                                                            
-1. Data from:  **Target enrichment** sequencing (Also Whole Genome Sequencing data are accepted), **Assemblies** (At least one between target enrichment and assembly data must be provided).  
-**Representative sequences** used to build the bait set (included in the repository: Target_markers_rep_seq_aa.fas)  
+1. Data from:  **Target enrichment** sequencing, **Whole genome sequencing**, **Assemblies**  
+**Representative sequences** used to build the bait set (included in the repository: UnFATE_markers_195.fas)  
 
-2. **Exonerate 2.2.0** and Exonerate_hits.py script from Hybpiper to mine genes from assemblies using the amino acid  representative sequences fasta file (the best reference sequence is selected by BLAST)
+2. **Exonerate 2.2.0** and exonerate_hits.py script from Hybpiper to mine genes from assemblies using the amino acid  representative sequences fasta file (the best reference sequence is selected by BLAST)
                               
 3. **Trimmomatic 0.39** to trim Illumina paired reads .fastq.gz from TE or WGS 
 
@@ -57,10 +57,11 @@ If you need to move the folder, re-run with `--first-run`, but it may be necessa
 2. Read the help section of the script to set up the command line for your analysis:  
 `python3 main_wrap.py --help`
 
-3. Set up file extensions: Sequencing data must be in files ending in _R(direction).fastq(.gz) or _SE.fastq(.gz). Assemblies must be in fasta files ending in .fna(.gz).
+3. Set up file extensions: Sequencing data must be in files ending in _R(direction).fastq(.gz) or _SE.fastq(.gz). 
+Assemblies must be in fasta files ending in .fna(.gz). Additionally, gblocks requires sample names to be a reasonable length (<30-ish characters, I don't know the exact number).
 
 4. Run UnFATE using the command line. For example:
-`python3 main_wrap.py -b ~/path/to/protein/fasta/Target_markers_rep_seq_aa.fas -t ~/path/to/target_enrichment/ -a ~/path/to/assemblies/ --gblocks --cpu 8 -n Tuber Morchella --first_use -o ~/path/to/output/`
+`python3 main_wrap.py -b ~/path/to/protein/fasta/UnFATE_markers_195.fas -t ~/path/to/target_enrichment/ -a ~/path/to/assemblies/ --gblocks --cpu 8 -n Tuber Morchella --first_use -o ~/path/to/output/`
 
   * Consider running the script from a "tmux" detachable session, as the run can be very long, according to how many samples you have (this tools is usually preinstalled in Linux)  
   * Analyses with hundreds of samples should be run on server-grade hardware!  
@@ -91,8 +92,8 @@ The UnFATE output will be placed in many folders within the location specified b
 * The "PhyParts" folder will be made if `pie_wrap.py` is run. The key output is pies.svg, but the full phyparts output will be present as well.
  
 ## `barcode_wrap.py`
-`barcode_wrap.py` is a spinoff of `main_wrap.py`. This script handles multilocus barcoding of target enrichment or WGS data. It assumes that the input fastq files represents a single species.
-`barcode_wrap.py` finds the 20 most closely related samples to the input data in our pre-mined database from NCBI (skipping samples if there are already 4 representatives from its species), then builds a tree of those 21 samples using as many genes as possible (up to 196).
+`barcode_wrap.py` is a spinoff of `main_wrap.py`. This script handles multilocus barcoding of target enrichment or WGS data as well as assemblies. It assumes that the input file(s) represent a single species.
+`barcode_wrap.py` finds the most closely related samples to the input data in our pre-mined database from NCBI (skipping samples if there are already a configurable number of representatives from its species), then builds a tree of those samples using as many genes as possible (up to 195).
 The specificity of the taxonomy inferred from the output trees will depend on the completeness of the pre-mined database. Species level identification could be possible in highly sequenced groups such as Aspergillaceae, but is less likely in groups with few sequenced genomes. 
 Specificity will increase as more genomes are added to NCBI and as more organisms are sequenced using our baits.
 
@@ -102,9 +103,9 @@ Specificity will increase as more genomes are added to NCBI and as more organism
 A possible usage of `barcode_wrap.py` is to find a closely related group to one of your samples, then run `main_wrap.py` with all of your samples and all members of that group using the `-n <taxon>` argument.
 `barcode_wrap.py` does not allow running multiple samples in one run. If you have multiple samples, consider running `main_wrap.py -n AUTO`.
 
-The output directories of `barcode_wrap.py` generally mirror the output directories of `main_wrap.py`. The "reads" directory contains the raw and trimmed reads supplied, as well as the HybPiper output.
-The "fastas" directory contains various forms of the genes extracted from the input added to the pre-mined data. The "final_fastas" directory contains the genes extracted from the input aligned to the genes from the database, ran through Gblocks with relaxed parameters.
-The "trees" directory contains the iqtree2 output from running on the "final_fastas" directory, in addition to a treefile where the accession numbers from NCBI have been replaced with binomials.
+The output directories of `barcode_wrap.py` generally mirror the output directories of `main_wrap.py`. The "input" directory contains the raw and trimmed reads supplied, as well as the HybPiper or spades and exonerate output if fastqs are supplied. If an fna is supplied, the contents will be the exonerate results split into multiple parts.
+The "fastas" directory contains various forms of the genes extracted from the input added to the pre-mined data. The "final_fastas" directory contains the genes extracted from the input aligned to the genes from the samples selected from the database, ran through Gblocks with relaxed parameters.
+The "trees" directory contains the iqtree2 output from running on the "final_fastas" directory, in addition to a treefile where the accession numbers from NCBI have been replaced with binomials (final_fastas_named.treefile).
 
 ## Please cite: 
 The wrapper script relies on many great software developed by other people. If you use this wrapper and bait set please cite:
