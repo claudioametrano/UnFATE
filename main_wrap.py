@@ -1,9 +1,5 @@
 #!/usr/bin/env python3
 
-#pre-mined stuff should eventually be:
-#xzed dir of aligned dna
-#xzed dir of unaligned aa
-
 import shutil
 import re
 import os

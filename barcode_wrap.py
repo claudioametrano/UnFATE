@@ -120,10 +120,6 @@ def select_best_reference_seq(prot_file_path, assemblies_path, cpu):
 
   fnas = glob(os.path.join(assemblies_path, "*.fna"))
   samples = [fna.split("/")[-1][:-4] for fna in fnas] #fna = "/gar/abc.fna", keep "abc"
-  #list_of_lists = [[sample, ref_gene_list, assemblies_path, cpu] for sample in samples] #[["abc", ["1", "2"], "/gar/assemblies/"],...]
-
-  #pool = multiprocessing.Pool(processes=cpu)
-  #pool.starmap(blast_individual_sample, list_of_lists)
 
   blast_individual_sample(samples[0], ref_gene_list, assemblies_path, cpu)
 
@@ -196,8 +192,8 @@ def run_exonerate_part(data_dir, fna_file, dependencies_dir, partNum, sampleName
     os.system(exonerate_command)
 
 def run_exonerate(data_dir, dependencies_dir, markers, cpu, mem, thresh):
-  #To parallelize this step, the best_blast_hits are split into groups of ceil(195/cpu)
-  #We make part{0..cpu-1} directories, then use part#/regularPrefix as prefix so that sampleID is kept
+  #to parallelize this step, the best_blast_hits are split into groups of ceil(195/cpu)
+  #we make part{0..cpu-1} directories, then use part#/regularPrefix as prefix so that sampleID is kept
   #add_fasta then just needs to look one wildcard deeper than before
   for file in glob(os.path.join(data_dir, "*.fna.gz")):
     os.system("gunzip -f {}".format(file))
@@ -205,27 +201,23 @@ def run_exonerate(data_dir, dependencies_dir, markers, cpu, mem, thresh):
   select_best_reference_seq(markers, data_dir, cpu)
 
   pezizo_list = glob(os.path.join(data_dir, "*.fna"))
-#  assemblies_count = len(pezizo_list)
-
   ref_list = glob(os.path.join(data_dir, "*_best_blast_*.fas"))
+  fna_file = pezizo_list[0]
+  fline = open(fna_file).readline()
 
   split_markers_file(data_dir, ref_list[0], cpu)
 
-  fna_file = pezizo_list[0]
-  #ref_seq_file = ref_list[0]
-
-  fline = open(fna_file).readline()
   regex_spades_header = search("^>NODE_[0-9]+_length_[0-9]+_cov_[0-9]+",fline)
-
   if regex_spades_header != None:
     useHits = True
   else:
     useHits = False
 
   sampleName = os.path.splitext(fna_file.split("/")[-1])[0]
-
   partMem = ceil(mem / cpu)
 
+  #this is the list of lists of arguments for running exonerate on each part of the input.
+  #everything stays the same except for the part number, and the number of parts is equal to the number of cpus
   exonerate_part_args = [[data_dir, fna_file, dependencies_dir, i, sampleName, partMem, thresh, useHits] for i in range(cpu)]
 
   pool = multiprocessing.Pool(processes=cpu)
@@ -392,23 +384,6 @@ def run_gblocks(isFew, exec_dir, cpu):
   else:
     files = glob(os.path.join(args.out, "fastas", "added_*.fasta"))
 
-#  fraction1=0.56
-#  fraction2=0.56
-#  b3=10
-#  b4=5
-#  for file in files:
-#    print( 'File being processed: {}'.format(file))
-
-#    count = 0
-#    with open(file) as inFile:
-#      count = inFile.read().count(">")
-#    print("The alignment has: ", count ," sequences")
-#    b1 = str(round(count * fraction1))
-#    b2 = str(round(count * fraction2))
-#    print("Number of char in a column of the alignment to be considered conserved and flanking regions, respectively: ", b1, b2)
-#    start_Gblocks = "{} {} -t=d -b1={} -b2={} -b3=10 -b4=5 -b5=h -e=-gb".format(os.path.join(exec_dir, "Gblocks"), file, b1, b2)
-#    print(start_Gblocks)
-
   exec_and_files = [[exec_dir, file] for file in files]
 
   pool = multiprocessing.Pool(processes=cpu)
@@ -441,12 +416,9 @@ def rename_terminals(fullTaxes):
       open(os.path.join(args.out, "trees", "final_fastas_named.treefile"), "w") as tree_out:
     tree = tree_in.read()
     accessions = findall(r"GCA_[\d]+\.\d", tree)
+
+    #{accession: "Genus species (strain info if present)", ...}
     accessionToSp = {accession: fullTaxes[accession] for accession in accessions if accession in fullTaxes.keys()}
-    """accessionToSp = {}
-    for line in tax_file:
-      line = line.strip().split(",")
-      if line[0] in accessions:
-        accessionToSp[line[0]] = line[1]"""
 
     accPlusRestRegex = r"{}[^:]*" #{} and .format works with regex
     for accession, sp in accessionToSp.items():
