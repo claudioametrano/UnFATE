@@ -7,11 +7,12 @@ import re
 import seaborn
 import matplotlib.pyplot as plt
 import logging
+from glob import glob
 
 @click.command()
 @click.option('--bait_file_aa_path','-b', default='./all_genes_names_FG_2_Hybpiper_format_aa.fas', help='path to baits file')
 @click.option('--alignments_folder_path','-f', default='.', help='path of the folder containing the fasta files')
-@click.option('--plot_heatmap','-p', is_flag=True, help=' if used, plots the heatmap using the dataframe (WARNING: do not use on a server, it need a GUI)')
+@click.option('--plot_heatmap','-p', is_flag=True, help=' if used, plots the heatmap using the dataframe (WARNING: do not use on a server, it needs a GUI)')
 
 def seq_percentage(bait_file_aa_path, alignments_folder_path, plot_heatmap ):
 	""" Takes the protein fasta (the reference sequences) and the alignment files.
@@ -44,6 +45,8 @@ def seq_percentage(bait_file_aa_path, alignments_folder_path, plot_heatmap ):
 	logging.info("Dictionary of genes and their reference sequences average length:")
 	logging.info(avg_ref_len_dict)
 
+	logging.info("Making list of samples...")
+
 	# Makes a list of the samples: append all the header to a list that eliminate redundancy doing a set (not efficient but works)
 	sample_list = []
 	for f in os.listdir(alignments_folder_path):
@@ -53,30 +56,53 @@ def seq_percentage(bait_file_aa_path, alignments_folder_path, plot_heatmap ):
 	sample_list = set(sample_list)
 	#print(sample_list)
 
+	logging.info("List of samples:")
+	logging.info(sample_list)
+
 	## Makes a table that associate samples (Genome Accessions) to gene length (pandas dataframe??)
 	# a dataframe is created: columns are the gene names, rows (index) are the samples
 	data_frame = pandas.DataFrame(columns = unique_names, index = sample_list )
 	#print(data_frame)
 
+	fastas = glob(os.path.join(alignments_folder_path, "*_protein_merged.fasta"))
+	for i, file in enumerate(fastas):
+		if i % 25 == 0:
+			logging.info("Processing file {} of {}".format(i, len(fastas)))
+
+		sample_gene_length_dict = {}
+		regex = re.search(r"Alignment_(\S+)_protein_merged\.fasta",file)
+		# every alignment is converted to a dictionary containing the sample name and its sequence length value
+		for protein in SeqIO.parse(file ,"fasta"):
+		        sample_gene_length_dict[protein.id] = len(protein.seq)
+
+		# dataframe is filled column by column (regex.group(1) is the gene name)
+		data_frame[regex.group(1)] = pandas.Series(sample_gene_length_dict)
+		# add a row (.loc is for that purpose, otherwise is a column) with reference sequences average length
+		data_frame.loc['REFERENCE_AVG_LENGTH'] = pandas.Series(avg_ref_len_dict)
+		#print(sample_gene_length_dict)
+
+
+	"""
 	# iterate over the alignments
 	for f in os.listdir(alignments_folder_path):
 		if f.endswith("_protein_merged.fasta"):
 			sample_gene_length_dict = {}
-			regex = re.search(r"Alignment_([^_]+)_protein_merged\.fasta",f)
+			regex = re.search(r"Alignment_(\S+)_protein_merged\.fasta",f)
 			# every alignment is converted to a dictionary containing the sample name and its sequence length value
 			for protein in SeqIO.parse(alignments_folder_path + f ,"fasta"):
 				sample_gene_length_dict[protein.id] = len(protein.seq)
-				# dataframe is filled column by column (regex.group(1) is the gene name)
-				data_frame[regex.group(1)] = pandas.Series(sample_gene_length_dict)
-				# add a row (.loc is for that purpose, otherwise is a column) with reference sequences average length
-				data_frame.loc['REFERENCE_AVG_LENGTH'] = pandas.Series(avg_ref_len_dict)
-			#print(sample_gene_lenght_dict)
+
+			# dataframe is filled column by column (regex.group(1) is the gene name)
+			data_frame[regex.group(1)] = pandas.Series(sample_gene_length_dict)
+			# add a row (.loc is for that purpose, otherwise is a column) with reference sequences average length
+			data_frame.loc['REFERENCE_AVG_LENGTH'] = pandas.Series(avg_ref_len_dict)
+			#print(sample_gene_length_dict)
 		else:
 			pass
 
 			#print(protein.id)
 			#print(protein.seq)
-
+	"""
 	indeces = list(data_frame.index)
 	ref_index = indeces.pop()
 	indeces.sort()

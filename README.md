@@ -2,8 +2,9 @@
 
 #### Universal Filamentous Ascomycetes Target Enrichment bait set and wrapper script for phylogenetics and genome-based barcoding
 
-The wrapper is designed to be easy to use and to provide a fast way from target enrichment data, assemblies, and/or whole genome sequence to phylogenetic tree.
-In order to avoid the installation of dependencies and external software, that often lead to problems for inexperienced users (...well, not only for them), most of the software needed by UnFATE is already included in this repository, therefore, acknowledge their work by citing them!!.
+The wrapper scripts are designed to be easy to use and to provide a fast way from target enrichment data, assemblies, and/or whole genome sequence to phylogenetic trees.
+
+In order to avoid the installation of dependencies and external software, that often lead to problems for inexperienced users (...well, not only for them), most of the software needed by UnFATE is already included in this repository, therefore, acknowledge their work by citing them!!
 
 ## Workflow
                                                                                                                                                                            
@@ -22,11 +23,11 @@ In order to avoid the installation of dependencies and external software, that o
 
 7. **Gblocks 0.91b** to add an optional second block-based filtering step
 
-8. **IQTREE2** is used for single locus phylogenetic inference
+8. **IQ-TREE 2** is used for single locus phylogenetic inference
 
 9. **FASconCAT-G_v1.04** is used to concatenate single marker alignments into a supermatrix
 
-10. **IQTREE2** is used for the supermatrix phylogenetic inference
+10. **IQ-TREE 2** is used for the supermatrix phylogenetic inference
 
 11. **ASTRAL 5.7.7** is used to build the species tree from single locus trees
   
@@ -40,15 +41,11 @@ Prerequisites/Dependencies:
   * `bash ~/path/to/Anaconda3-2020.02-Linux-x86_64.sh`
   * Answer "yes" to conda init
   * Restart Ubuntu, it should show the (base) conda environment at the beginning of your command line
-* Install HybPiper dependencies:  
-   * BIOPYTHON 1.59 or later : `conda install biopython`
-   * BLAST command line tools: `conda install -c bioconda blast`
-   * SPAdes: `conda install -c bioconda spades` 
-   * EXONERATE: `conda install -c bioconda exonerate` 
-* Install miscellaneous dependencies:
-   * Python packages: `conda install pandas seaborn click`
+* Install dependencies using conda:  
+   * `conda install -c bioconda blast spades exonerate` 
+   * `conda install biopython pandas seaborn click`
 
-* Install phypartspiecharts dependencies (if desired):
+* Install phypartspiecharts dependencies (if you want to run pie_wrap.py):
    * ete3 and ete_toolchain: `conda install -c etetoolkit ete3 ete_toolchain`, then check installation with `ete3 build check`
 
 1. Clone the UnFATE repository (or download the .zip file from Github browser interface). Choose a position for the UnFATE folder you like, do not move the repository after the first run (use the argument `--first_use`).
@@ -58,20 +55,19 @@ If you need to move the folder, re-run with `--first-run`, but it may be necessa
 `python3 main_wrap.py --help`
 
 3. Set up file extensions: Sequencing data must be in files ending in _R(direction).fastq(.gz) or _SE.fastq(.gz). 
-Assemblies must be in fasta files ending in .fna(.gz). Additionally, gblocks requires sample names to be a reasonable length (<30-ish characters, I don't know the exact number).
+Assemblies must be in fasta files ending in .fna(.gz). Additionally, Gblocks requires sample names to be a reasonable length (<30-ish characters, I don't know the exact number).
 
 4. Run UnFATE using the command line. For example:
-`python3 main_wrap.py -b ~/path/to/protein/fasta/UnFATE_markers_195.fas -t ~/path/to/target_enrichment/ -a ~/path/to/assemblies/ --gblocks --cpu 8 -n Tuber Morchella --first_use -o ~/path/to/output/`
+`python3 main_wrap.py -b ~/path/to/protein/fasta/UnFATE_markers_195.fas -t ~/path/to/target_enrichment/ -a ~/path/to/assemblies/ --c 8 -n Tuber Morchella --f -o ~/path/to/output/`
 
-  * Consider running the script from a "tmux" detachable session, as the run can be very long, according to how many samples you have (this tools is usually preinstalled in Linux)  
-  * Analyses with hundreds of samples should be run on server-grade hardware!  
+  * Consider running the script from a "tmux" detachable session, as the run can be very long, according to how many samples you have (this tools is usually preinstalled in Linux). Analyses with hundreds of samples should be run on server-grade hardware!  
   * Consider logging the script output with `python3 main_wrap.py {params} |& tee <logfile>`. This saves the stdout and stderr from running main_wrap.py into \<logfile\> as well as printing it to the console.
   * The pre-mined NCBI database is accessed with the `-n` argument. If you add AUTO to the list of groups you want, main_wrap.py will use a similar method to barcode_wrap to find the closest samples in the database. With the most dissimilar inputs, main_wrap will add 10 samples from the database per user sample. More closely related samples could have closer to 10 samples added overall.
   * Although the script was written with our bait set in mind, it should work with any amino acid target file in the format required by HybPiper. If using an external baitfile, the pre-mined NCBI data will not be usable or helpful.
   * There are two ways to reduce the memory requirements of UnFATE depending on your input data. If you are supplying whole genome data, you can use the `-l` flag to run HybPiper instead of spades then exonerate. This greatly reduces memory requirements. If you are supplying assemblies, or can assemble whole genome data but have trouble running exonerate (look for "Killed" in the output), use `-m <memory in GB>` to reduce the memory used by exonerate. Memory usage can't be strictly limited to the specified value unfortunately, so you will want to set the value below your actual limit.
   * If you wish to use HybPiper to capture sequences from your target enrichment reads, use the `-y` flag. This is kept seperate from the low memory flag which causes HybPiper to be used for WGS data as assembly of reads from target enrichment is not nearly as memory intensive as assembling a whole genome.
 
-5.  Cross your fingers and wait, good luck!  ...Take into account that the script parallelizes using the `--cpu n` you specify as an argument, HybPiper and Exonerate will process n samples at a time. The same number of cpu is then used to parallelize IQTREE runs for single locus trees and for concatenated supermatrices.  
+5.  Cross your fingers and wait, good luck!  ...Take into account that the script parallelizes using the `--cpu n` you specify as an argument, HybPiper and Exonerate will process n samples at a time. The same number of cpu is then used to parallelize IQ-TREE runs for single locus trees and for concatenated supermatrices.  
 
 6. A run can be resumed if the script is terminated before generating trees, but after generating supermatrices. This will happen automatically if the output directory contains the assemblies/ and/or target_enrichment/, fastas/, macsed_alignments/, and supermatrix/ directories. Please remove any tree directories from the output directory (if present) before resuming to avoid errors.
 
@@ -85,10 +81,10 @@ The UnFATE output will be placed in many folders within the location specified b
 * The "fastas" folder will contain DNA and AA fasta files, one per marker of interest, the MACSE runs folders, and summaries of the amount of data that could be captured from your data.
 * The "macsed_alignments" folder will contain DNA and AA alignments, aligned and filtered with OMM_MACSE pipeline and (optionally) filtered with Gblocks.
 * The "auto_selection" folder will exist if you ran main_wrap with `-n AUTO` and will contain DNA alignments of sequences from your data and the pre-mined database.
-* The "single_locus_trees" folder will contain the IQTREE phylogenetic analyses on single markers (from both DNA and AA alignments).
-* The "supermatrix" folder will contain both the concatenation of the single marker alignments and the IQTREE2 phylogenetic inference (from both DNA and AA alignments).
+* The "single_locus_trees" folder will contain the IQ-TREE phylogenetic analyses on single markers (from both DNA and AA alignments).
+* The "supermatrix" folder will contain both the concatenation of the single marker alignments and the IQ-TREE phylogenetic inference (from both DNA and AA alignments).
 * The "supertree" folder will contain both the file with the best tree for each marker and the ASTRAL species tree (from both DNA and AA alignments).
-* The "final_trees" folder will contain the trees generate from concatenation (IQTREE) and coalescence-based approach (ASTRAL) and their version renamed to species name (where NCBI accession numbers were used; e.g. when samples from the precalculated database or assemblies downloaded from NCBI are used).
+* The "final_trees" folder will contain the trees generate from concatenation (IQ-TREE) and coalescence-based approach (ASTRAL) and their version renamed to species name (where NCBI accession numbers were used; e.g. when samples from the precalculated database or assemblies downloaded from NCBI are used).
 * The "PhyParts" folder will be made if `pie_wrap.py` is run. The key output is pies.svg, but the full phyparts output will be present as well.
  
 ## `barcode_wrap.py`
@@ -97,15 +93,15 @@ The UnFATE output will be placed in many folders within the location specified b
 The specificity of the taxonomy inferred from the output trees will depend on the completeness of the pre-mined database. Species level identification could be possible in highly sequenced groups such as Aspergillaceae, but is less likely in groups with few sequenced genomes. 
 Specificity will increase as more genomes are added to NCBI and as more organisms are sequenced using our baits.
 
-`barcode_wrap.py` uses most of the same dependencies as `main_wrap.py` with the exception of MACSE and ASTRAL. If you wish to only run `barcode_wrap.py` on a certain machine, the only conda packages required are the HybPiper dependencies listed above.
-`barcode_wrap.py` is intended to be light enough to run on a desktop computer or laptop.
+`barcode_wrap.py` uses the same dependencies as `main_wrap.py`. If you wish to only run `barcode_wrap.py` on a certain machine, the phypartspiecharts dependencies do not need to be installed.
+`barcode_wrap.py` is intended to be light enough to run on a desktop computer or laptop, although it will take some time.
 
 A possible usage of `barcode_wrap.py` is to find a closely related group to one of your samples, then run `main_wrap.py` with all of your samples and all members of that group using the `-n <taxon>` argument.
 `barcode_wrap.py` does not allow running multiple samples in one run. If you have multiple samples, consider running `main_wrap.py -n AUTO`.
 
 The output directories of `barcode_wrap.py` generally mirror the output directories of `main_wrap.py`. The "input" directory contains the raw and trimmed reads supplied, as well as the HybPiper or spades and exonerate output if fastqs are supplied. If an fna is supplied, the contents will be the exonerate results split into multiple parts.
 The "fastas" directory contains various forms of the genes extracted from the input added to the pre-mined data. The "final_fastas" directory contains the genes extracted from the input aligned to the genes from the samples selected from the database, ran through Gblocks with relaxed parameters.
-The "trees" directory contains the iqtree2 output from running on the "final_fastas" directory, in addition to a treefile where the accession numbers from NCBI have been replaced with binomials (final_fastas_named.treefile).
+The "trees" directory contains the IQ-TREE 2 output from running on the "final_fastas" directory, in addition to a treefile where the accession numbers from NCBI have been replaced with binomials (final_fastas_named.treefile).
 
 ## Please cite: 
 The wrapper script relies on many great software developed by other people. If you use this wrapper and bait set please cite:
