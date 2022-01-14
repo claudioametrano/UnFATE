@@ -8,7 +8,7 @@ The wrapper scripts are designed to be easy to use and to provide a fast way fro
 In order to avoid the installation of dependencies and external software, that often lead to problems for inexperienced users (...well, not only for them), most of the software needed by UnFATE is already included in this repository, therefore, acknowledge their work by citing them!!
 
 ## Workflow
-                                                                                                                                                                           
+<img src="./pipeline.png" alt="Drawing" height="480"/>                                                                                                                                                                           
 1. Data from:  **Target enrichment** sequencing, **Whole genome sequencing**, **Assemblies**  
 **Representative sequences** used to build the bait set (included in the repository: UnFATE_markers_195.fas)  
 
