@@ -3,9 +3,9 @@
 
 #### Universal Filamentous Ascomycetes Target Enrichment bait set and wrapper script for phylogenetics and genome-based barcoding
 
-The wrapper scripts are designed to be easy to use and to provide a fast way from target enrichment data, assemblies, and/or whole genome sequence to phylogenetic trees.
+The wrapper script is designed to be easy to use and to provide a fast way from target enrichment data, assemblies, and/or whole genome sequence to phylogenetic trees.
 
-In order to avoid the installation of dependencies and external software, that often lead to problems for inexperienced users (...well, not only for them), most of the software needed by UnFATE is already included in this repository, therefore, acknowledge their work by citing them!!
+In order to avoid the installation of dependencies and external software, that often lead to problems for inexperienced users (...well, not only for them), most of the software needed by UnFATE is already included in this repository, therefore, you should acknowledge their work by citing them (see below)!
 
 ## Workflow
 <img src="./pipeline.png" alt="Drawing" height="480"/>                                                                                                                                                                           
@@ -16,7 +16,7 @@ In order to avoid the installation of dependencies and external software, that o
                               
 3. **Trimmomatic 0.39** to trim Illumina paired reads .fastq.gz from TE or WGS 
 
-4. **HybPiper 1.3.1** to extract the markers from target enrichment sequening reads .fastq files  
+4. **HybPiper 1.3.1** or **Spades/Metspades 3.0.13** plus **Exonerate 2.2.0** to extract the markers from target enrichment, WGS, or assemblies.
 
 5. Fasta files are built from retrieved markers, eventually adding the markers from the pre-mined database of NCBI assemblies included in UnFATE repository (if you plan to use it, make sure you download the repository from the browser interface, or install the Github large file storage system before you git clone UnFATE)
 
@@ -31,6 +31,8 @@ In order to avoid the installation of dependencies and external software, that o
 10. **IQ-TREE 2** is used for the supermatrix phylogenetic inference
 
 11. **ASTRAL 5.7.7** is used to build the species tree from single locus trees
+
+12. Optionally run **Phyparts** to get species tree nodal conflict measure 
   
 ## Installation and use
 Prerequisites/Dependencies:  
@@ -59,7 +61,7 @@ If you need to move the folder, re-run with `--first-run`, but it may be necessa
 Assemblies must be in fasta files ending in .fna(.gz). Additionally, Gblocks requires sample names to be a reasonable length (<30-ish characters, I don't know the exact number).
 
 4. Run UnFATE using the command line. For example:
-`python3 main_wrap.py -b ~/path/to/protein/fasta/UnFATE_markers_195.fas -t ~/path/to/target_enrichment/ -a ~/path/to/assemblies/ --c 8 -n Tuber Morchella --f -o ~/path/to/output/`
+`python3 main_wrap.py -b ~/path/to/protein/fasta/UnFATE_markers_195.fas -t ~/path/to/target_enrichment/ -a ~/path/to/assemblies/ --c 8 -n Tuber Morchella -f -o ~/path/to/output/`
 
   * Consider running the script from a "tmux" detachable session, as the run can be very long, according to how many samples you have (this tools is usually preinstalled in Linux). Analyses with hundreds of samples should be run on server-grade hardware!  
   * Consider logging the script output with `python3 main_wrap.py {params} |& tee <logfile>`. This saves the stdout and stderr from running main_wrap.py into \<logfile\> as well as printing it to the console.
