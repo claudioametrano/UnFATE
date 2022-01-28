@@ -22,7 +22,7 @@ In order to avoid the installation of dependencies and external software, that o
 
 6. **MACSE2.03** pipeline **OMM_MACSE10.02** to perform codon-aware alignment and segment-based filtering **(HMMcleaner 1.8)**
 
-7. **Gblocks 0.91b** to add an optional second block-based filtering step
+7. **Gblocks 0.91b** or **TrimAl 1.4**  to add an optional second block-based filtering step
 
 8. **IQ-TREE 2** is used for single locus phylogenetic inference
 
@@ -43,8 +43,8 @@ Prerequisites/Dependencies:
   * Answer "yes" to conda init
   * Restart Ubuntu, it should show the (base) conda environment at the beginning of your command line
 * Install dependencies using conda:  
-   * `conda install -c bioconda blast spades exonerate` 
-   * `conda install biopython pandas seaborn click`
+   * `conda install -c bioconda blast spades exonerate hmmer trimal` 
+   * `conda install biopython==1.76 pandas seaborn click`
 
 * Install phypartspiecharts dependencies (if you want to run pie_wrap.py):
    * ete3 and ete_toolchain: `conda install -c etetoolkit ete3 ete_toolchain`, then check installation with `ete3 build check`
@@ -63,16 +63,16 @@ Assemblies must be in fasta files ending in .fna(.gz). Additionally, Gblocks req
 
   * Consider running the script from a "tmux" detachable session, as the run can be very long, according to how many samples you have (this tools is usually preinstalled in Linux). Analyses with hundreds of samples should be run on server-grade hardware!  
   * Consider logging the script output with `python3 main_wrap.py {params} |& tee <logfile>`. This saves the stdout and stderr from running main_wrap.py into \<logfile\> as well as printing it to the console.
-  * The pre-mined NCBI database is accessed with the `-n` argument. If you add AUTO to the list of groups you want, main_wrap.py will use a similar method to barcode_wrap to find the closest samples in the database. With the most dissimilar inputs, main_wrap will add 10 samples from the database per user sample. More closely related samples could have closer to 10 samples added overall.
-  * Although the script was written with our bait set in mind, it should work with any amino acid target file in the format required by HybPiper. If using an external baitfile, the pre-mined NCBI data will not be usable or helpful.
-  * There are two ways to reduce the memory requirements of UnFATE depending on your input data. If you are supplying whole genome data, you can use the `-l` flag to run HybPiper instead of spades then exonerate. This greatly reduces memory requirements. If you are supplying assemblies, or can assemble whole genome data but have trouble running exonerate (look for "Killed" in the output), use `-m <memory in GB>` to reduce the memory used by exonerate. Memory usage can't be strictly limited to the specified value unfortunately, so you will want to set the value below your actual limit.
-  * If you wish to use HybPiper to capture sequences from your target enrichment reads, use the `-y` flag. This is kept seperate from the low memory flag which causes HybPiper to be used for WGS data as assembly of reads from target enrichment is not nearly as memory intensive as assembling a whole genome.
+  * The pre-mined NCBI database is accessed with the `-n` argument. You can select any taxonomic rank included in Accession_plus_taxonomy_Pezizomycotina.txt. If you want to select a binomial species name, remember to put a backslash before the blank (e.g. Fuffaria\ fussolosa). If you add AUTO to the list of groups you want, main_wrap.py will use a similar method to barcode_wrap to find the closest samples in the database. Up to 10 additional samples per user sample can be added to the dataset.
+  * Although the script was written with our bait set in mind, it should work with any amino acid target file in the format required by HybPiper. If using an external baitfile, the pre-mined NCBI data will not be helpful.
+  * There are two ways to reduce the memory requirements and CPU burden of UnFATE depending on your input data. If you are supplying whole genome data, you can use the `-l` flag to run HybPiper instead of spades then exonerate. This greatly reduces memory requirements and calculation time. If you are supplying assemblies, or can assemble whole genome data but have trouble running exonerate (look for "Killed" in the output), use `-m <memory in GB>` to reduce the memory used by exonerate. Memory usage can't be strictly limited to the specified value unfortunately, so you will want to set the value below your actual limit.
+  * If you wish to use HybPiper to capture sequences from your target enrichment reads, use the `-y` flag. This is kept seperate from the low memory flag which causes HybPiper to be used for WGS data, as assembly of reads from target enrichment is not nearly as memory intensive as assembling a whole genome.
 
-5.  Cross your fingers and wait, good luck!  ...Take into account that the script parallelizes using the `--cpu n` you specify as an argument, HybPiper and Exonerate will process n samples at a time. The same number of cpu is then used to parallelize IQ-TREE runs for single locus trees and for concatenated supermatrices.  
+5.  Cross your fingers and wait, good luck!  ...Take into account that the script parallelizes using the `--cpu n` you specify as an argument, HybPiper and Exonerate will process n samples at a time. The same number of cpu is then used to parallelize IQ-TREE runs for single locus trees and for concatenated supermatrices (only if that many cores are needed).  
 
 6. A run can be resumed if the script is terminated before generating trees, but after generating supermatrices. This will happen automatically if the output directory contains the assemblies/ and/or target_enrichment/, fastas/, macsed_alignments/, and supermatrix/ directories. Please remove any tree directories from the output directory (if present) before resuming to avoid errors.
 
-7. [PhypartsPieCharts](https://github.com/mossmatters/phyloscripts/tree/master/phypartspiecharts) is a nice tool for viewing the support for the topology of the species tree. Consider running PhypartsPieCharts through our helper script with `python pie_wrap.py -t /path/to/single_locus_trees/ -p /path/to/species/tree`. You may need to use `ssh -Y` for the script to run properly on a remote device.
+7. [PhypartsPieCharts](https://github.com/mossmatters/phyloscripts/tree/master/phypartspiecharts) is a nice tool for visualize the nodal conflict level  for the species tree which uses Phyparts. Consider running PhypartsPieCharts through our helper script with `python pie_wrap.py -t /path/to/single_locus_trees/ -p /path/to/species/tree`. You may need to use `ssh -Y` for the script to run properly on a remote device.
 
 ## Output description
 The UnFATE output will be placed in many folders within the location specified by -o, several output folders will be created corresponding to the pipeline steps:  
@@ -116,6 +116,10 @@ Bolger, A. M., Lohse, M., & Usadel, B. (2014). Trimmomatic: a flexible trimmer f
 #### Gblocks
 Castresana, J. (2000). Selection of conserved blocks from multiple alignments for their use in phylogenetic analysis. Molecular biology and evolution, 17(4), 540-552.
 
+### TrimAl
+Capella-Gutiérrez, S., Silla-Martínez, J. M., & Gabaldón, T. (2009). trimAl: a tool for automated alignment trimming in large-scale phylogenetic analyses. Bioinformatics, 25(15), 1972-1973.
+
+### Hmmercleaner
 Di Franco, A., Poujol, R., Baurain, D., & Philippe, H. (2019). Evaluating the usefulness of alignment filtering methods to reduce the impact of errors on evolutionary inferences. BMC evolutionary biology, 19(1), 1-17.
 
 #### FASconCAT-G
