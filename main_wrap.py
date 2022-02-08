@@ -462,8 +462,10 @@ def main():
 	dependencies_dir = os.path.join(main_script_dir, "dependencies/")
 	#print(args.target_enrichment_data)
 	#print(args.assemblies)
+	# raise file limit
 	os.system('ulimit -n 1024000')
-	
+	# silence Parallel annoying citation notice
+	os.system('parallel --citation')
 	set_up_directories()	
 	
 	if args.first_use == True:	

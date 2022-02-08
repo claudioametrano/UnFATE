@@ -35,18 +35,27 @@ In order to avoid the installation of dependencies and external software, that o
 12. Optionally run **Phyparts** to get species tree nodal conflict measure 
   
 ## Installation and use
-Prerequisites/Dependencies:  
+Prerequisites/Dependencies: 
+* Only for Windows users: Activate the Windows 10 linux subsystem, anable developer tools and install Ubuntu 20.04 LTS from the Microsoft store (many guides are available online to get this done!)
 * A working Linux operating system (testing and development were done on various versions of Ubuntu, but other Linux distributions should work)
-* Python 3 or later (usually preinstalled in Linux)
 * GNU Parallel (usually preinstalled in Linux)
 * Anaconda 
   *  Download and install the Anaconda installer for Linux: https://docs.anaconda.com/anaconda/install/linux/
   * `bash ~/path/to/Anaconda3-2020.02-Linux-x86_64.sh`
   * Answer "yes" to conda init
   * Restart Ubuntu, it should show the (base) conda environment at the beginning of your command line
-* Install dependencies using conda:  
+* Create a conda environment which uses Python3.7
+  * `conda create -n environment_name python=3.7`
+* Start the environment
+  *`conda activate environment_name`  
+* Install dependencies using conda  
    * `conda install -c bioconda blast spades exonerate hmmer trimal` 
    * `conda install biopython==1.76 pandas seaborn click`
+* Install parallel if not already installed
+  * `conda install -c conda-forge parallel`   
+* Install java if not already installed  
+  * `sudo apt-get update`
+  * `sudo apt install default-jre`
 
 * Install phypartspiecharts dependencies (if you want to run pie_wrap.py):
    * ete3 and ete_toolchain: `conda install -c etetoolkit ete3 ete_toolchain`, then check installation with `ete3 build check`
@@ -150,3 +159,6 @@ Nurk, S., Meleshko, D., Korobeynikov, A., & Pevzner, P. A. (2017). metaSPAdes: a
 
 #### Phyparts
 Smith, S. A., Moore, M. J., Brown, J. W., Yang, Y. (2015). Analysis of phylogenomic datasets reveals conflict, concordance, and gene duplications with examples from animals and plants. BMC evolutionary biology 15(1), 1-15
+
+#### Parallel
+Tange, O. (2011). Gnu parallel-the command-line power tool. The USENIX Magazine, 36(1), 42-47.
