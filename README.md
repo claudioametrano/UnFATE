@@ -1,5 +1,5 @@
 # UnFATE 
-<img src="./UnFATE_logo_small_white.png" alt="Drawing" width="250"/>
+<img src="./UnFATE_logo.png" alt="Drawing" width="250"/>
 
 #### Universal Filamentous Ascomycetes Target Enrichment bait set and wrapper script for phylogenetics and genome-based barcoding
 
