@@ -9,7 +9,7 @@ In order to avoid the installation of dependencies and external software, that o
 
 ## Workflow
 <img src="./pipeline.png" alt="Drawing" height="480"/>                                                                                                                                                                           
-1. Data from:  **Target enrichment** sequencing, **Whole genome sequencing**, **Assemblies**  
+1. Data from:  Target enrichment sequencing, Whole genome sequencing and Assemblies  
 **Representative sequences** used to build the bait set (included in the repository: UnFATE_markers_195.fas)  
 
 2. **Exonerate 2.2.0** and exonerate_hits.py script from Hybpiper to mine genes from assemblies using the amino acid  representative sequences fasta file (the best reference sequence is selected by BLAST)
