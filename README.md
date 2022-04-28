@@ -9,7 +9,7 @@ In order to avoid the installation of dependencies and external software, that o
 
 ## Workflow
 <img src="./pipeline.png" alt="Drawing" height="480"/>                                                                                                                                                                           
-1. Data from:  Target enrichment sequencing, Whole genome sequencing and Assemblies  
+1. Data from:  Target enrichment sequencing, Whole genome sequencing and Assemblies.  
 **Representative sequences** used to build the bait set (included in the repository: UnFATE_markers_195.fas)  
 
 2. **Exonerate 2.2.0** and exonerate_hits.py script from Hybpiper to mine genes from assemblies using the amino acid  representative sequences fasta file (the best reference sequence is selected by BLAST)
@@ -32,12 +32,12 @@ In order to avoid the installation of dependencies and external software, that o
 
 11. **ASTRAL 5.7.7** is used to build the species tree from single locus trees
 
-12. Optionally run **Phyparts** to get species tree nodal conflict measure 
+12. Optionally run **Phyparts** to get species tree nodal conflict assessment
   
 ## Installation and use
 Prerequisites/Dependencies: 
-* Only for Windows users: Activate the Windows 10 linux subsystem, anable developer tools and install Ubuntu 20.04 LTS from the Microsoft store (many guides are available online to get this done!)
-* A working Linux operating system (testing and development were done on various versions of Ubuntu, but other Linux distributions should work)
+* Only for Windows users: Activate the Windows 10 linux subsystem, enable developer tools and install Ubuntu 20.04 LTS from the Microsoft store (many guides are available online to get this done!). This mode of use is not fully tested.
+* A working Linux operating system (testing and development were done on various versions of Ubuntu, but other Linux distributions should work), as the main OS or as a virual machine.
 * GNU Parallel (usually preinstalled in Linux)
 * Anaconda 
   *  Download and install the Anaconda installer for Linux: https://docs.anaconda.com/anaconda/install/linux/
@@ -61,22 +61,22 @@ Prerequisites/Dependencies:
    * ete3 and ete_toolchain: `conda install -c etetoolkit ete3 ete_toolchain`, then check installation with `ete3 build check`
 
 1. Clone the UnFATE repository (or download the .zip file from Github browser interface). Choose a position for the UnFATE folder you like, do not move the repository after the first run (use the argument `--first_use`).
-If you need to move the folder, re-run with `--first-run`, but it may be necessary to re-clone the repository.
+If you need to move the folder, re-run with `--first-run`, but it will be necessary to re-clone the repository.
 
 2. Read the help section of the script to set up the command line for your analysis:  
 `python3 main_wrap.py --help`
 
 3. Set up file extensions: Sequencing data must be in files ending in _R(direction).fastq(.gz) or _SE.fastq(.gz). 
-Assemblies must be in fasta files ending in .fna(.gz). Additionally, Gblocks requires sample names to be a reasonable length (<30-ish characters, I don't know the exact number).
+Assemblies must be in fasta files ending in .fna(.gz).
 
 4. Run UnFATE using the command line. For example:
 `python3 main_wrap.py -b ~/path/to/protein/fasta/UnFATE_markers_195.fas -t ~/path/to/target_enrichment/ -a ~/path/to/assemblies/ --c 8 -n Tuber Morchella -f -o ~/path/to/output/`
 
-  * Consider running the script from a "tmux" detachable session, as the run can be very long, according to how many samples you have (this tools is usually preinstalled in Linux). Analyses with hundreds of samples should be run on server-grade hardware!  
+  * Consider running the script from a "tmux" detachable session, as the run can be very long, according to how many samples you have (this tools is usually preinstalled in Linux). Analyses with hundreds of samples should be run on high core number machines!  
   * Consider logging the script output with `python3 main_wrap.py {params} |& tee <logfile>`. This saves the stdout and stderr from running main_wrap.py into \<logfile\> as well as printing it to the console.
-  * The pre-mined NCBI database is accessed with the `-n` argument. You can select any taxonomic rank included in Accession_plus_taxonomy_Pezizomycotina.txt. If you want to select a binomial species name, remember to put a backslash before the blank (e.g. Fuffaria\ fussolosa). If you add AUTO to the list of groups you want, main_wrap.py will use a similar method to barcode_wrap to find the closest samples in the database. Up to 10 additional samples per user sample can be added to the dataset.
+  * The pre-mined NCBI database is accessed with the `-n` argument. You can select any taxonomic rank included in Accession_plus_taxonomy_Pezizomycotina.txt. If you want to select a binomial species name, remember to put a backslash before the blank    (e.g. Fuffaria\ fussolosa). If you add AUTO to the list of groups you want, main_wrap.py will use a similar method to barcode_wrap to find the closest samples in the database. Up to 10 additional samples per user sample can be added to the dataset.
   * Although the script was written with our bait set in mind, it should work with any amino acid target file in the format required by HybPiper. If using an external baitfile, the pre-mined NCBI data will not be helpful.
-  * There are two ways to reduce the memory requirements and CPU burden of UnFATE depending on your input data. If you are supplying whole genome data, you can use the `-l` flag to run HybPiper instead of spades then exonerate. This greatly reduces memory requirements and calculation time. If you are supplying assemblies, or can assemble whole genome data but have trouble running exonerate (look for "Killed" in the output), use `-m <memory in GB>` to reduce the memory used by exonerate. Memory usage can't be strictly limited to the specified value unfortunately, so you will want to set the value below your actual limit.
+  * There are two ways to reduce the memory requirements and CPU burden of UnFATE depending on your input data. If you are supplying whole genome data, you can use the `-l` flag to run HybPiper instead of spades, then exonerate. This greatly reduces memory requirements and calculation time. If you are supplying assemblies, or can assemble whole genome data but have trouble running exonerate (look for "Killed" in the output), use `-m <memory in GB>` to reduce the memory used by exonerate. Memory usage can't be strictly limited to the specified value unfortunately, so you will want to set the value below your actual limit.
   * If you wish to use HybPiper to capture sequences from your target enrichment reads, use the `-y` flag. This is kept seperate from the low memory flag which causes HybPiper to be used for WGS data, as assembly of reads from target enrichment is not nearly as memory intensive as assembling a whole genome.
 
 5.  Cross your fingers and wait, good luck!  ...Take into account that the script parallelizes using the `--cpu n` you specify as an argument, HybPiper and Exonerate will process n samples at a time. The same number of cpu is then used to parallelize IQ-TREE runs for single locus trees and for concatenated supermatrices (only if that many cores are needed).  
@@ -91,7 +91,7 @@ The UnFATE output will be placed in many folders within the location specified b
 * The "whole_genome_data" folder will contain symlinks to your supplied WGS data, trimmed read files, and the HybPiper or SPAdes and exonerate_hits.py analysis folders, one per sample.
 * The "assemblies" folder will contain symlinks to your assemblies and the "Exonerate_hits.py" runs folder, one per sample.
 * The "fastas" folder will contain DNA and AA fasta files, one per marker of interest, the MACSE runs folders, and summaries of the amount of data that could be captured from your data.
-* The "macsed_alignments" folder will contain DNA and AA alignments, aligned and filtered with OMM_MACSE pipeline and (optionally) filtered with Gblocks.
+* The "macsed_alignments" folder will contain DNA and AA alignments, aligned and filtered with OMM_MACSE pipeline and (optionally) filtered with TrimAl.
 * The "auto_selection" folder will exist if you ran main_wrap with `-n AUTO` and will contain DNA alignments of sequences from your data and the pre-mined database.
 * The "single_locus_trees" folder will contain the IQ-TREE phylogenetic analyses on single markers (from both DNA and AA alignments).
 * The "supermatrix" folder will contain both the concatenation of the single marker alignments and the IQ-TREE phylogenetic inference (from both DNA and AA alignments).
