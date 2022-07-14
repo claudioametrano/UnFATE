@@ -36,8 +36,8 @@ In order to avoid the installation of dependencies and external software, that o
   
 ## Installation and use
 Prerequisites/Dependencies: 
-* Only for Windows users: Activate the Windows 10 linux subsystem, enable developer tools and install Ubuntu 20.04 LTS from the Microsoft store (many guides are available online to get this done!). This mode of use is not fully tested.
 * A working Linux operating system (testing and development were done on various versions of Ubuntu, but other Linux distributions should work), as the main OS or as a virual machine.
+* Only for Windows users: Activate the Windows 10 linux subsystem, enable developer tools and install Ubuntu 20.04 LTS from the Microsoft store (many guides are available online to get this done!). This mode of use is NOT tested.
 * GNU Parallel (usually preinstalled in Linux)
 * Anaconda 
   *  Download and install the Anaconda installer for Linux: https://docs.anaconda.com/anaconda/install/linux/
@@ -109,7 +109,7 @@ Specificity will increase as more genomes are added to NCBI and as more organism
 `barcode_wrap.py` is intended to be light enough to run on a desktop computer or laptop, although it will take some time.
 
 A possible usage of `barcode_wrap.py` is to find a closely related group to one of your samples, then run `main_wrap.py` with all of your samples and all members of that group using the `-n <taxon>` argument.
-`barcode_wrap.py` does not allow running multiple samples in one run. If you have multiple samples, consider running `main_wrap.py -n AUTO`.
+`barcode_wrap.py` does not allow running multiple samples in one run at the moment. If you have multiple samples, consider running `main_wrap.py -n AUTO to get the closest species from the database in your phylogeny`.
 
 The output directories of `barcode_wrap.py` generally mirror the output directories of `main_wrap.py`. The "input" directory contains the raw and trimmed reads supplied, as well as the HybPiper or spades and exonerate output if fastqs are supplied. If an fna is supplied, the contents will be the exonerate results split into multiple parts.
 The "fastas" directory contains various forms of the genes extracted from the input added to the pre-mined data. The "final_fastas" directory contains the genes extracted from the input aligned to the genes from the samples selected from the database, ran through Gblocks with relaxed parameters.
