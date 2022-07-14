@@ -44,8 +44,8 @@ Prerequisites/Dependencies:
   * `bash ~/path/to/Anaconda3-2020.02-Linux-x86_64.sh`
   * Answer "yes" to conda init
   * Restart Ubuntu, it should show the (base) conda environment at the beginning of your command line
-* Create a conda environment which uses Python3.7
-  * `conda create -n environment_name python=3.7`
+* Create a conda environment which uses Python3.6
+  * `conda create -n environment_name python=3.6`
 * Start the environment
   *`conda activate environment_name`  
 * Install dependencies using conda  
