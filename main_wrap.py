@@ -357,7 +357,7 @@ def run_exonerate(data_dir):
 			if name.endswith(".fna"): #or name.endswith(".fasta"):
 				print(name)
 				pezizo_list.append(root + name)
-				assemblies_count += 1
+				assemblies_count += 1			
 	#print("Samples are: ", pezizo_list)
 	ref_list = []
 	for k in os.listdir(path_to_assemblies):
@@ -560,13 +560,13 @@ def main():
 						sample_R1_path = os.path.join(args.out, "whole_genome_data", name + "_R1.trimmed_paired.fastq.gz")
 						sample_R2_path = os.path.join(args.out, "whole_genome_data", name + "_R2.trimmed_paired.fastq.gz")
 						spades_out_path = os.path.join(args.out, "whole_genome_data", name + "_spades/")
-						spades_command = "spades.py -1 {} -2 {} -o {} -t {} --careful".format(sample_R1_path, sample_R2_path, spades_out_path, args.cpu)
+						spades_command = "spades.py -1 {} -2 {} -o {} -t {} --careful --phred-offset 33".format(sample_R1_path, sample_R2_path, spades_out_path, args.cpu)
 						logging.info("running spades with " + spades_command)
 						os.system(spades_command)
 					else:
 						sample_path = os.path.join(args.out, "whole_genome_data", name + "_SE.trimmed.fastq.gz")
 						spades_out_path = os.path.join(args.out, "whole_genome_data", name + "_spades/")
-						spades_command = "spades.py -s {} -o {} -t {} --careful".format(sample_path, spades_out_path, args.cpu)
+						spades_command = "spades.py -s {} -o {} -t {} --careful --phred-offset 33".format(sample_path, spades_out_path, args.cpu)
 						logging.info("running spades with " + spades_command)
 						os.system(spades_command)
 
@@ -610,7 +610,7 @@ def main():
 						sample_R1_path = os.path.join(args.out, "target_enrichment_data", name + "_R1.trimmed_paired.fastq.gz")
 						sample_R2_path = os.path.join(args.out, "target_enrichment_data", name + "_R2.trimmed_paired.fastq.gz")
 						spades_out_path = os.path.join(args.out, "target_enrichment_data", name + "_spades/")
-						spades_command = "spades.py -1 {} -2 {} -o {} -t {} --meta".format(sample_R1_path, sample_R2_path, spades_out_path, args.cpu)
+						spades_command = "spades.py -1 {} -2 {} -o {} -t {} --meta --phred-offset 33".format(sample_R1_path, sample_R2_path, spades_out_path, args.cpu)
 						logging.info("running spades with " + spades_command)
 						os.system(spades_command)
 					else:
