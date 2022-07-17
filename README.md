@@ -43,7 +43,7 @@ Prerequisites/Dependencies:
   *  Download and install the Anaconda installer for Linux: https://docs.anaconda.com/anaconda/install/linux/
   * `bash ~/path/to/Anaconda3-2020.02-Linux-x86_64.sh`
   * Answer "yes" to conda init
-  * Restart Ubuntu, it should show the (base) conda environment at the beginning of your command line
+  * Restart the Terminal, it should show the (base) conda environment at the beginning of your command line
 * Create a conda environment which uses Python3.6
   * `conda create -n environment_name python=3.6`
 * Start the environment
