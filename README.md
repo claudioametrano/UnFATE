@@ -36,16 +36,15 @@ In order to avoid the installation of dependencies and external software, that o
   
 ## Installation and use
 Prerequisites/Dependencies: 
-* A working Linux operating system (testing and development were done on various versions of Ubuntu, but other Linux distributions should work), as the main OS or as a virual machine.
-* Only for Windows users: Activate the Windows 10 linux subsystem, enable developer tools and install Ubuntu 20.04 LTS from the Microsoft store (many guides are available online to get this done!). This mode of use is NOT tested.
-* GNU Parallel (usually preinstalled in Linux)
+* A working Linux operating system (Ubuntu 20.04 LTS should definitely work, kernel version 5.4.0-122-generic, conda version 4.13.0; other Linux distributions could work), as the main OS or as a virual machine. A Docker container is being developed.
+* GNU Parallel
 * Anaconda 
   *  Download and install the Anaconda installer for Linux: https://docs.anaconda.com/anaconda/install/linux/
   * `bash ~/path/to/Anaconda3-2020.02-Linux-x86_64.sh`
   * Answer "yes" to conda init
-  * Restart Ubuntu, it should show the (base) conda environment at the beginning of your command line
-* Create a conda environment which uses Python3.6
-  * `conda create -n environment_name python=3.6`
+  * Restart the Terminal, it should show the (base) conda environment at the beginning of your command line
+* Create a conda environment which uses Python3.7
+  * `conda create -n environment_name python=3.7`
 * Start the environment
   *`conda activate environment_name`  
 * Install dependencies using conda  
@@ -69,8 +68,8 @@ If you need to move the folder, re-run with `--first-run`, but it will be necess
 3. Set up file extensions: Sequencing data must be in files ending in _R(direction).fastq(.gz) or _SE.fastq(.gz). 
 Assemblies must be in fasta files ending in .fna(.gz).
 
-4. Run UnFATE using the command line. For example:
-`python3 main_wrap.py -b ~/path/to/protein/fasta/UnFATE_markers_195.fas -t ~/path/to/target_enrichment/ -a ~/path/to/assemblies/ --c 8 -n Tuber Morchella -f -o ~/path/to/output/`
+4. Run UnFATE using the command line. In this example the TUTORIAL_DATASET folder, which is included in the UnFATE repository, will be used. This reduced dataset and reference sequences file only uses 12 UnFATE genes, assemblies file which only contain the target genes, TE and WGS fastq synthetycally generated from the same reduced assemblies. Its olny purpose is to test the UnFATE pipeline before you start to work on your own data. It should complete the analyses in a reasonable time even on a laptop. Please check intermediate results, such as the pdf heatmap in the "fastas" folder. Check also the "final_trees" folder, which should contain a very simple phylogeny containing 18 tips from the tutorial dataset (one sample each of the main Pezizomycotina class from the assemblies, and the same samples from synthetic WGS or TE data) plus two _Letharia_ tips from the pre-mined database. 
+`python3 /path/to/UnFATE/UnFATE/main_wrap.py -b ./TUTORIAL_DATASET/12_Unfate_markers_aa.fasta -a ./TUTORIAL_DATASET/assemb_tutorial/ -w ./TUTORIAL_DATASET/WGS_tutorial/ -t ./TUTORIAL_DATASET/TE_tutorial/ -n Letharia -o ./out_wgs_te_a_arthonia -c 4`
 
   * Consider running the script from a "tmux" detachable session, as the run can be very long, according to how many samples you have (this tools is usually preinstalled in Linux). Analyses with hundreds of samples should be run on high core number machines!  
   * Consider logging the script output with `python3 main_wrap.py {params} |& tee <logfile>`. This saves the stdout and stderr from running main_wrap.py into \<logfile\> as well as printing it to the console.
