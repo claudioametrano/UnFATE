@@ -69,6 +69,7 @@ If you need to move the folder, re-run with `--first-run`, but it will be necess
 Assemblies must be in fasta files ending in .fna(.gz).
 
 4. Run UnFATE using the command line. In this example the TUTORIAL_DATASET folder, which is included in the UnFATE repository, will be used. This reduced dataset and reference sequences file only uses 12 UnFATE genes, assemblies file which only contain the target genes, TE and WGS fastq synthetycally generated from the same reduced assemblies. Its olny purpose is to test the UnFATE pipeline before you start to work on your own data. It should complete the analyses in a reasonable time even on a laptop. Please check intermediate results, such as the pdf heatmap in the "fastas" folder. Check also the "final_trees" folder, which should contain a very simple phylogeny containing 18 tips from the tutorial dataset (one sample each of the main Pezizomycotina class from the assemblies, and the same samples from synthetic WGS or TE data) plus two _Letharia_ tips from the pre-mined database. 
+
 `python3 /path/to/UnFATE/UnFATE/main_wrap.py -b ./TUTORIAL_DATASET/12_Unfate_markers_aa.fasta -a ./TUTORIAL_DATASET/assemb_tutorial/ -w ./TUTORIAL_DATASET/WGS_tutorial/ -t ./TUTORIAL_DATASET/TE_tutorial/ -n Letharia -o ./out_wgs_te_a_arthonia -c 4`
 
   * Consider running the script from a "tmux" detachable session, as the run can be very long, according to how many samples you have (this tools is usually preinstalled in Linux). Analyses with hundreds of samples should be run on high core number machines!  
