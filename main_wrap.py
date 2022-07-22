@@ -366,6 +366,8 @@ def run_exonerate(data_dir):
 
 	memory = 0
 	if assemblies_count < int(args.cpu):
+		if assemblies_count == 0:
+			assemblies_count = 1
 		memory = int(args.exonerate_mem / assemblies_count)
 	else:
 		memory = int(args.exonerate_mem / int(args.cpu))
