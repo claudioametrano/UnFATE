@@ -83,7 +83,12 @@ Assemblies must be in fasta files ending in .fna(.gz).
 
 6. A run can be resumed if the script is terminated before generating trees, but after generating supermatrices. This will happen automatically if the output directory contains the assemblies/ and/or target_enrichment/, fastas/, macsed_alignments/, and supermatrix/ directories. Please remove any tree directories from the output directory (if present) before resuming to avoid errors.
 
-7. [PhypartsPieCharts](https://github.com/mossmatters/phyloscripts/tree/master/phypartspiecharts) is a nice tool for visualize the nodal conflict level  for the species tree which uses Phyparts. Consider running PhypartsPieCharts through our helper script with `python pie_wrap.py -t /path/to/single_locus_trees/ -p /path/to/species/tree`. You may need to use `ssh -Y` for the script to run properly on a remote device.
+7. [PhypartsPieCharts](https://github.com/mossmatters/phyloscripts/tree/master/phypartspiecharts) is a nice tool for visualize the nodal conflict level  for the species tree which uses Phyparts. Consider running PhypartsPieCharts through our helper script with `python pie_wrap.py -t /path/to/single_locus_trees/ -p /path/to/species/tree`. You may need to use `ssh -Y` for the script to run properly on a remote device.\
+
+## Notes
+1. UnFATE can be run using any reference genes file as protein fasta (but the database only contains the 195 UnFATE genes)
+
+2. If you need to build a quick phylogeny UnFATE also works using samples from the database only (-n), take advantage of this feature to get phylogenomic trees of any rank in Pezizomycotina with zero effort.     
 
 ## Output description
 The UnFATE output will be placed in many folders within the location specified by -o, several output folders will be created corresponding to the pipeline steps:  
