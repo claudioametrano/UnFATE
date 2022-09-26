@@ -60,7 +60,7 @@ Prerequisites/Dependencies:
    * ete3 and ete_toolchain: `conda install -c etetoolkit ete3 ete_toolchain`, then check installation with `ete3 build check`
 
 1. Clone the UnFATE repository (or download the .zip file from Github browser interface). Choose a position for the UnFATE folder you like, do not move the repository after the first run (use the argument `--first_use`).
-If you need to move the folder, re-run with `--first-run`, but it will be necessary to re-clone the repository.
+If you need to move the folder, re-run with `--first_use`, but it will be necessary to re-clone the repository first.
 
 2. Read the help section of the script to set up the command line for your analysis:  
 `python3 main_wrap.py --help`
