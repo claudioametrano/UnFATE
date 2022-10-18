@@ -48,7 +48,7 @@ Prerequisites/Dependencies:
 * Start the environment
   *`conda activate environment_name`  
 * Install dependencies using conda  
-   * `conda install -c bioconda blast spades exonerate hmmer trimal` 
+   * `conda install -c bioconda blast spades exonerate hmmer trimal mafft` 
    * `conda install biopython==1.76 pandas seaborn click`
 * Install parallel if not already installed
   * `conda install -c conda-forge parallel`   
