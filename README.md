@@ -51,7 +51,7 @@ In order to avoid the installation of dependencies and external software, that o
   *  `tar -xf TUTORIAL_DATASET.tar.xz`
   *  `funannotate-docker -b ./TUTORIAL_DATASET/11_Unfate_markers_aa.fasta -a ./TUTORIAL_DATASET/assemb_tutorial/ -w ./TUTORIAL_DATASET/WGS_tutorial/ -t ./TUTORIAL_DATASET/TE_tutorial/ -n Letharia -o ./output_wgs_te_ass_letharia -c 4 -f`
 
-### Quick start with docker
+### Quick start with conda
 Prerequisites/Dependencies: 
 * A working Linux operating system (Ubuntu 20.04 LTS should definitely work, kernel version 5.4.0-122-generic, conda version 4.13.0; other Linux distributions could work), as the main OS or as a virual machine. A Docker container is being developed.
 * GNU Parallel
