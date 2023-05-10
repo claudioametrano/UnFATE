@@ -41,13 +41,13 @@ In order to avoid the installation of dependencies and external software, that o
   *  `docker pull ywind/unfate`
 
 2. download bash wrapper script:
-  *  `wget -O unfate-docker https://raw.githubusercontent.com/nextgenusfs/funannotate/master/funannotate-docker`
+  *  `wget -O unfate-docker https://raw.githubusercontent.com/claudioametrano/UnFATE/master/unfate-docker `
 
 3. make this executable on your system:
   *  `chmod +x /path/to/unfate-docker`
 
 4. quick run in your current directory with the tutorial data:
-  *  `wget https://github.com/claudioametrano/UnFATE/blob/79abffd0efc8afdcd0bcf8381aac1cfec4afaebd/TUTORIAL_DATASET.tar.xz`
+  *  `wget  https://raw.githubusercontent.com/claudioametrano/UnFATE/master/TUTORIAL_DATASET.tar.xz`
   *  `tar -xf TUTORIAL_DATASET.tar.xz`
   *  `funannotate-docker -b ./TUTORIAL_DATASET/11_Unfate_markers_aa.fasta -a ./TUTORIAL_DATASET/assemb_tutorial/ -w ./TUTORIAL_DATASET/WGS_tutorial/ -t ./TUTORIAL_DATASET/TE_tutorial/ -n Letharia -o ./output_wgs_te_ass_letharia -c 4 -f`
 
