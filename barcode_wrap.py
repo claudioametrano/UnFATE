@@ -426,7 +426,7 @@ def rename_terminals(fullTaxes):
 
     accPlusRestRegex = r"{}[^:]*" #{} and .format works with regex
     for accession, sp in accessionToSp.items():
-      new_sp = f"{sp} {_} {accession}"
+      new_sp = f"{sp}_{accession}"
       tree = sub(accPlusRestRegex.format(accession), new_sp, tree)
     tree_out.write(tree)
 
