@@ -23,17 +23,21 @@ from re import findall, sub, match, search
 from sys import exit
 from math import ceil
 
-parser = argparse.ArgumentParser()
-parser.add_argument("-i", "--input", help="List the .fastq(.gz) file(s) for a single sample separated by a space, or a single .fna(.gz). Wildcards are allowed.", nargs="+") #expect readfile for now, allow assembly later
-parser.add_argument("-o", "--out", help="output directory, this will be made automatically")
-parser.add_argument("-c", "--cpu", default=1, type=int, help="number of threads to use")
-parser.add_argument("-b", "--target_markers", help="baitfile used to extract genes. Only our file or a subset of it will work with the pre-mined database. Defaults to our database, needs to be set manually if run from outside the UnFATE directory.", default="UnFATE_markers_195.fas")
-parser.add_argument("-y", "--use_hybpiper", help="use hybpiper instead of metaspades and exonerate_hits.py, reduces memory usage but may increase runtime.", action="store_true")
-parser.add_argument("-e", "--exonerate_mem", help="memory for exonerate to try to limit itself to. Set this to a number of GB if you see 'Killed' in the output and there are many sequences unexpectedly missing.", type=int, default=256)
-parser.add_argument("-t", "--exonerate_threshold", default=55, type=int, help="Threshold for percent identity between contigs and proteins in exonerate_hits. default=55%%")
-parser.add_argument("-n", "--num_tips", help="number of samples to compare to the query sample, defaults to 20", type=int, default=20)
-parser.add_argument("-m", "--max_per_sp", help="maximum number of samples from one species, defaults to 4", type=int, default=4)
-args = parser.parse_args()
+def check_arg():
+  parser = argparse.ArgumentParser()
+  parser = argparse.ArgumentParser(description='UnFATE version 1.0: the wrapper script that brings YOU from target enrichment sequencing data straight to phylogenetic tree inference! See the readme file for data structure and additional info.')
+  mandatory_args = parser.add_argument_group("Arguments which are either required for the proper function of main_wrap.py, or should be used.")
+  mandatory_args.add_argument("-i", "--input", help="List the .fastq(.gz) file(s) for a single sample separated by a space, or a single .fna(.gz). Wildcards are allowed.", nargs="+", default="", required=True) 
+  mandatory_args.add_argument("-o", "--out", help="output directory, this will be made automatically", default="./output_barcode_wrap")
+  parser.add_argument("-c", "--cpu", default=4, type=int, help="number of threads to use")
+  parser.add_argument("-b", "--target_markers", help="baitfile used to extract genes. Only our file or a subset of it will work with the pre-mined database. Defaults to our database, needs to be set manually if run from outside the UnFATE directory.", default="UnFATE_markers_195.fas")
+  parser.add_argument("-y", "--use_hybpiper", help="use hybpiper instead of metaspades and exonerate_hits.py, reduces memory usage but may increase runtime.", action="store_true")
+  parser.add_argument("-e", "--exonerate_mem", help="memory for exonerate to try to limit itself to. Set this to a number of GB if you see 'Killed' in the output and there are many sequences unexpectedly missing.", type=int, default=100)
+  parser.add_argument("-t", "--exonerate_threshold", default=55, type=int, help="Threshold for percent identity between contigs and proteins in exonerate_hits. default=55%%")
+  parser.add_argument("-n", "--num_tips", help="number of samples to compare to the query sample, defaults to 20", type=int, default=20)
+  parser.add_argument("-m", "--max_per_sp", help="maximum number of samples from one species, defaults to 4", type=int, default=4)
+  return parser.parse_args()
+args = check_arg()  
 
 def trim_and_get_namelist(exec_dir, data_dir):
   trimming_cmd = "python3 {}/trimmer.py -f {} -c {}".format(exec_dir, data_dir, args.cpu)
@@ -182,12 +186,12 @@ def run_exonerate_part(data_dir, fna_file, dependencies_dir, partNum, sampleName
   print("MAX EXONERATE MEMORY PER PART IS: {}GB. It will probably use much much less.".format(mem))
   #if spades assembly, run exonerate_hits from HybPiper
   if useHits:
-    exonerate_command = "python3 {}exonerate_hits_orig.py -m {} -t {} {} --prefix {} {} ".format(dependencies_dir, mem, thresh, os.path.join(data_dir, "part{}".format(partNum), "part{}_ref.fas".format(partNum)), os.path.join(data_dir, "part{}".format(partNum), sampleName), fna_file)
+    exonerate_command = "python3 {}exonerate_hits_OLD.py -m {} -t {} {} --prefix {} {} ".format(dependencies_dir, mem, thresh, os.path.join(data_dir, "part{}".format(partNum), "part{}_ref.fas".format(partNum)), os.path.join(data_dir, "part{}".format(partNum), sampleName), fna_file)
     print(exonerate_command) #os.path.join(data_dir, "part{}".format(partNum), "part{}_ref.fas".format(partNum)), os.path.join(data_dir, "part{}".format(partNum), sampleName), fna_file)
     os.system(exonerate_command)
   # else use the script version not using coverage information
   else:
-    exonerate_command = "python3 {}exonerate_alt_orig.py -m {} -t {} {} --prefix {} {} ".format(dependencies_dir, mem, thresh, os.path.join(data_dir, "part{}".format(partNum), "part{}_ref.fas".format(partNum)), os.path.join(data_dir, "part{}".format(partNum), sampleName), fna_file)
+    exonerate_command = "python3 {}exonerate_alt_OLD.py -m {} -t {} {} --prefix {} {} ".format(dependencies_dir, mem, thresh, os.path.join(data_dir, "part{}".format(partNum), "part{}_ref.fas".format(partNum)), os.path.join(data_dir, "part{}".format(partNum), sampleName), fna_file)
     print(exonerate_command)
     os.system(exonerate_command)
 
@@ -422,7 +426,8 @@ def rename_terminals(fullTaxes):
 
     accPlusRestRegex = r"{}[^:]*" #{} and .format works with regex
     for accession, sp in accessionToSp.items():
-      tree = sub(accPlusRestRegex.format(accession), sp, tree)
+      new_sp = f"{sp} {_} {accession}"
+      tree = sub(accPlusRestRegex.format(accession), new_sp, tree)
     tree_out.write(tree)
 
 def main():
@@ -434,6 +439,7 @@ def main():
   args.target_markers = os.path.realpath(args.target_markers)
   args.input = [os.path.realpath(read) for read in args.input]
 
+  
   print(args.input)
   if len(args.input) > 2:
     exit("\nERROR: Too many input files, must be 1 (unpaired or assembly) or 2 (paired).")

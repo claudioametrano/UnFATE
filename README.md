@@ -70,8 +70,7 @@ Prerequisites/Dependencies:
 * Install parallel if not already installed
   * `conda install -c conda-forge parallel`   
 * Install java if not already installed  
-  * `sudo apt-get update`
-  * `sudo apt install default-jre`
+  * `conda install cyclus::java-jre`
 
 * Install phypartspiecharts dependencies (if you want to run pie_wrap.py):
    * ete3 and ete_toolchain: `conda install -c etetoolkit ete3 ete_toolchain`, then check installation with `ete3 build check`
