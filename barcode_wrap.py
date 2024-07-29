@@ -4,7 +4,7 @@
 #trim fastqs (trimmomatic)
 #HybPiper
 #mafft adds captured sequences to pre-aligned database sequences for captured loci
-#gblocks filters previous alignment (Do we actually want to gblock here?)
+#gblocks filters previous alignment
 #FASconCAT-G concatenates filtered alignments
 #2-parameter substitution pairwise scores are calculated between query and all other samples
 #20 closest samples (with a maximum of 4 per species) are selected from the database
@@ -182,12 +182,12 @@ def run_exonerate_part(data_dir, fna_file, dependencies_dir, partNum, sampleName
   print("MAX EXONERATE MEMORY PER PART IS: {}GB. It will probably use much much less.".format(mem))
   #if spades assembly, run exonerate_hits from HybPiper
   if useHits:
-    exonerate_command = "python3 {}exonerate_hits.py -m {} -t {} {} --prefix {} {} ".format(dependencies_dir, mem, thresh, os.path.join(data_dir, "part{}".format(partNum), "part{}_ref.fas".format(partNum)), os.path.join(data_dir, "part{}".format(partNum), sampleName), fna_file)
+    exonerate_command = "python3 {}exonerate_hits_orig.py -m {} -t {} {} --prefix {} {} ".format(dependencies_dir, mem, thresh, os.path.join(data_dir, "part{}".format(partNum), "part{}_ref.fas".format(partNum)), os.path.join(data_dir, "part{}".format(partNum), sampleName), fna_file)
     print(exonerate_command) #os.path.join(data_dir, "part{}".format(partNum), "part{}_ref.fas".format(partNum)), os.path.join(data_dir, "part{}".format(partNum), sampleName), fna_file)
     os.system(exonerate_command)
   # else use the script version not using coverage information
   else:
-    exonerate_command = "python3 {}exonerate_alt.py -m {} -t {} {} --prefix {} {} ".format(dependencies_dir, mem, thresh, os.path.join(data_dir, "part{}".format(partNum), "part{}_ref.fas".format(partNum)), os.path.join(data_dir, "part{}".format(partNum), sampleName), fna_file)
+    exonerate_command = "python3 {}exonerate_alt_orig.py -m {} -t {} {} --prefix {} {} ".format(dependencies_dir, mem, thresh, os.path.join(data_dir, "part{}".format(partNum), "part{}_ref.fas".format(partNum)), os.path.join(data_dir, "part{}".format(partNum), sampleName), fna_file)
     print(exonerate_command)
     os.system(exonerate_command)
 
@@ -505,7 +505,7 @@ def main():
     exit("Input does not end in an allowed extension (fastq(.gz) or fna(.gz)).")
 
   #extracted sequences have been added to pre-aligned database
-  run_gblocks(False, dependencies_dir, int(args.cpu)) #filter large alignments (remove in future?)
+  run_gblocks(False, dependencies_dir, int(args.cpu)) #filter large alignments
   os.chdir(os.path.join(args.out, "fastas"))
   fasconcat_command = "perl {}/FASconCAT-G_v1.04.pl -i -s"
   os.system(fasconcat_command.format(dependencies_dir))

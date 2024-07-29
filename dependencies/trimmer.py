@@ -36,12 +36,12 @@ def trimming(data_folder, cpus):
 			path2out = path2.split(".")[0]
 			if regex1.group(1) == regex2.group(1):
 				logging.info("Trimming sample: " + regex1.group(1) + 'R*.fastq*' )
-				TRIMMOMATIC_COMMAND = "java -jar {}/trimmomatic-0.39.jar PE -threads {} -phred33 {} {} {}.trimmed_paired.fastq.gz {}.trimmed_UNpaired.fastq.gz {}.trimmed_paired.fastq.gz {}.trimmed_UNpaired.fastq.gz ILLUMINACLIP:{}/adapters/TruSeq3-PE.fa:2:30:10 LEADING:10 TRAILING:10 SLIDINGWINDOW:4:15 MINLEN:25".format(trimmomatic_path, cpus, path1, path2, path1out, path1out, path2out, path2out, trimmomatic_path)
+				TRIMMOMATIC_COMMAND = "java -jar {}/trimmomatic-0.39.jar PE -threads {} -phred33 {} {} {}.trimmed_paired.fastq.gz {}.trimmed_UNpaired.fastq.gz {}.trimmed_paired.fastq.gz {}.trimmed_UNpaired.fastq.gz ILLUMINACLIP:{}/adapters/all_adapters.fas:2:30:10 LEADING:10 TRAILING:10 SLIDINGWINDOW:4:15 MINLEN:25".format(trimmomatic_path, cpus, path1, path2, path1out, path1out, path2out, path2out, trimmomatic_path)
 				os.system(TRIMMOMATIC_COMMAND)
 	for path3 in samplesSE:
 		path3out = path3.split(".")[0]
 		logging.info("Trimming sample: " + path3)
-		TRIMMOMATIC_COMMAND = "java -jar {}/trimmomatic-0.39.jar SE -threads {} -phred33 {} {}.trimmed.fastq.gz  ILLUMINACLIP:{}/adapters/TruSeq3-PE.fa:2:30:10 LEADING:10 TRAILING:10 SLIDINGWINDOW:4:15 MINLEN:25".format(trimmomatic_path, cpus, path3, path3out, trimmomatic_path)
+		TRIMMOMATIC_COMMAND = "java -jar {}/trimmomatic-0.39.jar SE -threads {} -phred33 {} {}.trimmed.fastq.gz  ILLUMINACLIP:{}/adapters/all_adapters.fas:2:30:10 LEADING:10 TRAILING:10 SLIDINGWINDOW:4:15 MINLEN:25".format(trimmomatic_path, cpus, path3, path3out, trimmomatic_path)
 		os.system(TRIMMOMATIC_COMMAND)
 
 # starts the function

@@ -12,7 +12,7 @@ from glob import glob
 @click.command()
 @click.option('--bait_file_aa_path','-b', default='./all_genes_names_FG_2_Hybpiper_format_aa.fas', help='path to baits file')
 @click.option('--alignments_folder_path','-f', default='.', help='path of the folder containing the fasta files')
-@click.option('--plot_heatmap','-p', is_flag=True, help=' if used, plots the heatmap using the dataframe (WARNING: do not use on a server, it needs a GUI)')
+@click.option('--plot_heatmap','-p', is_flag=True, help=' if used, plots the heatmap using the dataframe (WARNING: it needs a GUI)')
 
 def seq_percentage(bait_file_aa_path, alignments_folder_path, plot_heatmap ):
 	""" Takes the protein fasta (the reference sequences) and the alignment files.
@@ -53,7 +53,7 @@ def seq_percentage(bait_file_aa_path, alignments_folder_path, plot_heatmap ):
 		if f.endswith("_protein_merged.fasta"):
 			for protein in SeqIO.parse(alignments_folder_path + f ,"fasta"):
 				sample_list.append(protein.id)
-	sample_list = set(sample_list)
+	sample_list = list(set(sample_list))
 	#print(sample_list)
 
 	logging.info("List of samples:")
