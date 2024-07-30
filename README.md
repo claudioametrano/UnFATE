@@ -4,8 +4,7 @@
 #### Universal Filamentous Ascomycetes Target Enrichment bait set and wrapper script for phylogenetics and genome-based barcoding
 
 The wrapper script is designed to be easy to use and to provide a fast way from target enrichment data, assemblies, and/or whole genome sequencing to phylogenetic trees.
-
-In order to avoid the installation of dependencies and external software, that often lead to problems for inexperienced users (...well, not only for them), most of the software needed by UnFATE is already included in this repository, therefore, you should acknowledge their work by citing them (see below)!
+If you use the pipline please cite this work and the tools used to build this pipeline (see below).
 
 ## Workflow
 <img src="./pipeline.png" alt="Drawing" height="480"/>                                                                                                                                                                           
@@ -49,34 +48,34 @@ In order to avoid the installation of dependencies and external software, that o
 4. quick run in your current directory with the tutorial data:
   *  `wget  https://raw.githubusercontent.com/claudioametrano/UnFATE/master/TUTORIAL_DATASET.tar.xz`
   *  `tar -xf TUTORIAL_DATASET.tar.xz`
-  *  `docker run --rm -v $(pwd):$(pwd) -w $(pwd) -i -t ywind/unfate:latest /UnFATE/main_wrap.py -b ./TUTORIAL_DATASET/11_Unfate_markers_aa.fasta -a ./TUTORIAL_DATASET/assemb_tutorial/ -w ./TUTORIAL_DATASET/WGS_tutorial/ -t ./TUTORIAL_DATASET/TE_tutorial/ -n Letharia -o ./output_wgs_te_ass_letharia -c 4 -f`
+  *  `docker run --rm -v $(pwd):$(pwd) -w $(pwd) -i -t ywind/unfate:latest /UnFATE/main_wrap.py -b ./TUTORIAL_DATASET/11_Unfate_markers_aa.fasta -a ./TUTORIAL_DATASET/assemb_tutorial/ -w ./TUTORIAL_DATASET/WGS_tutorial/ -t ./TUTORIAL_DATASET/TE_tutorial/ -n Letharia -o ./output_wgs_te_ass_letharia -c 4 -f -s`
 
 ### Quick start with conda
 Prerequisites/Dependencies: 
-* A working Linux operating system (Ubuntu 20.04 LTS should definitely work, kernel version 5.4.0-122-generic, conda version 4.13.0; other Linux distributions could work), as the main OS or as a virual machine. A Docker container is being developed.
-* GNU Parallel
-* Anaconda 
-  *  Download and install the Anaconda installer for Linux: https://docs.anaconda.com/anaconda/install/linux/
-  * `bash ~/path/to/Anaconda3-2020.02-Linux-x86_64.sh`
-  * Answer "yes" to conda init
+* A working Linux operating system (Ubuntu 24.04 LTS should work,  conda version 4.13.0; other Linux distributions could work), as the main OS or as a virual machine (e.g. https://www.linuxvmimages.com/images/ubuntu-2404/).
+  *  Download and install the Miniconda installer for Linux: 
+    * `mkdir -p ~/miniconda3`
+    * `wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -O ~/miniconda3/miniconda.sh`
+    * `bash ~/miniconda3/miniconda.sh -b -u -p ~/miniconda3`
+    * `rm -rf ~/miniconda3/miniconda.sh`
+    * Answer "yes" to conda init
   * Restart the Terminal, it should show the (base) conda environment at the beginning of your command line
 * Create a conda environment which uses Python3.7
   * `conda create -n environment_name python=3.7`
 * Start the environment
   *`conda activate environment_name`  
 * Install dependencies using conda  
-   * `conda install -c bioconda blast spades exonerate hmmer trimal mafft` 
-   * `conda install biopython==1.76 pandas seaborn click`
+   * `conda install -c bioconda blast spades=3.15.5 exonerate=2.4.0 hmmer=3.3.2 trimal=1.4 mafft=7.520` 
+   * `conda install biopython==1.76 pandas=2.1.1 seaborn=0.13.0 click=8.1.7`
 * Install parallel if not already installed
   * `conda install -c conda-forge parallel`   
 * Install java if not already installed  
   * `conda install cyclus::java-jre`
 
 * Install phypartspiecharts dependencies (if you want to run pie_wrap.py):
-   * ete3 and ete_toolchain: `conda install -c etetoolkit ete3 ete_toolchain`, then check installation with `ete3 build check`
+   * ete3 and ete_toolchain: `conda install -c etetoolkit ete3=3.1.3 ete_toolchain`, then check installation with `ete3 build check`
 
-1. Clone the UnFATE repository (or download the .zip file from Github browser interface). Choose a position for the UnFATE folder you like, do not move the repository after the first run (use the argument `--first_use`).
-If you need to move the folder, re-run with `--first_use`, but it will be necessary to re-clone the repository first.
+1. Clone the UnFATE repository (or download the .zip file from Github browser interface). Choose a position for the UnFATE folder you like, do not move the repository after the first run (use the argument `--first_use` when you run the pipeline for the first time. If you need to move the UnFATE folder, clone the repository again then, run it with `--first_use` in the new position.
 
 2. Read the help section of the script to set up the command line for your analysis:  
 `python3 main_wrap.py --help`
@@ -84,9 +83,9 @@ If you need to move the folder, re-run with `--first_use`, but it will be necess
 3. Set up file extensions: Sequencing data must be in files ending in _R(direction).fastq(.gz) or _SE.fastq(.gz). 
 Assemblies must be in fasta files ending in .fna(.gz).
 
-4. Run UnFATE using the command line. In this example the TUTORIAL_DATASET archive (decompress it before starting), which is included in the UnFATE repository, will be used. This reduced dataset and reference sequences file only uses 12 UnFATE genes, assemblies file which only contain the target genes, TE and WGS fastq synthetycally generated from the same reduced assemblies. Its olny purpose is to test the UnFATE pipeline before you start to work on your own data. It should complete the analyses in a reasonable time even on a laptop. Please check intermediate results, such as the pdf heatmap in the "fastas" folder. Check also the "final_trees" folder, which should contain a very simple phylogeny containing 18 tips from the tutorial dataset (one sample each of the main Pezizomycotina class from the assemblies, and the same samples from synthetic WGS or TE data) plus two _Letharia_ tips from the pre-mined database. 
+4. Run UnFATE using the command line. In this example the **TUTORIAL_DATASET.tar.gz** archive (unzip it before starting), which is included in the UnFATE repository, will be used. This reduced dataset and reference sequences file only uses 12 UnFATE genes, assemblies file which only contain the target genes, TE and WGS fastq artificially generated from the same reduced assemblies. Its olny purpose is to test the UnFATE pipeline before you start to work on your own data. It should complete the analyses in a reasonable time even on a laptop. Please check intermediate results, such as the pdf heatmap in the "fastas" folder. Check also the "final_trees" folder, which should contain a very simple phylogeny containing 18 tips from the tutorial dataset (one sample each of the main Pezizomycotina class from the assemblies, and the same samples from simulated WGS or TE data) plus two _Letharia_ tips from the pre-mined database. Running time on 10 Xeon E5-2697v3 cores, about 11'). For a more challengiong test run wich uses real (downlasampled) data, run the content of **TEST_Data_final.tar.gz** 
 
-`python3 /path/to/UnFATE/UnFATE/main_wrap.py -b ./TUTORIAL_DATASET/12_Unfate_markers_aa.fasta -a ./TUTORIAL_DATASET/assemb_tutorial/ -w ./TUTORIAL_DATASET/WGS_tutorial/ -t ./TUTORIAL_DATASET/TE_tutorial/ -n Letharia -o ./output_wgs_te_ass_letharia -c 4 -f`
+`python3 /path/to/UnFATE/UnFATE/main_wrap.py -b ./TUTORIAL_DATASET/12_Unfate_markers_aa.fasta -a ./TUTORIAL_DATASET/assemb_tutorial/ -w ./TUTORIAL_DATASET/WGS_tutorial/ -t ./TUTORIAL_DATASET/TE_tutorial/ -n Letharia -o ./output_wgs_te_ass_letharia -c 4 -f -r -s`
 
   * Consider running the script from a "tmux" detachable session, as the run can be very long, according to how many samples you have (this tools is usually preinstalled in Linux). Analyses with hundreds of samples should be run on high core number machines!  
   * Consider logging the script output with `python3 main_wrap.py {params} |& tee <logfile>`. This saves the stdout and stderr from running main_wrap.py into \<logfile\> as well as printing it to the console.
