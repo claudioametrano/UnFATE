@@ -52,7 +52,7 @@ If you use the pipline please cite this work and the tools used to build this pi
 
 ### Quick start with conda
 Prerequisites/Dependencies: 
-* A working Linux operating system (Ubuntu 24.04 LTS should work,  conda version 4.13.0; other Linux distributions could work), as the main OS or as a virual machine (e.g. https://www.linuxvmimages.com/images/ubuntu-2404/).
+* A working Linux operating system (Ubuntu 24.04 LTS was tested, with conda version 4.13.0; other Linux distributions could work), as the main OS or as a virual machine (e.g. https://www.linuxvmimages.com/images/ubuntu-2404/).
 *  Download and install the Miniconda installer for Linux: 
   * `wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh`
   * `bash ./Miniconda3-latest-Linux-x86_64.sh`
@@ -74,7 +74,9 @@ Prerequisites/Dependencies:
   * `mamba install cyclus::java-jre=8.45.14`
 
 * Install phypartspiecharts dependencies (if you want to run pie_wrap.py):
-   * ete3 and ete_toolchain: `mamba install -c etetoolkit ete3=3.1.3 ete_toolchain`, then check installation with `ete3 build check`
+   * ete3 and ete_toolchain: `mamba install -c etetoolkit ete3=3.1.3`, then check installation with `ete3 build check`
+* Install Hybpiper2
+  * `mamba install hybpiper=2.1.8`   
 
 1. Clone the UnFATE repository (or download the .zip file from Github browser interface). Choose a position for the UnFATE folder you like, do not move the repository after the first run (use the argument `--first_use` when you run the pipeline for the first time. If you need to move the UnFATE folder, clone the repository again then, run it with `--first_use` in the new position.
 
@@ -91,9 +93,9 @@ Assemblies must be in fasta files ending in .fna(.gz).
 
   * Consider running the script from a "tmux" detachable session, as the run can be very long, according to how many samples you have (this tools is usually preinstalled in Linux). Analyses with hundreds of samples should be run on high core number machines!  
   * Consider logging the script output with `python3 main_wrap.py {params} |& tee <logfile>`. This saves the stdout and stderr from running main_wrap.py into \<logfile\> as well as printing it to the console.
-  * The pre-mined NCBI database is accessed with the `-n` argument. You can select any taxonomic rank included in Accession_plus_taxonomy_Pezizomycotina.txt. If you want to select a binomial species name, remember to put a backslash before the blank    (e.g. Fuffaria\ fuffolosa). If you add AUTO to the list of taxa you want, main_wrap.py will use a similar method to barcode_wrap.py to find the closest samples in the database. Up to 10 additional samples per user sample can be added to the dataset this way.
+  * The pre-mined NCBI database is accessed with the `-n` argument. You can select any taxonomic rank included in Accession_plus_taxonomy_Pezizomycotina.txt. If you want to select a binomial species name, remember to put a backslash before the blank    (e.g. Fuffaria\ fuffolosa). If you add AUTO to the list of taxa you want, main_wrap.py will use a similar method to barcode_wrap.py to find the closest samples in the database. Up to 10 additional samples (per user sample) can be added to the dataset this way.
   * Although the script was written with our bait set in mind, it should work with any amino acid target file in the format required by HybPiper. If using an external protein file, the pre-mined NCBI data will not be helpful as it only contains the 195 UnFATE genes.
-  * There are two ways to reduce the memory requirements and CPU burden of UnFATE depending on your input data. If you are supplying whole genome data, you can use the `-l` flag to run HybPiper instead of Spades and Exonerate. This greatly reduces memory requirements and calculation time. If you are supplying assemblies, or can assemble whole genome data but have trouble running exonerate (look for "Killed" in the output to understand if this is the case), use `-m <memory in GB>` to reduce the memory used by Exonerate. Memory usage can't be strictly limited to the specified value unfortunately, so you will want to set the value below your actual limit.
+  * There are two ways to reduce the memory requirements and CPU burden of UnFATE depending on your input data. If you are supplying whole genome data, you can use the `-l` flag to run HybPiper instead of Spades first and Exonerate. This greatly reduces memory requirements and calculation time.
   * If you wish to use HybPiper to capture sequences from your target enrichment reads, use the `-y` flag. This is kept seperate from the low memory flag which causes HybPiper to be used for WGS data, as assembly of reads from target enrichment is not nearly as memory intensive as assembling a whole genome.
 
 5.  Cross your fingers and wait, good luck!  ...Take into account that the script parallelizes using the `--cpu n` you specify as an argument, HybPiper and Exonerate will process n samples at a time. The same number of cpu is then used to parallelize IQ-TREE runs for single locus trees and for concatenated supermatrices (only if that many cores are needed).  

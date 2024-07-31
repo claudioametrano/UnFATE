@@ -543,7 +543,7 @@ def checkTestContinue(user_input):
         return True
 
 def check_arg():
-    parser = argparse.ArgumentParser(description='UnFATE version 1.0: the wrapper script that brings YOU from target enrichment sequencing data straight to phylogenetic tree inference! See the readme file for data structure and additional info.')
+    parser = argparse.ArgumentParser(description='UnFATE version 1.0: the wrapper script that brings YOU from target enrichment sequencing (assemblies and whole genome sequencing) data straight to phylogenetic tree inference! See the readme file for data structure and additional info.')
     mandatory_args = parser.add_argument_group("Mandatory or Suggested", "Arguments which are either required for the proper function of main_wrap.py, or should be used.")
     mandatory_args.add_argument('-o', '--out', required=True,
                     help='The directory where output will be placed upon completion. Required.'

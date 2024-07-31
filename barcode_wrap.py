@@ -485,7 +485,7 @@ def main():
         sample_R2_path = glob(os.path.join(input_dir, "*_R2.trimmed_paired.fastq.gz"))[0]
         name = sample_R1_path.strip("_R1.trimmed_paired.fastq.gz")
         spades_out_path = os.path.join(input_dir, name + "_spades/")
-        spades_command = "spades.py -1 {} -2 {} -o {} -t {} --meta".format(sample_R1_path, sample_R2_path, spades_out_path, args.cpu)
+        spades_command = "spades.py -1 {} -2 {} -o {} -t {} --meta --phred-offset 33".format(sample_R1_path, sample_R2_path, spades_out_path, args.cpu)
         print("running spades with " + spades_command)
         os.system(spades_command)
         query_sample = name.split("/")[-1]
