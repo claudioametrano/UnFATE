@@ -312,7 +312,7 @@ def find_similar_samples(query, taxes, totalNum, spNum):
     record.seq = record.seq.upper()
 
   #distances will be calculated with a basic 2-parameter model
-  calc = DistanceCalculator("trans", skip_letters=["N", "-", "W", "S", "M", "K", "R", "Y", "B", "D", "H", "V"])
+  calc = DistanceCalculator("blastn", skip_letters=["N", "-", "W", "S", "M", "K", "R", "Y", "B", "D", "H", "V"])
 
   queryIndex = [record.id for record in aln].index(query)
   sequences = [record.seq for record in aln]
