@@ -36,19 +36,18 @@ If you use the pipline please cite this work and the tools used to build this pi
 ## Installation and use
 
 ### Quick start with docker
-1. download/pull the image from docker hub:
-  *  `docker pull ywind/unfate`
-
-2. download bash wrapper script:
-  *  `wget -O unfate-docker https://raw.githubusercontent.com/claudioametrano/UnFATE/master/unfate-docker `
-
-3. make this executable on your system:
-  *  `chmod +x /path/to/unfate-docker`
-
-4. quick run in your current directory with the tutorial data:
+1. Build the docker container (running the Dockerfile which is inside the UnFATE folder):
+  *  `sudo docker build -t unfate1:latest  Path/to/UnFATE/folder/
+`
+2. Start the container
+  *  ``
+3. Start the UnFATE conda environment within the container
+  *  ``  
+4. Quick run in your current directory with the tutorial dataset:
   *  `wget  https://raw.githubusercontent.com/claudioametrano/UnFATE/master/TUTORIAL_DATASET.tar.xz`
   *  `tar -xf TUTORIAL_DATASET.tar.xz`
-  *  `docker run --rm -v $(pwd):$(pwd) -w $(pwd) -i -t ywind/unfate:latest /UnFATE/main_wrap.py -b ./TUTORIAL_DATASET/11_Unfate_markers_aa.fasta -a ./TUTORIAL_DATASET/assemb_tutorial/ -w ./TUTORIAL_DATASET/WGS_tutorial/ -t ./TUTORIAL_DATASET/TE_tutorial/ -n Letharia -o ./output_wgs_te_ass_letharia -c 4 -f -s`
+  *  `main_wrap.py -b ./TUTORIAL_DATASET/10_Unfate_markers_aa.fasta -a ./TUTORIAL_DATASET/assemb_tutorial/ -w ./TUTORIAL_DATASET/WGS_tutorial/ -t ./TUTORIAL_DATASET/TE_tutorial/ -n Letharia -o ./output_wgs_te_ass_letharia -c 40 -f -r -s`
+`
 
 ### Quick start with conda
 Prerequisites/Dependencies: 
@@ -63,11 +62,13 @@ Prerequisites/Dependencies:
 * Create a conda environment which uses Python3.7
   * `mamba create -n unfate python=3.11`
 * Start the environment
-  *`mamba activate unfate`  
+  * `mamba activate unfate`  
 * Install dependencies using conda (mamba)
-  * `conda config --add channels conda-forge`   
+  * `conda config --add channels conda-forge`
+  * `conda config --add channels bioconda`   
   * `mamba install -c bioconda blast=2.14.1 spades=3.15.5 exonerate=2.4.0 hmmer=3.3.2 trimal=1.4 mafft=7.520` 
-  * `mamba install biopython=1.78 pandas=2.1.1 seaborn=0.13.0 click=8.1.7`
+  * `mamba install -c conda-forge biopython=1.80`
+  * `mamba install pandas=2.1.1 seaborn=0.13.2 click=8.1.7`
 * Install parallel if not already installed
   * `mamba install -c conda-forge parallel=20240722`   
 * Install java if not already installed  
