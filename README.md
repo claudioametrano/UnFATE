@@ -53,43 +53,45 @@ If you use the pipline please cite this work and the tools used to build this pi
 ### Quick start with conda
 Prerequisites/Dependencies: 
 * A working Linux operating system (Ubuntu 24.04 LTS should work,  conda version 4.13.0; other Linux distributions could work), as the main OS or as a virual machine (e.g. https://www.linuxvmimages.com/images/ubuntu-2404/).
-  *  Download and install the Miniconda installer for Linux: 
-    * `mkdir -p ~/miniconda3`
-    * `wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -O ~/miniconda3/miniconda.sh`
-    * `bash ~/miniconda3/miniconda.sh -b -u -p ~/miniconda3`
-    * `rm -rf ~/miniconda3/miniconda.sh`
-    * Answer "yes" to conda init
-  * Restart the Terminal, it should show the (base) conda environment at the beginning of your command line
+*  Download and install the Miniconda installer for Linux: 
+  * `wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh`
+  * `bash ./Miniconda3-latest-Linux-x86_64.sh`
+  * Answer "yes" to conda init
+* Restart the Terminal, it should show the (base) conda environment at the beginning of your command line
+* Install mamba (all the conda installations will be faster)
+  * `conda install conda-forge::mamba`
 * Create a conda environment which uses Python3.7
-  * `conda create -n environment_name python=3.7`
+  * `mamba create -n unfate python=3.11`
 * Start the environment
-  *`conda activate environment_name`  
-* Install dependencies using conda  
-   * `conda install -c bioconda blast spades=3.15.5 exonerate=2.4.0 hmmer=3.3.2 trimal=1.4 mafft=7.520` 
-   * `conda install biopython==1.76 pandas=2.1.1 seaborn=0.13.0 click=8.1.7`
+  *`mamba activate unfate`  
+* Install dependencies using conda (mamba)
+  * `conda config --add channels conda-forge`   
+  * `mamba install -c bioconda blast=2.14.1 spades=3.15.5 exonerate=2.4.0 hmmer=3.3.2 trimal=1.4 mafft=7.520` 
+  * `mamba install biopython=1.78 pandas=2.1.1 seaborn=0.13.0 click=8.1.7`
 * Install parallel if not already installed
-  * `conda install -c conda-forge parallel`   
+  * `mamba install -c conda-forge parallel=20240722`   
 * Install java if not already installed  
-  * `conda install cyclus::java-jre`
+  * `mamba install cyclus::java-jre=8.45.14`
 
 * Install phypartspiecharts dependencies (if you want to run pie_wrap.py):
-   * ete3 and ete_toolchain: `conda install -c etetoolkit ete3=3.1.3 ete_toolchain`, then check installation with `ete3 build check`
+   * ete3 and ete_toolchain: `mamba install -c etetoolkit ete3=3.1.3 ete_toolchain`, then check installation with `ete3 build check`
 
 1. Clone the UnFATE repository (or download the .zip file from Github browser interface). Choose a position for the UnFATE folder you like, do not move the repository after the first run (use the argument `--first_use` when you run the pipeline for the first time. If you need to move the UnFATE folder, clone the repository again then, run it with `--first_use` in the new position.
 
 2. Read the help section of the script to set up the command line for your analysis:  
-`python3 main_wrap.py --help`
+`python3 ./UnFATE/main_wrap.py --help`
 
 3. Set up file extensions: Sequencing data must be in files ending in _R(direction).fastq(.gz) or _SE.fastq(.gz). 
 Assemblies must be in fasta files ending in .fna(.gz).
 
 4. Run UnFATE using the command line. In this example the **TUTORIAL_DATASET.tar.gz** archive (unzip it before starting), which is included in the UnFATE repository, will be used. This reduced dataset and reference sequences file only uses 12 UnFATE genes, assemblies file which only contain the target genes, TE and WGS fastq artificially generated from the same reduced assemblies. Its olny purpose is to test the UnFATE pipeline before you start to work on your own data. It should complete the analyses in a reasonable time even on a laptop. Please check intermediate results, such as the pdf heatmap in the "fastas" folder. Check also the "final_trees" folder, which should contain a very simple phylogeny containing 18 tips from the tutorial dataset (one sample each of the main Pezizomycotina class from the assemblies, and the same samples from simulated WGS or TE data) plus two _Letharia_ tips from the pre-mined database. Running time on 10 Xeon E5-2697v3 cores, about 11'). For a more challengiong test run wich uses real (downlasampled) data, run the content of **TEST_Data_final.tar.gz** 
 
-`python3 /path/to/UnFATE/UnFATE/main_wrap.py -b ./TUTORIAL_DATASET/12_Unfate_markers_aa.fasta -a ./TUTORIAL_DATASET/assemb_tutorial/ -w ./TUTORIAL_DATASET/WGS_tutorial/ -t ./TUTORIAL_DATASET/TE_tutorial/ -n Letharia -o ./output_wgs_te_ass_letharia -c 4 -f -r -s`
+`tar -xzvf ./UnFATE/TUTORIAL_DATASET.tar.gz`
+`python3 ./UnFATE/main_wrap.py -b ./TUTORIAL_DATASET/10_Unfate_markers_aa.fasta -a ./TUTORIAL_DATASET/assemb_tutorial/ -w ./TUTORIAL_DATASET/WGS_tutorial/ -t ./TUTORIAL_DATASET/TE_tutorial/ -n Letharia -o ./output_wgs_te_ass_letharia --cpu 4 --first_use --trimal --strict_filtering --depth_multiplier 10 --gappy_out 90`
 
   * Consider running the script from a "tmux" detachable session, as the run can be very long, according to how many samples you have (this tools is usually preinstalled in Linux). Analyses with hundreds of samples should be run on high core number machines!  
   * Consider logging the script output with `python3 main_wrap.py {params} |& tee <logfile>`. This saves the stdout and stderr from running main_wrap.py into \<logfile\> as well as printing it to the console.
-  * The pre-mined NCBI database is accessed with the `-n` argument. You can select any taxonomic rank included in Accession_plus_taxonomy_Pezizomycotina.txt. If you want to select a binomial species name, remember to put a backslash before the blank    (e.g. Fuffaria\ fuffolosa). If you add AUTO to the list of taxa you want, main_wrap.py will use a similar method to barcode_wrap to find the closest samples in the database. Up to 10 additional samples per user sample can be added to the dataset this way.
+  * The pre-mined NCBI database is accessed with the `-n` argument. You can select any taxonomic rank included in Accession_plus_taxonomy_Pezizomycotina.txt. If you want to select a binomial species name, remember to put a backslash before the blank    (e.g. Fuffaria\ fuffolosa). If you add AUTO to the list of taxa you want, main_wrap.py will use a similar method to barcode_wrap.py to find the closest samples in the database. Up to 10 additional samples per user sample can be added to the dataset this way.
   * Although the script was written with our bait set in mind, it should work with any amino acid target file in the format required by HybPiper. If using an external protein file, the pre-mined NCBI data will not be helpful as it only contains the 195 UnFATE genes.
   * There are two ways to reduce the memory requirements and CPU burden of UnFATE depending on your input data. If you are supplying whole genome data, you can use the `-l` flag to run HybPiper instead of Spades and Exonerate. This greatly reduces memory requirements and calculation time. If you are supplying assemblies, or can assemble whole genome data but have trouble running exonerate (look for "Killed" in the output to understand if this is the case), use `-m <memory in GB>` to reduce the memory used by Exonerate. Memory usage can't be strictly limited to the specified value unfortunately, so you will want to set the value below your actual limit.
   * If you wish to use HybPiper to capture sequences from your target enrichment reads, use the `-y` flag. This is kept seperate from the low memory flag which causes HybPiper to be used for WGS data, as assembly of reads from target enrichment is not nearly as memory intensive as assembling a whole genome.

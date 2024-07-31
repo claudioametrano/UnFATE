@@ -721,16 +721,14 @@ def main():
 
                     if os.path.isfile(os.path.join(spades_out_path, "scaffolds.fasta")):
                         #print(os.path.join(spades_out_path))
-                        os.rename(os.path.join(spades_out_path, "scaffolds.fasta"), os.path.join(args.target_enrichment_data, name + ".fna"))
+                        os.rename(os.path.join(spades_out_path, "scaffolds.fasta"), os.path.join(args.whole_genome_data, name + ".fna"))
                     else:
                         if os.path.isfile(os.path.join(spades_out_path, "contigs.fasta")):
-                            os.rename(os.path.join(spades_out_path, "contigs.fasta"), os.path.join(args.target_enrichment_data, name + ".fna"))
+                            os.rename(os.path.join(spades_out_path, "contigs.fasta"), os.path.join(args.whole_genome_data, name + ".fna"))
 
             #we have assemblies now
             logging.info("\033[1;32;50m ***PERFORMING ASSEMBLED WGS DATA ANALYSIS WITH Exonerate (Slater & Birney 2005)*** \033[1;37;50m")
             run_exonerate(args.whole_genome_data)
-            #toRerun = check_coverage(args.whole_genome_data) #returns {sample:[genes to rerun]} #function definition commented
-            #run_hybpiper_selectively(args.whole_genome_data, toRerun, main_script_dir)    #function definition commented
 
     #create hybpiper output in target_enrichment/
     if args.target_enrichment_data:
@@ -869,7 +867,7 @@ def main():
         if args.targ_hybpiper:    #done with HybPiper
             get_fastas_exonerate(args.target_enrichment_data, False)
             user_samples.extend(get_names(args.target_enrichment_data, False))
-        else:            #done with metaspades then exonerate, but now with same folder structire of hybpiper so i put False also here below
+        else:            #done with metaspades then exonerate, but now with same folder structure of hybpiper so i put False also here below
             get_fastas_exonerate(args.target_enrichment_data, False)
             user_samples.extend(get_names(args.target_enrichment_data, False))
     if args.whole_genome_data:
@@ -878,7 +876,7 @@ def main():
             get_fastas_exonerate(args.whole_genome_data, False)
             user_samples.extend(get_names(args.whole_genome_data, False))
 
-        else:            #done with spades then exonerate , but now with same folder structire of hybpiper so i put False also here below
+        else:            #done with spades then exonerate , but now with same folder structure of hybpiper so i put False also here below
             get_fastas_exonerate(args.whole_genome_data, False)
             user_samples.extend(get_names(args.whole_genome_data, False))
 
