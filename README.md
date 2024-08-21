@@ -67,18 +67,18 @@ Prerequisites/Dependencies:
 
 ### main_wrap.py usage example
 In the following example main_wrap.py is called from the UnFATE folder using:  
-* **-b** the 195 genes UnFATE reference protein file (**UnFATE_markers_195.fas**) which comes with the UnFATE repository (or any protein file in Hypiper format)
-* **-a** the folder containing asseblies with extension **.fna(.gz)**
-* **-w** the folder containing whole genome sequencing files with extension **_R<1|2>.fastq(.gz)**
-* **-t** the folder containing target enrichment files with extension **_R<1|2>.fastq(.gz)**
-* **-n AUTO** the automatic mode, which picks the samples most similar to your data from the UnFATE database (in addition, any other taxonomic name can be added in a space separated list to the -n argument (see **Accession_plus_taxonomy_Pezizomycotina.txt** in the UnFATE folder), if you use binomial names, put a "\" between genus and species name)
-* **-o** the output folder
-* **--cpu** the number of cores to be used to parallelize the analyses
-* **--first_use** argument to be used only the first time UnFATE is used (do not move the folder afterwards)
-* **--trimal** the block filtering approach is used to remove badly aligned blocks in the alignment
-* **--strict_filtering** any multiple copy gene that is not solved by coverage is discarded from the sample
-* **--depth_multiplier 10** to be retained a copy must have at least 10 times the coverage of the other copies
-* **--gappy_out 90** the samples with >= 90% of missing genes are discarded
+* **-b**: the 195 genes UnFATE reference protein file (**UnFATE_markers_195.fas**) which comes with the UnFATE repository (or any protein file in Hypiper format)
+* **-a**: the folder containing asseblies with extension **.fna(.gz)**
+* **-w**: the folder containing whole genome sequencing files with extension **_R<1|2>.fastq(.gz)**
+* **-t**: the folder containing target enrichment files with extension **_R<1|2>.fastq(.gz)**
+* **-n AUTO**: the automatic mode, which picks the samples most similar to your data from the UnFATE database (in addition, any other taxonomic name can be added in a space separated list to the -n argument (see **Accession_plus_taxonomy_Pezizomycotina.txt** in the UnFATE folder), if you use binomial names, put a "\" between genus and species name)
+* **-o**: the output folder
+* **--cpu**: the number of cores to be used to parallelize the analyses
+* **--first_use**: argument to be used only the first time UnFATE is used (do not move the folder afterwards)
+* **--trimal**: the block filtering approach is used to remove badly aligned blocks in the alignment
+* **--strict_filtering**: any multiple copy gene that is not solved by coverage is discarded from the sample
+* **--depth_multiplier 10**: to be retained a copy must have at least 10 times the coverage of the other copies
+* **--gappy_out 90**: the samples with >= 90% of missing genes are discarded
 
 `python3 ./UnFATE/main_wrap.py -b ./UnFATE/UnFATE_markers_195.fas -a ./assembly_folder -w ./WGS_folder/ -t ./target_enrichment_folder/ -n AUTO -o ./output_example --cpu 4 --first_use --trimal --strict_filtering --depth_multiplier 10 --gappy_out 90`
 
@@ -125,7 +125,7 @@ The UnFATE output will be placed in many folders within the location specified b
 
 
 ## NOTES
-* **UnFATE_markers_195.fas** is the reference file with the amino-acid reference sequences used for our bait set and that you should use to run UnFATE, it can be complemented with additional sequence if you already have sequecnes from your taxon of interest, this could improve the gene completeness (the 10 genes files is only useful for software testing!!) 
+* **UnFATE_markers_195.fas** is the reference file with the amino-acid reference sequences used for our bait set, you should use it to run UnFATE, it can be complemented with additional sequence if you already have sequences from your taxon of interest, this could improve the gene completeness.
 * `python3 main_wrap.py --help` will open the help describing each arumgent and their usage.
 * the argument **--first_use** only need to be used the first time the pipeline is launched. Do not move the UnFATE folder afterwards. 
 * Rememeber to set up file extensions for your data: Sequencing data must be in files ending with **_R<1|2>.fastq(.gz)** or _SE.fastq(.gz). Assemblies must be in fasta files ending with **.fna(.gz)**.
@@ -142,7 +142,7 @@ The UnFATE output will be placed in many folders within the location specified b
 The wrapper script relies on many great software developed by other people. If you use this wrapper and bait set please cite the applicable papers:
 
 #### UnFATE
-Ametrano et al. XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+Ametrano et al. 2024? XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX 
 #### Trimmomatic
 Bolger, A. M., Lohse, M., & Usadel, B. (2014). Trimmomatic: a flexible trimmer for Illumina sequence data. Bioinformatics, 30(15), 2114-2120.
 #### Gblocks
