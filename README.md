@@ -8,7 +8,7 @@ If you use the pipline please cite this work and the tools used to build this pi
 
 ## Workflow
 <img src="./pipeline.png" alt="Drawing" height="480">                                                                                                                                                                           
-  
+
 ## Installation and use
 
 ### With Docker container
@@ -18,21 +18,23 @@ If you use the pipline please cite this work and the tools used to build this pi
 ### Build yourself the Docker container 
 1. clone UnFATE repository  
   * `git clone https://github.com/claudioametrano/UnFATE.git` 
-2. Build the docker container (running the Dockerfile which is inside the UnFATE folder, you will not use the rest of the files in the folder, as you will run UnFATE within the container):
-  *  `sudo docker build -t unfate:latest  Path/to/UnFATE/folder/`
-3. Start the container (interactive)
-  *  `sudo docker run -it unfate`
-4. Start the UnFATE conda environment within the container
+  Build the docker container (running the Dockerfile which is inside the UnFATE folder, you will not use the rest of the files in the folder, as you will run UnFATE within the container):
+  *  `sudo docker build -t unfate1.0:latest  Path/to/UnFATE/folder/`
+2. Start the container (interactive)
+  *  `sudo docker run -it unfate1.0`
+3. Start the UnFATE conda environment within the container
   *  `conda activate unfate`  
-5. Quick run in your current directory with the tutorial dataset:
+4. Quick run in your current directory with the tutorial dataset (`main_wrap.py --help` for details about the software's arguments):
   *  `wget  https://raw.githubusercontent.com/claudioametrano/UnFATE/master/TUTORIAL_DATASET.tar.gz`
   *  `tar -xf TUTORIAL_DATASET.tar.gz`
-  *  `python3 main_wrap.py -b ./TUTORIAL_DATASET/10_Unfate_markers_aa.fasta -a ./TUTORIAL_DATASET/assemb_tutorial/ -w ./TUTORIAL_DATASET/WGS_tutorial/ -t ./TUTORIAL_DATASET/TE_tutorial/ -n Letharia -o ./output_wgs_te_ass_letharia --cpu 4 --first_use --trimal --strict_filtering --depth_multiplier 10 --gappy_out 90`
-`
+  *  `main_wrap.py -b ./TUTORIAL_DATASET/10_Unfate_markers_aa.fasta -a ./TUTORIAL_DATASET/assemb_tutorial/ -w ./TUTORIAL_DATASET/WGS_tutorial/ -t ./TUTORIAL_DATASET/TE_tutorial/ -n Letharia -o ./output_wgs_te_ass_letharia --first_use`
+5. Retrieve the output from the container (while it is still active)
+  * `docker cp <container_id>:/path/to/file/on/container /path/on/host`
+
 
 ### With Conda environment
 Prerequisites/Dependencies: 
-1. A working Linux operating system (Ubuntu 22.04 LTS and 24.04 LTS were tested; other Linux distributions could work), as the main OS or as a virual machine (e.g. https://www.linuxvmimages.com/images/ubuntu-2404/).
+1. A working Linux operating system (Ubuntu 22.04 LTS and 24.04 LTS were tested; other Linux distributions could work), as the main OS or as a virtual machine (e.g. https://www.linuxvmimages.com/images/ubuntu-2404/).
 2.  Download and install the Miniconda installer for Linux: 
   * `wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh`
   * `bash ./Miniconda3-latest-Linux-x86_64.sh`
@@ -57,11 +59,28 @@ Prerequisites/Dependencies:
   * `mamba install hybpiper=2.1.8`
 10. clone UnFATE repository  
 `git clone https://github.com/claudioametrano/UnFATE.git`
-11. Quick run in your current directory with the tutorial dataset:
+11. Quick run in your current directory with the tutorial dataset (`main_wrap.py --help` for deatails about the software's arguments):
   * `wget  https://raw.githubusercontent.com/claudioametrano/UnFATE/master/TUTORIAL_DATASET.tar.gz`
   * `tar -xf TUTORIAL_DATASET.tar.gz`
-  * `python3 ./UnFATE/main_wrap.py -b ./TUTORIAL_DATASET/10_Unfate_markers_aa.fasta -a ./TUTORIAL_DATASET/assemb_tutorial/ -w ./TUTORIAL_DATASET/WGS_tutorial/ -t ./TUTORIAL_DATASET/TE_tutorial/ -n Letharia -o ./output_wgs_te_ass_letharia --cpu 4 --first_use --trimal --strict_filtering --depth_multiplier 10 --gappy_out 90`
-`
+  * `python3 ./UnFATE/main_wrap.py -b ./TUTORIAL_DATASET/10_Unfate_markers_aa.fasta -a ./TUTORIAL_DATASET/assemb_tutorial/ -w ./TUTORIAL_DATASET/WGS_tutorial/ -t ./TUTORIAL_DATASET/TE_tutorial/ -n Letharia -o ./output_wgs_te_ass_letharia --first_use`
+
+### main_wrap.py usage example
+In the following example main_wrap.py is called from the UnFATE folder using:  
+* **-b** the 195 genes UnFATE reference protein file wich comes with the UnFATE repository (or any protein file in Hypiper format)
+* **-a** the folder containing asseblies with extension **.fna(.gz)**
+* **-w** the folder containing whole genome sequencing files with extension **_R<1|2>.fastq(.gz)**
+* **-t** the folder containing target enrichment files with extension **_R<1|2>.fastq(.gz)**
+* **-n AUTO** the automatic modes, which picks the samples most similar to your data from the UnFATE database (in addition, any other taxonomic name can be added in a space separated list to the -n argument, if you use binomial names, put a "\" between genus and species name)
+* **-o** the output folder
+* **--cpu** the number of cores to be used to parallelize the analyses
+* **--first_use** argument to be used only the first time UnFATE is used (do not move the folder afterwards)
+* **--trimal** the block filtering approach is used to remove badly aligned blocks in the alignment
+* **--strict_filtering** any multiple copy gene that is not solved by coverage is discarded from the sample
+* **--depth_multiplier 10** to be retained a copy must have at least 10 times the coverage of the other copies
+* **--gappy_out 90** the samples with >= 90% of missing genes are discarded
+`python3 ./UnFATE/main_wrap.py -b ./UnFATE/UnFATE_markers_195.fas -a ./assembly_folder -w ./WGS_folder/ -t ./target_enrichment_folder/ -n AUTO -o ./output_example --cpu 4 --first_use --trimal --strict_filtering --depth_multiplier 10 --gappy_out 90`
+
+
 
 ### To run Phyparts and phypartspiecharts.py with the pie_wrap.py helper scripts (Optional)
 * Create a dedicated enviroment  
@@ -73,27 +92,26 @@ Prerequisites/Dependencies:
   * `mamba install -c etetoolkit ete3=3.1.3`
   * `mamba install -c conda-forge matplotlib=3.8.4`
  
+
 ## NOTES
-* Rememeber to set up file extensions for your data (if needed): Sequencing data must be in files ending with _R<1|2>.fastq(.gz) or _SE.fastq(.gz). 
-Assemblies must be in fasta files ending with .fna(.gz).
-* **TUTORIAL_DATASET.tar.gz**:  This reduced dataset and reference sequences file only uses 10 UnFATE genes, assemblies file which only contain the target genes, TE and WGS fastq artificially generated from the same reduced assemblies. Its olny purpose is to test the UnFATE pipeline before you start to work on your own data. It should complete the analyses in a short time, even on a laptop. Please check intermediate results, such as the pdf heatmap in the "fastas" folder. Check also the "final_trees" folder, which should contain a very simple phylogeny containing 17 tips (one sample each of the main Pezizomycotina class from the assemblies, and the same samples from simulated WGS or TE data) plus two _Letharia_ tips from the UnFATE database. For a more computationally intensive test run, wich uses real (downlasampled) data, run the content of **TEST_Data_final.tar.gz** (Running time on 10 Xeon E5-2697v3 cores is about 11').
-* Consider running the script from a "tmux" detachable session, as the run can be very long, according to how many samples you have (this tools is usually preinstalled in Linux). Analyses with hundreds of samples should be run on high core number machines!  
+* `python3 main_wrap.py --help` will open the help describing each arumgent and their usage.
+* the argument **--first_use** only need to be used the first time the pipeline is launched. Do not move the UnFATE folder afterwards. 
+* Rememeber to set up file extensions for your data: Sequencing data must be in files ending with **_R<1|2>.fastq(.gz)** or _SE.fastq(.gz). Assemblies must be in fasta files ending with **.fna(.gz)**.
+* **TUTORIAL_DATASET.tar.gz**:  This reduced dataset and reference sequences file only uses 10 UnFATE genes, assemblies file which only contain the target genes, TE and WGS fastq artificially generated from the same reduced assemblies. Its olny purpose is to test the UnFATE pipeline. Please check intermediate results, such as the .pdf heatmap in the "fastas" folder. Check also the "final_trees" folder, which should contain a very simple phylogeny containing 17 tips (one sample each of the main Pezizomycotina class from the assemblies, and the same samples from simulated WGS or TE data) plus two _Letharia_ tips from the UnFATE database. For a more computationally intensive test run, wich uses real (downlasampled) data, run the content of **TEST_Data_final.tar.gz** (Running time on 10 Xeon E5-2697v3 cores is about 11').
+* Consider running the script from a "tmux" or detachable session
 * Consider logging the script output with `python3 main_wrap.py {params} |& tee <logfile>`. This saves the stdout and stderr from the running main_wrap.py into \<logfile\> as well as printing it to the console.
-* The pre-mined UnFATE database is accessed with the `-n` argument. You can select any taxonomic rank included in Accession_plus_taxonomy_Pezizomycotina.txt. If you want to select a binomial species name, remember to put a backslash before the blank (e.g. Fuffaria\ fuffolosa). If you add AUTO to the list of taxa you want, main_wrap.py will use a similar method to barcode_wrap.py to find the closest samples in the database. Up to 10 additional samples (per user sample) can be added to the dataset this way.
-* Although the script was written with our bait set in mind, it should work with any amino acid target file in the format required by HybPiper. If using an external protein file, the UnFATE database will not be helpful, as it only contains the 195 UnFATE genes.
-* There are two ways to reduce the memory requirements and CPU burden of UnFATE depending on your input data. If you are supplying whole genome data, you can use the `-l` flag to run HybPiper instead of Spades assembly first and Exonerate. This greatly reduces memory requirements.
-* If you wish to use HybPiper to capture sequences from your target enrichment reads, use the `-y` flag. This is kept seperate from the low memory flag which causes HybPiper to be used for WGS data, as assembly of reads from target enrichment is usually not as memory intensive as assembling a whole fungal genome.
-* The script parallelizes using the `--cpu n` you specify as an argument, HybPiper and Exonerate will process n samples at a time. Up to the same number of cpu is then used to parallelize IQ-TREE runs for single locus trees and for concatenated supermatrices.  
-* A run can be resumed if the script is terminated before generating trees, but after generating supermatrices. This will happen automatically if the output directory contains the assemblies/ and/or target_enrichment/, fastas/, macsed_alignments/, and supermatrix/ directories. Please remove any tree directories from the output directory (if present) before resuming to avoid errors.
-* [PhypartsPieCharts](https://github.com/mossmatters/phyloscripts/tree/master/phypartspiecharts) is a nice tool for visualize the nodal conflict level  for the species tree which uses Phyparts. Consider running PhypartsPieCharts through our helper script with `python pie_wrap.py -t /path/to/single_locus_trees/ -p /path/to/species/tree`. Plese use a separate conda environement from the UnFATE one (this is due to some dependendncies version incompatibility)
-*  If you need to build a quick phylogeny UnFATE also works using samples from the database only (-n), take advantage of this feature to get phylogenomic trees of any rank in Pezizomycotina with zero effort.     
+* The pre-mined UnFATE database  (`-n` argument, see help): Select any taxonomic rank included in Accession_plus_taxonomy_Pezizomycotina.txt. For binomial species name, use a backslash (e.g. Fuffaria\ fuffolosa). Adding **AUTO** to the list of taxa, main_wrap.py will use a similar method to barcode_wrap.py (see below) to find the closest samples in the database.
+* Although the script was written with our bait set in mind, it should work with any amino acid target file in HybPiper format. However, the UnFATE database only contains the 195 UnFATE genes.
+* [PhypartsPieCharts](https://github.com/mossmatters/phyloscripts/tree/master/phypartspiecharts) is a tool to visualize the nodal conflict level for the species tree which uses Phyparts. Consider running PhypartsPieCharts through our helper script with `python pie_wrap.py -t /path/to/single_locus_trees/ -p /path/to/species/tree`. Use a separate conda environement (due to dependency version incompatibility)
+*  UnFATE also works using samples from the database only (-n), take advantage of this feature to get phylogenetic trees of any rank in Pezizomycotina!     
+
 
 ## Output description
 The UnFATE output will be placed in many folders within the location specified by -o, several output folders will be created corresponding to the pipeline steps:  
 * The "target_enrichment" folder will contain symlinks to your supplied target enrichment data, trimmed read files, and the HybPiper or metaSPAdes and exonerate_hits.py analysis folders, one per sample.
 * The "whole_genome_data" folder will contain symlinks to your supplied WGS data, trimmed read files, and the HybPiper or SPAdes and exonerate_hits.py analysis folders, one per sample.
 * The "assemblies" folder will contain symlinks to your assemblies and the "Exonerate_hits.py" runs folder, one per sample.
-* The "fastas" folder will contain DNA and AA fasta files, one per marker of interest, the MACSE runs folders, and summaries of the amount of data that could be captured from your data.
+* The "fastas" folder will contain DNA and AA fasta files, one per marker of interest, the MACSE runs folders, and summaries of the amount of genes retrieved from your data.
 * The "macsed_alignments" folder will contain DNA and AA alignments, aligned and filtered with OMM_MACSE pipeline and (optionally) filtered with TrimAl.
 * The "auto_selection" folder will exist if you ran main_wrap with `-n AUTO` and will contain DNA alignments of sequences from your data and the pre-mined database.
 * The "single_locus_trees" folder will contain the IQ-TREE phylogenetic analyses on single markers (from both DNA and AA alignments).
@@ -102,14 +120,16 @@ The UnFATE output will be placed in many folders within the location specified b
 * The "final_trees" folder will contain the trees generate from concatenation (IQ-TREE) and coalescence-based approach (ASTRAL) and their version renamed to species name (where NCBI accession numbers were used; e.g. when samples from the precalculated database or assemblies downloaded from NCBI are used).
 * The "PhyParts" folder will be made if `pie_wrap.py` is run. The key output is pies.svg, but the full phyparts output will be present.
  
+
 ## `barcode_wrap.py`
-* This script handles multilocus barcoding of target enrichment or WGS data as well as assemblies.
-* It finds the most similary samples to the input data in our database (skipping samples if there are already a enough representatives from that species), then builds a tree of those samples using the 195 UnFATe genes. The precision of the taxonomy inferred from the output trees will depend on the completeness of the database. Species level identification could be possible in highly sequenced groups (e.g. Aspergillaceae) but is less likely in groups with few sequenced genomes, as the genomic resources will increase the precision will improve. 
+* This script handles multilocus barcoding of target enrichment, WGS data and assemblies.
+* It finds the most similar samples to the input data in our database, then builds a tree of those samples using the 195 UnFATe genes. The precision of the taxonomy inferred depends on the completeness of the database. Species level identification could be possible in highly sequenced groups (e.g. Aspergillaceae) but it will not be the case in groups with few sequenced genomes.
 * A possible usage of `barcode_wrap.py` is to find a closely related group to one of your samples, then run `main_wrap.py` with all of your samples and all members of that group using the `-n <taxon>` argument.
-* `barcode_wrap.py` does not allow running multiple samples in one run at the moment. If you have multiple samples, consider running `main_wrap.py -n AUTO to get the closest species from the database in your phylogeny`.
-* The output directories of `barcode_wrap.py` mirror the output directories of `main_wrap.py`. The "input" directory contains the raw and trimmed reads supplied, as well as the HybPiper or Spades and Exonerate output, if fastqs are supplied. If an assembly is supplied, the contents will be the Exonerate results split into multiple parts.
+* `barcode_wrap.py` does not allow running multiple samples in one run at the moment (a bash "for" loop or a parallel command can fix this). However, if you have multiple samples, consider running `main_wrap.py -n AUTO` to get the closest species from the database in your phylogeny`.
+* The output structure of `barcode_wrap.py` is similar to `main_wrap.py`. The "input" directory contains the raw and trimmed reads supplied, as well as the HybPiper or Spades and Exonerate output, if fastqs are supplied. If an assembly is supplied, the contents will be the Exonerate results split into multiple parts.
 * The "fastas" directory contains the genes extracted from the input added to the pre-mined data. The "final_fastas" directory contains the genes extracted from the input aligned to the genes from the samples selected from the database, ran through Gblocks with relaxed parameters.
 * The "trees" directory contains the IQ-TREE2 output from running on the "final_fastas" directory, in addition to a treefile where the accession numbers from NCBI have been replaced with binomials (final_fastas_named.treefile).
+
 
 ## Please cite: 
 The wrapper script relies on many great software developed by other people. If you use this wrapper and bait set please cite the applicable papers:

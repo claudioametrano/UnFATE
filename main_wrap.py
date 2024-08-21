@@ -913,7 +913,7 @@ def main():
             logging.info("Using mafft to align your sequences with sequences from the database")
             #align new stuff in fastas/ with pre-aligned stuff
             #make supermatrix
-            #find scores (discussion on this elsewhere)
+            #find scores
             #add samples we want to ncbi_accessions
             auto_dir = os.path.join(args.out, "auto_selection")
             if not os.path.isdir(auto_dir):
