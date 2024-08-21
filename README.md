@@ -28,8 +28,9 @@ If you use the pipline please cite this work and the tools used to build this pi
   *  `wget  https://raw.githubusercontent.com/claudioametrano/UnFATE/master/TUTORIAL_DATASET.tar.gz`
   *  `tar -xf TUTORIAL_DATASET.tar.gz`
   *  `main_wrap.py -b ./TUTORIAL_DATASET/10_Unfate_markers_aa.fasta -a ./TUTORIAL_DATASET/assemb_tutorial/ -w ./TUTORIAL_DATASET/WGS_tutorial/ -t ./TUTORIAL_DATASET/TE_tutorial/ -n Letharia -o ./output_wgs_te_ass_letharia --first_use`
-5. Retrieve the output from the container (while it is still active)
+5. Retrieve the output from the container, or copy to the container (while it is still active)
   * `docker cp <container_id>:/path/to/file/on/container /path/on/host`
+  * `docker cp /path/on/host <container_id>:/path/to/file/on/container`
 
 
 ### With Conda environment
@@ -80,9 +81,36 @@ In the following example main_wrap.py is called from the UnFATE folder using:
 * **--gappy_out 90** the samples with >= 90% of missing genes are discarded
 `python3 ./UnFATE/main_wrap.py -b ./UnFATE/UnFATE_markers_195.fas -a ./assembly_folder -w ./WGS_folder/ -t ./target_enrichment_folder/ -n AUTO -o ./output_example --cpu 4 --first_use --trimal --strict_filtering --depth_multiplier 10 --gappy_out 90`
 
+### Output description
+The UnFATE output will be placed in many folders within the location specified by -o, several output folders will be created corresponding to the pipeline steps:  
+* The "target_enrichment" folder will contain symlinks to your supplied target enrichment data, trimmed read files, and the HybPiper or metaSPAdes and exonerate_hits.py analysis folders, one per sample.
+* The "whole_genome_data" folder will contain symlinks to your supplied WGS data, trimmed read files, and the HybPiper or SPAdes and exonerate_hits.py analysis folders, one per sample.
+* The "assemblies" folder will contain symlinks to your assemblies and the "Exonerate_hits.py" runs folder, one per sample.
+* The "fastas" folder will contain DNA and AA fasta files, one per marker of interest, the MACSE runs folders, and summaries of the amount of genes retrieved from your data (**gene_lengths_normalized_heatmap.pdf, gene_lengths.csv, gene_lengths_normalized.csv**).
+* The "macsed_alignments" folder will contain DNA and AA alignments, aligned and filtered with OMM_MACSE pipeline and (optionally) filtered with TrimAl.
+* The "auto_selection" folder will exist if you ran main_wrap with `-n AUTO` and will contain DNA alignments of sequences from your data and the pre-mined database.
+* The "single_locus_trees" folder will contain the IQ-TREE phylogenetic analyses on single markers (from both DNA and AA alignments).
+* The "supermatrix" folder will contain both the concatenation of the single marker alignments and the IQ-TREE phylogenetic inference (from both DNA and AA alignments).
+* The "supertree" folder will contain both the file with the best tree for each marker and the ASTRAL species tree (from both DNA and AA alignments).
+* The "final_trees" folder will contain the trees generate from concatenation and IQ-TREE (**".treefile"**) and coalescence-based approach with ASTRAL (**".tree"**), and their version renamed to species name (**"*_SPECIES_NAME.tre"**, where NCBI accession numbers were used; e.g. when samples from the database or assemblies from NCBI are used).
+* The "PhyParts" folder will be made if `pie_wrap.py` is run. The main output is pies.svg, but the full phyparts output will be present.
 
 
-### To run Phyparts and phypartspiecharts.py with the pie_wrap.py helper scripts (Optional)
+## barcode_wrap.py usage
+`barcode_wrap.py --help` will open the help describing each arumgent and their usage.
+* launch the barcode pipeline on a single sample:
+ `barcode_wrap.py -i TUTORIAL_DATASET/TE_tutorial/GCA_000143535_TE_R* -c 4 -b UnFATE/UnFATE_markers_195.fas -o GCA_00014`
+
+* This script handles **multilocus barcoding** of target enrichment, WGS data and assemblies.
+* It finds the most similar samples to the input data in our database, then builds a tree of those samples using the 195 UnFATe genes. The precision of the taxonomy inferred depends on the completeness of the database. Species level identification could be possible in highly sequenced groups (e.g. Aspergillaceae) but it will not be the case in groups with few sequenced genomes.
+* A possible usage of `barcode_wrap.py` is to find a closely related group to one of your samples, then run `main_wrap.py` with all of your samples and all members of that group using the `-n <taxon>` argument.
+* `barcode_wrap.py` handles one sample at a time at the moment. However, if you have multiple samples, consider running `main_wrap.py -n AUTO` to get the closest samples from the database in your phylogeny`.
+* The output structure of `barcode_wrap.py` is similar to `main_wrap.py`. The "input" directory contains the raw and trimmed reads supplied, as well as the HybPiper or Spades and Exonerate output, if fastqs are supplied. If an assembly is supplied, the contents will be the Exonerate results split into multiple parts.
+* The "fastas" directory contains the genes extracted from the input sample added to the database-extracted data. The "final_fastas" directory contains the genes extracted from the input aligned to the genes from the samples selected from the database, ran through Gblocks with relaxed parameters.
+* The "trees" directory contains the IQ-TREE2 output from running on the "final_fastas" directory, in addition to a treefile where the accession numbers from NCBI have been replaced with binomials (**final_fastas_named.treefile**).
+
+
+### Run Phyparts and phypartspiecharts.py with the pie_wrap.py helper scripts **(Optional)**
 * Create a dedicated enviroment  
   * `mamba create -n phyparts python=3.9.12`
   * `mamba activate phyparts`
@@ -93,42 +121,18 @@ In the following example main_wrap.py is called from the UnFATE folder using:
   * `mamba install -c conda-forge matplotlib=3.8.4`
  
 
+
 ## NOTES
 * `python3 main_wrap.py --help` will open the help describing each arumgent and their usage.
 * the argument **--first_use** only need to be used the first time the pipeline is launched. Do not move the UnFATE folder afterwards. 
 * Rememeber to set up file extensions for your data: Sequencing data must be in files ending with **_R<1|2>.fastq(.gz)** or _SE.fastq(.gz). Assemblies must be in fasta files ending with **.fna(.gz)**.
-* **TUTORIAL_DATASET.tar.gz**:  This reduced dataset and reference sequences file only uses 10 UnFATE genes, assemblies file which only contain the target genes, TE and WGS fastq artificially generated from the same reduced assemblies. Its olny purpose is to test the UnFATE pipeline. Please check intermediate results, such as the .pdf heatmap in the "fastas" folder. Check also the "final_trees" folder, which should contain a very simple phylogeny containing 17 tips (one sample each of the main Pezizomycotina class from the assemblies, and the same samples from simulated WGS or TE data) plus two _Letharia_ tips from the UnFATE database. For a more computationally intensive test run, wich uses real (downlasampled) data, run the content of **TEST_Data_final.tar.gz** (Running time on 10 Xeon E5-2697v3 cores is about 11').
+* **TUTORIAL_DATASET.tar.gz**:  This reduced dataset and reference sequences file only uses 10 UnFATE genes, assemblies file which only contain the target genes, TE and WGS fastq artificially generated from the same reduced assemblies. Its olny purpose is to test the UnFATE pipeline. Please check intermediate results, such as the heatmap in the "fastas" folder (**gene_lengths_normalized_heatmap.pdf**). Check also the "final_trees" folder, which should contain a very simple phylogeny containing 17 tips (one sample each of the main Pezizomycotina class from the assemblies, and the same samples from simulated WGS or TE data) plus two _Letharia_ tips from the UnFATE database. For a more computationally intensive test run, wich uses real (downlasampled) data, run the content of **TEST_Data_final.tar.gz** (Running time on 10 Xeon E5-2697v3 cores is about 11').
 * Consider running the script from a "tmux" or detachable session
 * Consider logging the script output with `python3 main_wrap.py {params} |& tee <logfile>`. This saves the stdout and stderr from the running main_wrap.py into \<logfile\> as well as printing it to the console.
 * The pre-mined UnFATE database  (`-n` argument, see help): Select any taxonomic rank included in Accession_plus_taxonomy_Pezizomycotina.txt. For binomial species name, use a backslash (e.g. Fuffaria\ fuffolosa). Adding **AUTO** to the list of taxa, main_wrap.py will use a similar method to barcode_wrap.py (see below) to find the closest samples in the database.
 * Although the script was written with our bait set in mind, it should work with any amino acid target file in HybPiper format. However, the UnFATE database only contains the 195 UnFATE genes.
 * [PhypartsPieCharts](https://github.com/mossmatters/phyloscripts/tree/master/phypartspiecharts) is a tool to visualize the nodal conflict level for the species tree which uses Phyparts. Consider running PhypartsPieCharts through our helper script with `python pie_wrap.py -t /path/to/single_locus_trees/ -p /path/to/species/tree`. Use a separate conda environement (due to dependency version incompatibility)
 *  UnFATE also works using samples from the database only (-n), take advantage of this feature to get phylogenetic trees of any rank in Pezizomycotina!     
-
-
-## Output description
-The UnFATE output will be placed in many folders within the location specified by -o, several output folders will be created corresponding to the pipeline steps:  
-* The "target_enrichment" folder will contain symlinks to your supplied target enrichment data, trimmed read files, and the HybPiper or metaSPAdes and exonerate_hits.py analysis folders, one per sample.
-* The "whole_genome_data" folder will contain symlinks to your supplied WGS data, trimmed read files, and the HybPiper or SPAdes and exonerate_hits.py analysis folders, one per sample.
-* The "assemblies" folder will contain symlinks to your assemblies and the "Exonerate_hits.py" runs folder, one per sample.
-* The "fastas" folder will contain DNA and AA fasta files, one per marker of interest, the MACSE runs folders, and summaries of the amount of genes retrieved from your data.
-* The "macsed_alignments" folder will contain DNA and AA alignments, aligned and filtered with OMM_MACSE pipeline and (optionally) filtered with TrimAl.
-* The "auto_selection" folder will exist if you ran main_wrap with `-n AUTO` and will contain DNA alignments of sequences from your data and the pre-mined database.
-* The "single_locus_trees" folder will contain the IQ-TREE phylogenetic analyses on single markers (from both DNA and AA alignments).
-* The "supermatrix" folder will contain both the concatenation of the single marker alignments and the IQ-TREE phylogenetic inference (from both DNA and AA alignments).
-* The "supertree" folder will contain both the file with the best tree for each marker and the ASTRAL species tree (from both DNA and AA alignments).
-* The "final_trees" folder will contain the trees generate from concatenation (IQ-TREE) and coalescence-based approach (ASTRAL) and their version renamed to species name (where NCBI accession numbers were used; e.g. when samples from the precalculated database or assemblies downloaded from NCBI are used).
-* The "PhyParts" folder will be made if `pie_wrap.py` is run. The key output is pies.svg, but the full phyparts output will be present.
- 
-
-## `barcode_wrap.py`
-* This script handles multilocus barcoding of target enrichment, WGS data and assemblies.
-* It finds the most similar samples to the input data in our database, then builds a tree of those samples using the 195 UnFATe genes. The precision of the taxonomy inferred depends on the completeness of the database. Species level identification could be possible in highly sequenced groups (e.g. Aspergillaceae) but it will not be the case in groups with few sequenced genomes.
-* A possible usage of `barcode_wrap.py` is to find a closely related group to one of your samples, then run `main_wrap.py` with all of your samples and all members of that group using the `-n <taxon>` argument.
-* `barcode_wrap.py` does not allow running multiple samples in one run at the moment (a bash "for" loop or a parallel command can fix this). However, if you have multiple samples, consider running `main_wrap.py -n AUTO` to get the closest species from the database in your phylogeny`.
-* The output structure of `barcode_wrap.py` is similar to `main_wrap.py`. The "input" directory contains the raw and trimmed reads supplied, as well as the HybPiper or Spades and Exonerate output, if fastqs are supplied. If an assembly is supplied, the contents will be the Exonerate results split into multiple parts.
-* The "fastas" directory contains the genes extracted from the input added to the pre-mined data. The "final_fastas" directory contains the genes extracted from the input aligned to the genes from the samples selected from the database, ran through Gblocks with relaxed parameters.
-* The "trees" directory contains the IQ-TREE2 output from running on the "final_fastas" directory, in addition to a treefile where the accession numbers from NCBI have been replaced with binomials (final_fastas_named.treefile).
 
 
 ## Please cite: 
