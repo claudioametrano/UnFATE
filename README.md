@@ -79,6 +79,7 @@ In the following example main_wrap.py is called from the UnFATE folder using:
 * **--strict_filtering** any multiple copy gene that is not solved by coverage is discarded from the sample
 * **--depth_multiplier 10** to be retained a copy must have at least 10 times the coverage of the other copies
 * **--gappy_out 90** the samples with >= 90% of missing genes are discarded
+
 `python3 ./UnFATE/main_wrap.py -b ./UnFATE/UnFATE_markers_195.fas -a ./assembly_folder -w ./WGS_folder/ -t ./target_enrichment_folder/ -n AUTO -o ./output_example --cpu 4 --first_use --trimal --strict_filtering --depth_multiplier 10 --gappy_out 90`
 
 ### Output description
