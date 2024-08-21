@@ -100,7 +100,8 @@ The UnFATE output will be placed in many folders within the location specified b
 ## barcode_wrap.py usage
 `barcode_wrap.py --help` will open the help describing each arumgent and their usage.
 * launch the barcode pipeline on a single sample:
- `barcode_wrap.py -i TUTORIAL_DATASET/TE_tutorial/GCA_000143535_TE_R* -c 4 -b UnFATE/UnFATE_markers_195.fas -o GCA_00014`
+
+`barcode_wrap.py -i TUTORIAL_DATASET/TE_tutorial/GCA_000143535_TE_R* -c 4 -b UnFATE/UnFATE_markers_195.fas -o GCA_00014`
 
 * This script handles **multilocus barcoding** of target enrichment, WGS data and assemblies.
 * It finds the most similar samples to the input data in our database, then builds a tree of those samples using the 195 UnFATe genes. The precision of the taxonomy inferred depends on the completeness of the database. Species level identification could be possible in highly sequenced groups (e.g. Aspergillaceae) but it will not be the case in groups with few sequenced genomes.
