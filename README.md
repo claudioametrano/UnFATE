@@ -24,7 +24,7 @@ If you use the pipline please cite this work and the tools used to build this pi
   *  `sudo docker run -it unfate1.0`
 3. Start the UnFATE conda environment within the container
   *  `conda activate unfate`  
-4. Quick run in your current directory with the tutorial dataset (`main_wrap.py --help` for details about the software's arguments):
+4. Quick run (only 10 genes, use the 195 genes protein file for real analyses!) in your current directory with the tutorial dataset (`main_wrap.py --help` for details about the software's arguments):
   *  `wget  https://raw.githubusercontent.com/claudioametrano/UnFATE/master/TUTORIAL_DATASET.tar.gz`
   *  `tar -xf TUTORIAL_DATASET.tar.gz`
   *  `main_wrap.py -b ./TUTORIAL_DATASET/10_Unfate_markers_aa.fasta -a ./TUTORIAL_DATASET/assemb_tutorial/ -w ./TUTORIAL_DATASET/WGS_tutorial/ -t ./TUTORIAL_DATASET/TE_tutorial/ -n Letharia -o ./output_wgs_te_ass_letharia --first_use`
@@ -60,14 +60,14 @@ Prerequisites/Dependencies:
   * `mamba install hybpiper=2.1.8`
 10. clone UnFATE repository  
 `git clone https://github.com/claudioametrano/UnFATE.git`
-11. Quick run in your current directory with the tutorial dataset (`main_wrap.py --help` for deatails about the software's arguments):
+11. Quick run (only 10 genes, use the 195 genes protein file for real analyses!) in your current directory with the tutorial dataset (`main_wrap.py --help` for deatails about the software's arguments):
   * `wget  https://raw.githubusercontent.com/claudioametrano/UnFATE/master/TUTORIAL_DATASET.tar.gz`
   * `tar -xf TUTORIAL_DATASET.tar.gz`
   * `python3 ./UnFATE/main_wrap.py -b ./TUTORIAL_DATASET/10_Unfate_markers_aa.fasta -a ./TUTORIAL_DATASET/assemb_tutorial/ -w ./TUTORIAL_DATASET/WGS_tutorial/ -t ./TUTORIAL_DATASET/TE_tutorial/ -n Letharia -o ./output_wgs_te_ass_letharia --first_use`
 
 ### main_wrap.py usage example
 In the following example main_wrap.py is called from the UnFATE folder using:  
-* **-b** the 195 genes UnFATE reference protein file wich comes with the UnFATE repository (or any protein file in Hypiper format)
+* **-b** the 195 genes UnFATE reference protein file (**UnFATE_markers_195.fas**) which comes with the UnFATE repository (or any protein file in Hypiper format)
 * **-a** the folder containing asseblies with extension **.fna(.gz)**
 * **-w** the folder containing whole genome sequencing files with extension **_R<1|2>.fastq(.gz)**
 * **-t** the folder containing target enrichment files with extension **_R<1|2>.fastq(.gz)**
@@ -123,6 +123,7 @@ The UnFATE output will be placed in many folders within the location specified b
 
 
 ## NOTES
+* **UnFATE_markers_195.fas** is the reference file with the amino-acid reference sequences used for our bait set and that you should use to run UnFATE, it can be complemented with additional sequence if you already have sequecnes from your taxon of interest, this could improve the gene completeness (the 10 genes files is only useful for software testing!!) 
 * `python3 main_wrap.py --help` will open the help describing each arumgent and their usage.
 * the argument **--first_use** only need to be used the first time the pipeline is launched. Do not move the UnFATE folder afterwards. 
 * Rememeber to set up file extensions for your data: Sequencing data must be in files ending with **_R<1|2>.fastq(.gz)** or _SE.fastq(.gz). Assemblies must be in fasta files ending with **.fna(.gz)**.
