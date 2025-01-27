@@ -110,7 +110,7 @@ def get_fastas_exonerate(path_to_data, isAssemblies):
                     outFile.write(inFile.read())
 
 def select_scores(scores, user_samples):
-    num_db_samples_to_add = 10 #per "cluster"
+    num_db_samples_to_add = 20 #per "cluster"
     non_user_count = 0
     close_samples = []
     for pair in scores: #(sample, score)
