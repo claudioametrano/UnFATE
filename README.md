@@ -133,7 +133,7 @@ The UnFATE output will be placed in many folders within the location specified b
 * Consider running the script from a "tmux" or detachable session
 * Consider logging the script output with `python3 main_wrap.py {params} |& tee <logfile>`. This saves the stdout and stderr from the running main_wrap.py into \<logfile\> as well as printing it to the console.
 * The pre-mined UnFATE database  (`-n` argument, see help): Select any taxonomic rank included in **Accession_plus_taxonomy_Pezizomycotina.txt** (in the UnFATE folder). For binomial species name, use a backslash before the species name (e.g. Fuffaria\ fuffolosa). Adding **AUTO** to the list of taxa, main_wrap.py will use a similar method to barcode_wrap.py (see below) to find the closest samples in the database.
-* Although the script was written with our bait set in mind, it should work with any amino acid target file in HybPiper format. However, the UnFATE database only contains the 195 UnFATE genes.
+* Although the script was written with our bait set in mind, it should work with any amino acid target fasta file in HybPiper format (>sequence_name-gene_name). However, the UnFATE database only contains the 195 UnFATE genes.
 * [PhypartsPieCharts](https://github.com/mossmatters/phyloscripts/tree/master/phypartspiecharts) is a tool to visualize the nodal conflict level for the species tree which uses Phyparts. Consider running PhypartsPieCharts through our helper script with `python pie_wrap.py -t /path/to/single_locus_trees/ -p /path/to/species/tree`. Use a separate conda environement (due to dependency version incompatibility)
 *  UnFATE also works using samples from the database only (-n), take advantage of this feature to get phylogenetic trees of any rank in Pezizomycotina!     
 
