@@ -71,7 +71,7 @@ In the following example main_wrap.py is called from the UnFATE folder using:
 * **-a**: the folder containing asseblies with extension **.fna(.gz)**
 * **-w**: the folder containing whole genome sequencing files with extension **_R<1|2>.fastq(.gz)**
 * **-t**: the folder containing target enrichment files with extension **_R<1|2>.fastq(.gz)**
-* **-n AUTO**: the automatic mode, which picks the samples most similar to your data from the UnFATE database (in addition, any other taxonomic name can be added in a space separated list to the -n argument (see **Accession_plus_taxonomy_Pezizomycotina.txt** in the UnFATE folder), if you use binomial names, put a "\" between genus and species name)
+* **-n AUTO**: the automatic mode, which picks the samples most similar to your data from the UnFATE database (in addition, any other taxonomic name can be added in a space separated list to the -n argument (see **Accession_plus_taxonomy_Pezizomycotina.txt** in the UnFATE folder), if you use binomial names, put a "\ " between genus and species name)
 * **-o**: the output folder
 * **--cpu**: the number of cores to be used to parallelize the analyses
 * **--first_use**: argument to be used only the first time UnFATE is used (do not move the folder afterwards)
