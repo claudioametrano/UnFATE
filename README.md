@@ -43,7 +43,7 @@ Prerequisites/Dependencies:
 3. Restart the Terminal, it should show the (base) conda environment at the beginning of your command line
 4. Install mamba (all the conda installations will be faster)
   * `conda install conda-forge::mamba`
-5. Create a conda environment which uses Python3.7
+5. Create a conda environment which uses Python3.11
   * `mamba create -n unfate python=3.11`
 6. Start the environment
   * `mamba activate unfate`  
