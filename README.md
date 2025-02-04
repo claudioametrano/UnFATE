@@ -142,7 +142,7 @@ The UnFATE output will be placed in many folders within the location specified b
 The wrapper script relies on many great software developed by other people. If you use this wrapper and bait set please cite the applicable papers:
 
 #### UnFATE
-Ametrano et al. 2024? XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX 
+Ametrano, C.G., Jensen, J., Lumbsch, H. T. & Grewe, F. (2025) UnFATE: A Comprehensive Probe Set and Bioinformatics Pipeline for Phylogeny Reconstruction and Multilocus Barcoding of Filamentous Ascomycetes (Ascomycota, Pezizomycotina). Systematic Biology   
 #### Trimmomatic
 Bolger, A. M., Lohse, M., & Usadel, B. (2014). Trimmomatic: a flexible trimmer for Illumina sequence data. Bioinformatics, 30(15), 2114-2120.
 #### Gblocks
