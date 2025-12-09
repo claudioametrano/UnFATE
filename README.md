@@ -47,8 +47,8 @@ Prerequisites/Dependencies:
   * `mamba create -n unfate python=3.11`
 6. Start the environment
   * `mamba activate unfate`  
-    * `conda config --add channels conda-forge`
-    * `conda config --add channels bioconda`  
+  * `conda config --add channels conda-forge`
+  * `conda config --add channels bioconda`  
 7. Install dependencies using conda (mamba)
   * `mamba install -c bioconda blast=2.14.1 spades=3.15.5 exonerate=2.4.0 hmmer=3.3.2 trimal=1.4 mafft=7.520` 
   * `mamba install -c conda-forge biopython=1.80`
